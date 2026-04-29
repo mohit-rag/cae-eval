@@ -1,0 +1,13 @@
+raw_data/
+harbor_results/
+.claude/
+.uv-cache/
+legacy/
+
+.env
+.env.*
+*.env
+.venv/
+__pycache__/
+scripts/
+harbor/

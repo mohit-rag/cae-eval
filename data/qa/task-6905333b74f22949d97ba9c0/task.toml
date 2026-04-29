@@ -1,0 +1,25 @@
+version = "1.0"
+
+[metadata]
+category = "Root-cause analysis"
+language = "go"
+repository = "minio/minio"
+base_commit = "c07e5b49d477b0774f23db3b290745aef8c01bd2"
+
+[environment]
+docker_image = "ghcr.io/scaleapi/swe-atlas:swe_atlas_QnA_minio_minio_1.0"
+allow_internet = true
+cpus = 16
+memory_mb = 16384
+storage_mb = 20480
+
+[agent]
+timeout_sec = 10800
+
+[verifier]
+timeout_sec = 900
+
+[verifier.env]
+EVAL_API_KEY = "${OPENAI_API_KEY}"
+EVAL_BASE_URL = "${OPENAI_API_BASE}"
+EVAL_MODEL = "${EVAL_MODEL:-anthropic/claude-opus-4-5-20251101}"

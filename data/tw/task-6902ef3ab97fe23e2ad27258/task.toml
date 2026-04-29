@@ -1,0 +1,23 @@
+version = "1.0"
+
+[metadata]
+repository = "https://github.com/simple-login/app"
+base_commit = "2cd6ee777f8c2d3531559588bcfb18627ffb5d2c"
+
+[environment]
+docker_image = "ghcr.io/scaleapi/swe-atlas:swe_atlas_TW_simple-login_app_6902ef3ab97fe23e2ad27258_1.0"
+allow_internet = true
+cpus = 16
+memory_mb = 16384
+storage_mb = 20480
+
+[agent]
+timeout_sec = 10800
+
+[verifier]
+timeout_sec = 900
+
+[verifier.env]
+EVAL_API_KEY = "${OPENAI_API_KEY}"
+EVAL_BASE_URL = "${OPENAI_API_BASE}"
+EVAL_MODEL = "${EVAL_MODEL:-anthropic/claude-opus-4-5-20251101}"

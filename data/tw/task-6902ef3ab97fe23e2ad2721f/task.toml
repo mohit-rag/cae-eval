@@ -1,0 +1,23 @@
+version = "1.0"
+
+[metadata]
+repository = "https://github.com/secdev/scapy"
+base_commit = "0925ada485406684174d6f068dbd85c4154657b3"
+
+[environment]
+docker_image = "ghcr.io/scaleapi/swe-atlas:swe_atlas_TW_secdev_scapy_6902ef3ab97fe23e2ad2721f_1.0"
+allow_internet = true
+cpus = 16
+memory_mb = 16384
+storage_mb = 20480
+
+[agent]
+timeout_sec = 10800
+
+[verifier]
+timeout_sec = 900
+
+[verifier.env]
+EVAL_API_KEY = "${OPENAI_API_KEY}"
+EVAL_BASE_URL = "${OPENAI_API_BASE}"
+EVAL_MODEL = "${EVAL_MODEL:-anthropic/claude-opus-4-5-20251101}"
