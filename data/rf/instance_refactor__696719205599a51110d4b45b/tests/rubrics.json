@@ -1,0 +1,146 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "High-level intent verifying the refactoring achieves proper separation of responsibilities in the Elasticsearch client package.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5",
+    "title": "1.1: Extracts NDJSON request serialization logic out of pkg/tsdb/elasticsearch/client/client.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the NDJSON payload encoding logic (e.g. the encodeBatchRequests function that marshals request headers and bodies into newline-delimited JSON with interval variable substitution) is no longer defined directly in client.go.",
+      "evidence": "In the base codebase, client.go contains encodeBatchRequests() at lines 105-132 which handles JSON marshaling of headers, bodies, and interval placeholder substitution. The prompt identifies 'serializes request payloads into NDJSON format' as a separate concern.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states client.go 'serializes request payloads into NDJSON format' and that 'each of these responsibilities should be separated out'. [2: Implicit Code Base Constraint] The encodeBatchRequests function in client.go is self-contained serialization logic with no dependency on HTTP transport or response parsing. [5: Conclusion] Any correct solution must move the NDJSON serialization logic out of client.go into a separate file.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6",
+    "title": "1.2: Extracts HTTP network communication logic out of pkg/tsdb/elasticsearch/client/client.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the HTTP request execution logic (e.g. the executeRequest function that handles URL construction, HTTP method selection, header setting, and sending requests via the HTTP client) is no longer defined directly in client.go.",
+      "evidence": "In the base codebase, client.go contains executeRequest() at lines 134-161 which handles URL parsing, path joining, creating HTTP requests with context, setting Content-Type headers, and executing via HTTPClient.Do(). The prompt identifies 'network communication with Elasticsearch' as a separate concern.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states client.go 'handles network communication with Elasticsearch' and that 'each of these responsibilities should be separated out'. [2: Implicit Code Base Constraint] The executeRequest function in client.go is self-contained HTTP transport logic with no dependency on serialization or parsing. [5: Conclusion] Any correct solution must move the HTTP communication logic out of client.go into a separate file.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1",
+    "title": "1.3: Extracts streaming response parsing logic out of pkg/tsdb/elasticsearch/client/client.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the streaming JSON response parsing logic (StreamMultiSearchResponse and its helper functions such as processHits, streamHitsArray, skipUnknownField) is no longer defined directly in client.go.",
+      "evidence": "In the base codebase, client.go contains StreamMultiSearchResponse() at lines 245-328 and helpers processHits(), streamHitsArray(), skipUnknownField() at lines 331-453. The prompt identifies 'parses responses including a streaming JSON parser' as a separate concern.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states client.go 'parses responses including a streaming JSON parser' and that 'each of these responsibilities should be separated out'. [2: Implicit Code Base Constraint] The streaming parser functions form a cohesive group of functions that only deal with JSON token-level response parsing. [5: Conclusion] Any correct solution must move the response parsing logic out of client.go into a separate file.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+    "title": "1.4: Extracts all 3 query construction types (QueryBuilder, BoolQueryBuilder, FilterQueryBuilder) out of pkg/tsdb/elasticsearch/client/search_request.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the query builder types (QueryBuilder, BoolQueryBuilder, FilterQueryBuilder) along with their constructors and methods are no longer defined in search_request.go.",
+      "evidence": "In the base codebase, search_request.go contains QueryBuilder (line 197), BoolQueryBuilder (line 230), FilterQueryBuilder (line 263) and all their methods including NewQueryBuilder, Build, Bool, Filter, AddDateRangeFilter, AddQueryStringFilter. The prompt identifies 'the query construction logic' as a self-contained group that does not belong in search_request.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states search_request.go 'bundles together the search request types alongside query builders, filter builders' and that 'the query construction logic' should be 'split out into their own files'. [2: Implicit Code Base Constraint] QueryBuilder, BoolQueryBuilder, and FilterQueryBuilder form one cohesive group: QueryBuilder uses BoolQueryBuilder which uses FilterQueryBuilder. They share no structural dependency with SearchRequestBuilder beyond being referenced by it. [5: Conclusion] Any correct solution must move all query builder types out of search_request.go into a separate file.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3",
+    "title": "1.5: Extracts all 2 aggregation builder types (AggBuilder interface and aggBuilderImpl struct) out of pkg/tsdb/elasticsearch/client/search_request.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the aggregation builder types (the AggBuilder interface and aggBuilderImpl struct) along with all aggregation builder methods (such as Histogram, DateHistogram, Terms, Nested, Filters, GeoHashGrid, Metric, Pipeline, Build) are no longer defined in search_request.go.",
+      "evidence": "In the base codebase, search_request.go contains AggBuilder interface (line 304), aggBuilderImpl struct (line 316), and aggregation methods spanning lines 316-517. The prompt identifies 'the entire aggregation builder hierarchy' as a self-contained group that does not belong in search_request.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states search_request.go bundles 'the entire aggregation builder hierarchy' and that 'the aggregation builder logic' should be 'split out into their own files'. [2: Implicit Code Base Constraint] The AggBuilder interface, aggBuilderImpl struct, and all their methods form one cohesive hierarchy with no structural dependency on SearchRequestBuilder beyond being referenced by it. [5: Conclusion] Any correct solution must move all aggregation builder types out of search_request.go into a separate file.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+    "title": "1.6: Retains all 2 search request types (SearchRequestBuilder and MultiSearchRequestBuilder) in pkg/tsdb/elasticsearch/client/search_request.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that search_request.go still contains the SearchRequestBuilder, MultiSearchRequestBuilder, and their directly related methods (such as Build, Size, Sort, Query, Agg, Search, AddHighlight, AddDocValueField, AddSearchAfter, AddTimeFieldWithStandardizedFormat).",
+      "evidence": "In the base codebase, search_request.go contains SearchRequestBuilder (line 27), NewSearchRequestBuilder (line 40), and MultiSearchRequestBuilder (line 164) with all their methods. The prompt states 'the search request file should only keep the types and builders directly related to constructing search requests'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the search request file should only keep the types and builders directly related to constructing search requests'. [2: Implicit Code Base Constraint] SearchRequestBuilder and MultiSearchRequestBuilder are the core search request construction types, distinct from the query and aggregation builder hierarchies. [5: Conclusion] Any correct solution must keep these search request types in search_request.go.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "High-level intent for verifying documentation updates tied to the refactor. This refactor is a pure structural code move with no public API changes, so no documentation updates are required.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "Documentation Maintainability"
+    }
+  },
+  {
+    "id": "d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "High-level intent for verifying removal of obsolete code, dead code, or unused artifacts. This refactor moves existing code between files without introducing or removing functionality, so no artifact cleanup is expected.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "Artifact Cleanup"
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "High-level intent for detecting harmful changes that break existing functionality or public API.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "Negative Rubrics"
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+    "title": "4.1: Removes the public StreamMultiSearchResponse function from the es package",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the exported StreamMultiSearchResponse function remains callable from outside the es package with its original signature StreamMultiSearchResponse(body io.Reader, msr *MultiSearchResponse) error, either kept in place or provided via a backward-compatible wrapper.",
+      "evidence": "In the base codebase, StreamMultiSearchResponse is an exported function at client.go line 245. The prompt states 'The public StreamMultiSearchResponse function should remain accessible for backward compatibility'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'The public StreamMultiSearchResponse function should remain accessible for backward compatibility'. [2: Implicit Code Base Constraint] StreamMultiSearchResponse is an exported (capitalized) function that external callers depend on. [5: Conclusion] Removing this function without an equivalent public replacement is a breaking change.",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics"
+    }
+  },
+  {
+    "id": "a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8",
+    "title": "4.2: Modifies test files in pkg/tsdb/elasticsearch/client/",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that no files ending in _test.go within pkg/tsdb/elasticsearch/client/ are modified, created, or deleted by the refactoring.",
+      "evidence": "The prompt states 'I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly forbids modifying test files: 'Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.' [5: Conclusion] Any modification to test files directly violates an explicit constraint of the prompt.",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics"
+    }
+  }
+]

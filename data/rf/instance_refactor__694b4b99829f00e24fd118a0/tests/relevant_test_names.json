@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/sources/gitlab/TestCloudBaseURLConditional"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/sources/gitlab/TestErrorWrappingFormat"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/sources/gitlab/TestListGroupProjectOptionsWithPagination"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/sources/gitlab/TestPaginationConstants"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/sources/gitlab/TestProcessProjectsDeduplication"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "files": [
+    {
+      "name": "packages/api-queries/src/__tests__/site-plugins.test.ts"
+    },
+    {
+      "name": "client/dashboard/plugins/plugin/test/sites-with-this-plugin.test.tsx"
+    }
+  ]
+}

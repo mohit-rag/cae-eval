@@ -1,0 +1,254 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c4a44e1274abb7d5f3c814f55fd31e88",
+    "title": "1.1: Adds a method on ModuleResolver in js/modules/resolution.go that resolves the module dependency tree without executing code",
+    "annotations": {
+      "importance": "must have",
+      "description": "ModuleResolver gains a method that loads, parses, resolves, and links the main module and all its dependencies before bundle creation, without running JavaScript.",
+      "evidence": "gold.patch lines 302-322 (js/modules/resolution.go): lines 304 adds LoadMainModule method on *ModuleResolver accepting (pwd *url.URL, specifier string, data []byte) error, lines 305-321 show it calling resolveLoaded, resolve, and Link without executing JavaScript.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'should support loading and linking a main module along with all its dependencies without executing any JavaScript code'. [3: Logical Necessity] To enable pre-analysis, a method must exist that resolves without executing. [5: Conclusion] Therefore, ANY correct answer must add such a method to ModuleResolver.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9ff148125f3fd47e9fb5ca49d802d3d9",
+    "title": "1.2: Updates NewBundle in internal/js/bundle.go to accept a pre-built ModuleResolver parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "NewBundle's signature is updated to receive a *modules.ModuleResolver from the caller instead of creating one internally.",
+      "evidence": "gold.patch lines 78-83 (internal/js/bundle.go): line 80 changes NewBundle signature to include mr *modules.ModuleResolver parameter, line 83 passes it through to newBundle.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Bundle creation functions ... should accept a pre-built resolver instead of creating one internally'. [3: Logical Necessity] For resolution to happen before bundle creation, the resolved result must be passable to NewBundle. [5: Conclusion] Therefore, ANY correct answer must update NewBundle to accept a ModuleResolver.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "8efb4b0316eb5c2914990b86a0a566be",
+    "title": "1.3: Updates NewBundleFromArchive in internal/js/bundle.go to accept a pre-built ModuleResolver parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "NewBundleFromArchive's signature is updated to receive a *modules.ModuleResolver from the caller.",
+      "evidence": "gold.patch lines 115-118 (internal/js/bundle.go): lines 116-118 change NewBundleFromArchive signature to include mr *modules.ModuleResolver, line 143 passes it through to newBundle.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Bundle creation functions ... should accept a pre-built resolver instead of creating one internally'. NewBundleFromArchive is the second bundle creation function. [5: Conclusion] Therefore, ANY correct answer must update NewBundleFromArchive to accept a ModuleResolver.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "bc5ef00884135aa90bceec78e2365ab2",
+    "title": "1.4: Updates New in internal/js/runner.go to accept a pre-built ModuleResolver parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "The runner's New function is updated to receive a *modules.ModuleResolver and propagate it to bundle creation.",
+      "evidence": "gold.patch lines 274-280 (internal/js/runner.go): lines 276-278 change New signature to include mr *modules.ModuleResolver, line 279 passes it to NewBundle.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'the runner entry points (New and NewFromArchive) should accept a pre-built resolver instead of creating one internally'. [2: Implicit Codebase Constraint] js.New is the public entry point that callers (test_load.go) use to create runners. [5: Conclusion] Therefore, ANY correct answer must update runner.New to accept a ModuleResolver.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "570e56173f83f30790dfd5808482ab12",
+    "title": "1.5: Updates NewFromArchive in internal/js/runner.go to accept a pre-built ModuleResolver parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "The runner's NewFromArchive function is updated to receive a *modules.ModuleResolver and propagate it to bundle creation.",
+      "evidence": "gold.patch lines 287-290 (internal/js/runner.go): line 289 changes NewFromArchive signature to include mr *modules.ModuleResolver, line 290 passes it to NewBundleFromArchive.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'the runner entry points (New and NewFromArchive) should accept a pre-built resolver'. [2: Implicit Codebase Constraint] js.NewFromArchive is the archive loading entry point called by test_load.go. [5: Conclusion] Therefore, ANY correct answer must update runner.NewFromArchive to accept a ModuleResolver.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "1d6f9e41c7c09bae85621038b4207f93",
+    "title": "1.6: Replaces internal ModuleResolver creation with the externally provided resolver in internal/js/bundle.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Bundle initialization no longer contains code to create a ModuleResolver internally; it uses the resolver provided by the caller.",
+      "evidence": "gold.patch lines 93-107 (internal/js/bundle.go): line 97 assigns ModuleResolver from the parameter, lines 104-106 show removal of the internal bundle.newCompiler and modules.NewModuleResolver creation.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states bundle creation should accept a 'pre-built resolver instead of creating one internally'. The phrase 'instead of creating one internally' indicates internal creation must be removed. [3: Logical Necessity] For module resolution to truly be an independent step, bundle initialization must not contain resolver creation logic. [5: Conclusion] Therefore, ANY correct answer must remove the internal ModuleResolver creation from newBundle.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "82ca43ee9b5329d927673b0bb1de6df8",
+    "title": "1.7: Adds a NewModuleResolver factory function in internal/js/bundle.go that creates a ModuleResolver independently before bundle creation",
+    "annotations": {
+      "importance": "must have",
+      "description": "A NewModuleResolver function is added to internal/js/bundle.go that accepts (pwd, preInitState, filesystems) and returns a *modules.ModuleResolver, allowing external callers to create a resolver without a bundle instance.",
+      "evidence": "gold.patch lines 187-193 (internal/js/bundle.go): lines 188-193 add NewModuleResolver function accepting (pwd *url.URL, preInitState *lib.TestPreInitState, filesystems map[string]fsext.Fs) and returning *modules.ModuleResolver, using newCompiler and generateFileLoad internally.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The ModuleResolver should be creatable on its own, outside of the bundle'. [2: Implicit Codebase Constraint] ModuleResolver requires internal dependencies (compiler, FileLoader) that are created inside bundle.go; external callers cannot construct one without a factory. [5: Conclusion] Therefore, ANY correct answer must add a NewModuleResolver factory function that creates a ModuleResolver independently.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9bb5ef4cd4fc21061d6b3e5ac529541d",
+    "title": "1.8: Updates both call sites in internal/cmd/test_load.go (the JS path calling js.New, the archive path calling js.NewFromArchive) to create a ModuleResolver externally and pass it to the runner",
+    "annotations": {
+      "importance": "must have",
+      "description": "The initializeFirstRunner function in test_load.go is updated at both call sites: the JS path creates a ModuleResolver via js.NewModuleResolver and passes it to js.New; the archive path does the same and passes to js.NewFromArchive.",
+      "evidence": "gold.patch lines 26-35 (internal/cmd/test_load.go): line 30 creates moduleResolver via js.NewModuleResolver for the JS path, line 34 passes it to js.New. gold.patch lines 44-51 (internal/cmd/test_load.go): line 46 creates moduleResolver for the archive path, line 51 passes it to js.NewFromArchive.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The callers in internal/cmd/test_load.go should create the resolver externally ... and pass it in'. [3: Logical Necessity] test_load.go is the primary caller that orchestrates test loading; it must create the resolver before passing it to the runner entry points. [5: Conclusion] Therefore, ANY correct answer must update both call sites in test_load.go to create a ModuleResolver externally and pass it to the runner.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "1ab3fac625c5f77c9ed946a8170b4d4b",
+    "title": "1.9: Calls LoadMainModule at both call sites in internal/cmd/test_load.go (the JS path, the archive path) to pre-load the module tree before passing the resolver to the runner",
+    "annotations": {
+      "importance": "must have",
+      "description": "At both call sites in initializeFirstRunner, the resolver's LoadMainModule method is called after creating the resolver and before passing it to the runner, ensuring the module dependency tree is resolved ahead of bundle creation.",
+      "evidence": "gold.patch lines 26-35 (internal/cmd/test_load.go): lines 31-33 show the JS path calling moduleResolver.LoadMainModule(testPath, ...) before js.New. gold.patch lines 44-51 (internal/cmd/test_load.go): lines 47-50 show the archive path calling moduleResolver.LoadMainModule before js.NewFromArchive.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The callers in internal/cmd/test_load.go should ... pre-load the module tree, and pass it in'. [3: Logical Necessity] Without calling LoadMainModule, the resolver would be passed empty \u2014 the module tree must be loaded before the runner uses it. [5: Conclusion] Therefore, ANY correct answer must call LoadMainModule at both call sites in test_load.go before passing the resolver to the runner.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b14b99722307800f7c411b00e19fd9d3",
+    "title": "1.10: Removes the CompatibilityMode field from the compiler Options struct in internal/js/compiler/compiler.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The CompatibilityMode field is removed from compiler.Options, eliminating the unnecessary dependency on the lib package.",
+      "evidence": "gold.patch lines 209-212 (internal/js/compiler/compiler.go): line 210 removes CompatibilityMode lib.CompatibilityMode from Options struct, line 212 shows only SourceMapLoader remains.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The compiler in internal/js/compiler/compiler.go carries a CompatibilityMode field in both its Options struct and internal parsingState, but this field is not actually needed for the parsing logic'. [5: Conclusion] Therefore, ANY correct answer must remove CompatibilityMode from compiler.Options.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "4617bededfc6b81f8070bc77cedbe2da",
+    "title": "1.11: Removes the compatibilityMode field from the parsingState struct in internal/js/compiler/compiler.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The compatibilityMode field is removed from parsingState, simplifying the parsing logic.",
+      "evidence": "gold.patch lines 216-231 (internal/js/compiler/compiler.go): line 223 removes compatibilityMode lib.CompatibilityMode from parsingState struct. gold.patch lines 237-246: line 239 removes compatibilityMode initialization from Parse. gold.patch line 254: removes ps.compatibilityMode reset in parseImpl.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the compiler carries CompatibilityMode 'in both its Options struct and internal parsingState, but this field is not actually needed for the parsing logic'. [5: Conclusion] Therefore, ANY correct answer must remove compatibilityMode from parsingState.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "78b52729067705a52234177018fffc9d",
+    "title": "1.12: Decouples both internal helpers in internal/js/bundle.go (newCompiler, generateFileLoad) from the Bundle struct so they accept explicit parameters instead",
+    "annotations": {
+      "importance": "must have",
+      "description": "Both newCompiler and generateFileLoad are refactored: newCompiler changes from a Bundle method to a standalone function accepting (preInitState, filesystems), and generateFileLoad changes from accepting a *Bundle to accepting (logger, filesystems) as explicit parameters.",
+      "evidence": "gold.patch lines 151-163 (internal/js/bundle.go): lines 154-156 change newCompiler from Bundle method to standalone function accepting (preInitState, filesystems). gold.patch lines 168-185 (internal/js/bundle.go): line 169 changes generateFileLoad from accepting (b *Bundle) to accepting (logger, filesystems) as explicit parameters.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Internal helpers that currently depend on the bundle struct for accessing the logger and filesystems should be refactored to accept those as explicit parameters instead'. [3: Logical Necessity] For the factory function to create a ModuleResolver outside the bundle, these helpers must work without a bundle instance. [5: Conclusion] Therefore, ANY correct answer must decouple these helpers from the Bundle struct so the resolver factory can use them.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "deb2013afb92f57f53d593b5f6b2f72d",
+    "title": "1.13: Updates RunSourceData in ModuleSystem in js/modules/resolution.go to reuse the new module loading method instead of inline resolution",
+    "annotations": {
+      "importance": "must have",
+      "description": "RunSourceData is updated to call the new module loading method rather than duplicating the resolveLoaded call inline.",
+      "evidence": "gold.patch lines 328-339 (js/modules/resolution.go): lines 332-333 replace the inline ms.resolver.resolveLoaded call with ms.resolver.LoadMainModule(pwd, specifier, source.Data).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The existing RunSourceData in ModuleSystem should reuse the same pre-loading logic rather than doing inline resolution on its own'. [3: Logical Necessity] Consolidating resolution logic avoids duplication and ensures consistent behavior. [5: Conclusion] Therefore, ANY correct answer must update RunSourceData to use the new loading method.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a21acad5a3e97e8217b7b766fb0fc0a4",
+    "title": "1.14: Fixes the 'ComaptibilityMode' typo to 'CompatibilityMode' in the deprecation warning in internal/cmd/test_load.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The misspelled string 'ComaptibilityMode' in the deprecation warning is corrected to 'CompatibilityMode'.",
+      "evidence": "gold.patch lines 17-18 (internal/cmd/test_load.go): line 17 removes 'ComaptibilityMode', line 18 adds 'CompatibilityMode' in the Warnf string.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Also fix the ComaptibilityMode typo in the deprecation warning in internal/cmd/test_load.go'. [5: Conclusion] Therefore, ANY correct answer must fix this typo.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3df1cbb07e3dc55021c84decf2167d47",
+    "title": "1.15: Removes the compatibility mode override logic from NewBundleFromArchive in internal/js/bundle.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The conditional block that falls back to the archive's CompatibilityMode when piState.RuntimeOptions.CompatibilityMode is not valid is removed from NewBundleFromArchive.",
+      "evidence": "gold.patch lines 123-127 (internal/js/bundle.go): lines 123-127 remove the conditional block that sets piState.RuntimeOptions.CompatibilityMode from arc.CompatibilityMode using null.StringFrom.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states NewBundleFromArchive 'contains compatibility mode fallback logic that mixes concerns'. [3: Logical Necessity] As part of removing CompatibilityMode from the compiler, the archive fallback logic that set it becomes unnecessary. [5: Conclusion] Therefore, ANY correct answer must remove this fallback logic as part of the decoupling.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "91d5e250fc85332909f731662f635fce",
+    "title": "4.1: Duplicates the pwd nil-check from newBundle into test_load.go instead of using the source URL's parent directory directly",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the caller in test_load.go does not copy the 'if pwd == nil { pwd = loader.Dir(...) }' logic from newBundle. The gold.patch uses lt.source.URL.JoinPath(\"../\") directly for the JS path and arc.PwdURL for the archive path, keeping the nil-check inside newBundle where it belongs.",
+      "evidence": "gold.patch lines 26-35 (internal/cmd/test_load.go): the JS path uses 'pwd := lt.source.URL.JoinPath(\"../\")' without any nil-check. The archive path uses 'pwd := arc.PwdURL'. No pwd nil-check is duplicated into the caller.",
+      "justification": "[2: Implicit Codebase Constraint] The pwd nil-check already exists inside newBundle (bundle.go line 108-110) and handles the fallback for all callers; duplicating it into test_load.go creates redundant logic. [3: Logical Necessity] Copying bundle-internal defensive logic into callers creates a maintenance burden where the nil-check must be kept in sync in two places, and adds unnecessary code to the caller. [5: Conclusion] Therefore, a solution that adds a pwd nil-check in test_load.go instead of using the URL's parent directory directly represents an incorrect approach.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "8461e03effdf728a2b1f6b75d4ca4f22",
+    "title": "4.2: Inlines the compiler creation logic into NewModuleResolver instead of keeping newCompiler as a separate standalone function",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the solution keeps newCompiler as a standalone function (accepting preInitState and filesystems) that NewModuleResolver calls, rather than inlining the compiler creation directly inside NewModuleResolver.",
+      "evidence": "gold.patch lines 151-163 (internal/js/bundle.go): newCompiler is refactored to a standalone function 'func newCompiler(preInitState *lib.TestPreInitState, filesystems map[string]fsext.Fs) *compiler.Compiler'. gold.patch lines 187-193: NewModuleResolver calls 'c := newCompiler(preInitState, filesystems)' and passes c to modules.NewModuleResolver.",
+      "justification": "[2: Implicit Codebase Constraint] newCompiler is also used by bundle.instantiate (via BundleInstance) for creating compilers during VU initialization; eliminating it as a standalone function forces duplication or breaks that usage. [3: Logical Necessity] Inlining compiler creation into NewModuleResolver defeats the decoupling goal \u2014 the helper should be reusable by both NewModuleResolver and the bundle's instantiation path. [5: Conclusion] Therefore, a solution that inlines compiler creation into NewModuleResolver instead of keeping newCompiler as a separate standalone function violates the refactoring intent.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

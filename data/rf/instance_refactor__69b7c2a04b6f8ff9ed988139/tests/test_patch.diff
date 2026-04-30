@@ -1,0 +1,530 @@
+diff --git a/src/go/pkg/daemonstatus/daemonstatus.go b/src/go/pkg/daemonstatus/daemonstatus.go
+new file mode 100644
+index 000000000..2969d0684
+--- /dev/null
++++ b/src/go/pkg/daemonstatus/daemonstatus.go
+@@ -0,0 +1 @@
++package daemonstatus
+diff --git a/src/go/pkg/daemonstatus/daemonstatus_test.go b/src/go/pkg/daemonstatus/daemonstatus_test.go
+new file mode 100644
+index 000000000..a6e896509
+--- /dev/null
++++ b/src/go/pkg/daemonstatus/daemonstatus_test.go
+@@ -0,0 +1,517 @@
++package daemonstatus
++
++import (
++	"os"
++	"path/filepath"
++	"regexp"
++	"strings"
++	"testing"
++)
++
++func repoRoot() string {
++	dir, err := os.Getwd()
++	if err != nil {
++		panic("cannot determine working directory: " + err.Error())
++	}
++	for {
++		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
++			return dir
++		}
++		parent := filepath.Dir(dir)
++		if parent == dir {
++			panic("could not find repo root (.git directory)")
++		}
++		dir = parent
++	}
++}
++
++func readFile(t *testing.T, relPath string) string {
++	t.Helper()
++	data, err := os.ReadFile(filepath.Join(repoRoot(), relPath))
++	if err != nil {
++		t.Fatalf("failed to read %s: %v", relPath, err)
++	}
++	return string(data)
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.h: fatal struct gains errno field
++// ---------------------------------------------------------------------------
++
++func TestFatalStructHasErrnoField(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.h")
++	fatalIdx := strings.Index(content, "} fatal")
++	if fatalIdx == -1 {
++		t.Fatal("could not find fatal struct in daemon-status-file.h")
++	}
++	structStart := strings.LastIndex(content[:fatalIdx], "struct")
++	fatalSection := content[structStart:fatalIdx]
++	if !strings.Contains(fatalSection, "errno") {
++		t.Error("fatal struct in daemon-status-file.h should contain an errno-related field")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.h: dedup struct has content-based hash field
++// ---------------------------------------------------------------------------
++
++func TestDedupStructHasHashField(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.h")
++	dedupIdx := strings.Index(content, "} dedup")
++	if dedupIdx == -1 {
++		t.Fatal("could not find dedup struct in daemon-status-file.h")
++	}
++	structStart := strings.LastIndex(content[:dedupIdx], "struct")
++	dedupSection := content[structStart:dedupIdx]
++
++	hasHashField := strings.Contains(strings.ToLower(dedupSection), "hash") ||
++		strings.Contains(dedupSection, "XXH64") ||
++		strings.Contains(dedupSection, "xxh64") ||
++		strings.Contains(dedupSection, "checksum") ||
++		strings.Contains(dedupSection, "fingerprint") ||
++		strings.Contains(dedupSection, "digest")
++	if !hasHashField {
++		t.Error("dedup struct should contain a hash/checksum/fingerprint field for content-based dedup")
++	}
++}
++
++func TestDedupStructHasRestartCounter(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.h")
++	dedupIdx := strings.Index(content, "} dedup")
++	if dedupIdx == -1 {
++		t.Fatal("could not find dedup struct in daemon-status-file.h")
++	}
++	structStart := strings.LastIndex(content[:dedupIdx], "struct")
++	dedupSection := content[structStart:dedupIdx]
++	hasRestart := strings.Contains(strings.ToLower(dedupSection), "restart") ||
++		strings.Contains(strings.ToLower(dedupSection), "reboot") ||
++		strings.Contains(strings.ToLower(dedupSection), "boot_count")
++	if !hasRestart {
++		t.Error("dedup struct should contain a restart/reboot tracking field")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.h: register_fatal signature includes errno
++// ---------------------------------------------------------------------------
++
++func TestRegisterFatalDeclHasErrnoParam(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.h")
++	re := regexp.MustCompile(`daemon_status_file_register_fatal\s*\([^)]*errno[^)]*\)`)
++	if !re.MatchString(content) {
++		t.Error("daemon_status_file_register_fatal declaration should accept an errno parameter")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// nd_log.h: log_event_t callback signature includes errno
++// ---------------------------------------------------------------------------
++
++func TestLogEventTypeHasErrnoParam(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.h")
++	re := regexp.MustCompile(`log_event_t\b[^;]*errno[^;]*;`)
++	if !re.MatchString(content) {
++		t.Error("log_event_t typedef should include an errno parameter")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// nd_log-internals.h: log_field_strdupz returns const char*
++// ---------------------------------------------------------------------------
++
++func TestLogFieldStrdupzDeclReturnsConstChar(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log-internals.h")
++	re := regexp.MustCompile(`const\s+char\s*\*\s*log_field_strdupz`)
++	if !re.MatchString(content) {
++		t.Error("log_field_strdupz declaration should return const char*")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: version bump (no longer hardcodes 2)
++// ---------------------------------------------------------------------------
++
++func TestStatusFileVersionBumped(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	re := regexp.MustCompile(`"version"\s*,\s*2\s*\)`)
++	if re.MatchString(content) {
++		t.Error("status file should no longer hardcode version 2; version should be bumped")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: content-based hash function exists
++// ---------------------------------------------------------------------------
++
++func TestDaemonStatusFileHasHashFunction(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	hasHashFunc := strings.Contains(content, "daemon_status_file_hash") ||
++		strings.Contains(content, "status_file_hash") ||
++		strings.Contains(content, "crash_hash") ||
++		strings.Contains(content, "compute_hash") ||
++		strings.Contains(content, "compute_content_hash") ||
++		strings.Contains(content, "content_hash") ||
++		strings.Contains(content, "dedup_hash")
++	if !hasHashFunc {
++		t.Error("daemon-status-file.c should define a function that computes a content-based hash for dedup")
++	}
++}
++
++func TestHashFunctionUsesMultipleFields(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	funcNames := []string{
++		"daemon_status_file_hash", "daemon_status_file_compute_content_hash",
++		"crash_hash", "compute_hash", "compute_content_hash",
++		"dedup_hash", "status_file_hash",
++	}
++	var funcBody string
++	for _, name := range funcNames {
++		searchFrom := 0
++		for searchFrom < len(content) {
++			idx := strings.Index(content[searchFrom:], name)
++			if idx == -1 {
++				break
++			}
++			absIdx := searchFrom + idx
++			braceIdx := strings.Index(content[absIdx:], "{")
++			if braceIdx == -1 {
++				break
++			}
++			candidate := content[absIdx : absIdx+braceIdx]
++			if strings.Contains(candidate, ";") {
++				searchFrom = absIdx + len(name)
++				continue
++			}
++			start := absIdx + braceIdx
++			funcBody = content[start:minInt(start+3000, len(content))]
++			break
++		}
++		if funcBody != "" {
++			break
++		}
++	}
++	if funcBody == "" {
++		t.Skip("hash function not found by name; skipping field check")
++	}
++	fieldChecks := 0
++	for _, field := range []string{"fatal", "filename", "function", "message", "stack_trace", "status", "errno", "line"} {
++		if strings.Contains(funcBody, field) {
++			fieldChecks++
++		}
++	}
++	if fieldChecks < 3 {
++		t.Errorf("hash function should incorporate multiple crash context fields; only found %d of the expected fields", fieldChecks)
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: old status-only dedup comparison removed
++// ---------------------------------------------------------------------------
++
++func TestOldDedupComparisonRemoved(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	old := regexp.MustCompile(`dedup\.status\s*==\s*DAEMON_STATUS_INITIALIZING`)
++	if old.MatchString(content) {
++		t.Error("old dedup check comparing against DAEMON_STATUS_INITIALIZING should be removed")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: dedup JSON serialization includes hash and restarts
++// ---------------------------------------------------------------------------
++
++func TestDedupJsonSerializesHashField(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	hasHash := strings.Contains(strings.ToLower(content), `"hash"`) ||
++		strings.Contains(strings.ToLower(content), `"content_hash"`) ||
++		strings.Contains(strings.ToLower(content), `"checksum"`) ||
++		strings.Contains(strings.ToLower(content), `"fingerprint"`) ||
++		strings.Contains(strings.ToLower(content), `"crash_hash"`) ||
++		strings.Contains(strings.ToLower(content), `"dedup_hash"`)
++	if !hasHash {
++		t.Error("dedup JSON serialization should include a hash/content_hash/checksum field")
++	}
++}
++
++func TestDedupJsonSerializesRestarts(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	hasRestart := strings.Contains(content, `"restarts"`) ||
++		strings.Contains(content, `"restart_count"`) ||
++		strings.Contains(content, `"restart"`) ||
++		strings.Contains(content, `"boots"`)
++	if !hasRestart {
++		t.Error("dedup JSON serialization should include a restart tracking field")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: fatal JSON includes errno
++// ---------------------------------------------------------------------------
++
++func TestFatalJsonIncludesErrno(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	lines := strings.Split(content, "\n")
++	inFatal := false
++	hasErrno := false
++	for _, line := range lines {
++		trimmed := strings.TrimSpace(line)
++		if strings.Contains(trimmed, `"fatal"`) && strings.Contains(trimmed, "add_object") {
++			inFatal = true
++			continue
++		}
++		if inFatal && strings.Contains(trimmed, "object_close") {
++			break
++		}
++		if inFatal && strings.Contains(trimmed, "errno") {
++			hasErrno = true
++		}
++	}
++	if !hasErrno {
++		t.Error("fatal JSON section should serialize the errno field")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: register_fatal accepts and stores errno
++// ---------------------------------------------------------------------------
++
++func TestRegisterFatalImplAcceptsErrno(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	re := regexp.MustCompile(`daemon_status_file_register_fatal\s*\([^)]*errno[^)]*\)\s*\{`)
++	if !re.MatchString(content) {
++		t.Error("daemon_status_file_register_fatal definition should accept an errno parameter")
++	}
++}
++
++func TestRegisterFatalStoresErrno(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	idx := strings.Index(content, "daemon_status_file_register_fatal")
++	if idx == -1 {
++		t.Fatal("register_fatal not found")
++	}
++	braceIdx := strings.Index(content[idx:], "{")
++	if braceIdx == -1 {
++		t.Skip("register_fatal function body not found")
++	}
++	bodyStart := idx + braceIdx
++	bodyEnd := minInt(bodyStart+2000, len(content))
++	body := content[bodyStart:bodyEnd]
++	if !strings.Contains(body, "errno") {
++		t.Error("register_fatal function body should reference the errno parameter (store it, free it, etc.)")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: version-gated parsing for backward compat
++// ---------------------------------------------------------------------------
++
++func TestJsonParserHasVersionGatedLogic(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++
++	// Find the parser function body
++	fnIdx := strings.Index(content, "daemon_status_file_from_json")
++	if fnIdx == -1 {
++		t.Fatal("could not find daemon_status_file_from_json function")
++	}
++	braceIdx := strings.Index(content[fnIdx:], "{")
++	if braceIdx == -1 {
++		t.Fatal("could not find opening brace of daemon_status_file_from_json")
++	}
++	bodyStart := fnIdx + braceIdx
++	bodyEnd := minInt(bodyStart+8000, len(content))
++	body := content[bodyStart:bodyEnd]
++
++	// The parser must reference the version variable in conditional logic
++	// to differentiate field requirements between old and new format versions.
++	// This can be done via version-gated booleans (e.g. version >= N), switch/case,
++	// if-else on version, or any other mechanism that uses the parsed version.
++	versionGatePatterns := []string{
++		"version >=",
++		"version >",
++		"version ==",
++		"version !=",
++		"version <=",
++		"version <",
++		"switch(version",
++		"switch (version",
++	}
++	gateCount := 0
++	for _, pat := range versionGatePatterns {
++		gateCount += strings.Count(body, pat)
++	}
++	if gateCount < 2 {
++		t.Errorf("JSON parser should contain version-gated logic (e.g. version >= N checks) to handle old and new formats; found %d version comparisons", gateCount)
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: dedup comparison uses hash
++// ---------------------------------------------------------------------------
++
++func TestDedupComparesHash(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	hashCompare := strings.Contains(content, "hash ==") ||
++		strings.Contains(content, "hash !=") ||
++		strings.Contains(content, "content_hash ==") ||
++		strings.Contains(content, "content_hash !=") ||
++		strings.Contains(content, "crash_hash ==") ||
++		strings.Contains(content, "crash_hash !=") ||
++		strings.Contains(content, "checksum ==") ||
++		strings.Contains(content, "fingerprint ==")
++	if !hashCompare {
++		t.Error("dedup check should compare a content-based hash value")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: dedup stores hash after posting
++// ---------------------------------------------------------------------------
++
++func TestDedupStoresHashAfterPost(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	hasPostStore := strings.Contains(content, "dedup.hash =") ||
++		strings.Contains(content, "dedup.hash=") ||
++		strings.Contains(content, "dedup.content_hash =") ||
++		strings.Contains(content, "dedup.content_hash=") ||
++		strings.Contains(content, "dedup.checksum =") ||
++		strings.Contains(content, "dedup.fingerprint =") ||
++		strings.Contains(content, "dedup.crash_hash =")
++	if !hasPostStore {
++		t.Error("after posting a crash report, the dedup hash should be stored in session_status")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: dedup carry-forward uses hash field
++// ---------------------------------------------------------------------------
++
++func TestDedupCarryForwardUsesHashField(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	hasHash := strings.Contains(content, "dedup.hash") ||
++		strings.Contains(content, "dedup.content_hash") ||
++		strings.Contains(content, "dedup.checksum") ||
++		strings.Contains(content, "dedup.crash_hash") ||
++		strings.Contains(content, "dedup.fingerprint")
++	if !hasHash {
++		t.Error("dedup carry-forward/storage should reference a hash field")
++	}
++}
++
++func TestDedupIncreasesRestartCounter(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	re := regexp.MustCompile(`dedup\.restart[^\n]*((\+\s*1)|\+\+|(\+=\s*1))`)
++	if !re.MatchString(content) {
++		t.Error("daemon-status-file.c should increment the dedup restart counter")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// nd_log.c: extracts errno from fields and passes to callback
++// ---------------------------------------------------------------------------
++
++func TestNdLogEventExtractsErrnoField(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.c")
++	re := regexp.MustCompile(`log_field_strdupz\s*\(\s*&fields\[NDF_ERRNO\]`)
++	if !re.MatchString(content) {
++		t.Error("nd_log_event should extract errno via log_field_strdupz(&fields[NDF_ERRNO])")
++	}
++}
++
++func TestNdLogEventPassesErrnoToCallback(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.c")
++	re := regexp.MustCompile(`log_event_cb\s*\([^)]*errno[^)]*\)`)
++	if !re.MatchString(content) {
++		t.Error("nd_log_event should pass the errno value to the log_event_cb callback")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// nd_log-field-formatters.c: log_field_strdupz definition
++// ---------------------------------------------------------------------------
++
++func TestLogFieldStrdupzDefReturnsConst(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log-field-formatters.c")
++	re := regexp.MustCompile(`const\s+char\s*\*\s*log_field_strdupz`)
++	if !re.MatchString(content) {
++		t.Error("log_field_strdupz definition should return const char*")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// environment.c: fatal messages include env variable, no strerror
++// ---------------------------------------------------------------------------
++
++func TestEnvFatalIncludesEnvParam(t *testing.T) {
++	content := readFile(t, "src/daemon/environment.c")
++	lines := strings.Split(content, "\n")
++	fatalWithEnv := false
++	for _, line := range lines {
++		if strings.Contains(line, "fatal(") && strings.Contains(line, "env") {
++			fatalWithEnv = true
++			break
++		}
++	}
++	if !fatalWithEnv {
++		t.Error("verify_required_directory fatal() calls should include the env parameter")
++	}
++}
++
++func TestEnvFatalNoManualStrerror(t *testing.T) {
++	content := readFile(t, "src/daemon/environment.c")
++	lines := strings.Split(content, "\n")
++	for _, line := range lines {
++		if strings.Contains(line, "fatal(") && strings.Contains(line, "strerror") {
++			t.Error("verify_required_directory should not use manual strerror(errno) in fatal() calls")
++			break
++		}
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: dedup JSON parses hash field
++// ---------------------------------------------------------------------------
++
++func TestDedupJsonParserReadsHashField(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	hasHashParse := false
++	hashNames := []string{`"hash"`, `"content_hash"`, `"crash_hash"`, `"checksum"`, `"fingerprint"`, `"dedup_hash"`}
++	for _, name := range hashNames {
++		if strings.Contains(content, name) && strings.Contains(content, "dedup") {
++			hasHashParse = true
++			break
++		}
++	}
++	if !hasHashParse {
++		t.Error("JSON parser should read a hash-related field into the dedup struct")
++	}
++}
++
++func TestDedupJsonParserReadsRestarts(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	hasRestartParse := (strings.Contains(content, `"restarts"`) ||
++		strings.Contains(content, `"restart_count"`) ||
++		strings.Contains(content, `"restart"`)) &&
++		strings.Contains(content, "dedup")
++	if !hasRestartParse {
++		t.Error("JSON parser should read a restarts field into the dedup struct")
++	}
++}
++
++// ---------------------------------------------------------------------------
++// daemon-status-file.c: fatal JSON parses errno
++// ---------------------------------------------------------------------------
++
++func TestFatalJsonParserReadsErrno(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	hasErrnoParse := strings.Contains(content, `"errno"`) && strings.Contains(content, "fatal")
++	if !hasErrnoParse {
++		t.Error("JSON parser should read an 'errno' field into the fatal struct")
++	}
++}
++
++func minInt(a, b int) int {
++	if a < b {
++		return a
++	}
++	return b
++}

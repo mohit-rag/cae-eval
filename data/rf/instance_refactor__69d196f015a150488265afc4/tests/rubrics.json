@@ -1,0 +1,146 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+    "title": "1.1: Moves Docker image extraction to the schema layer so parsed results return image strings directly",
+    "annotations": {
+      "importance": "must have",
+      "description": "The schema must transform Docker configuration objects to return image strings directly at parse time, eliminating the need for the extraction layer to access nested .image properties.",
+      "evidence": "gold.patch lines 121-126 show CircleCiDocker using .transform(({ image }) => image).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'moving the data transformation into the schema layer so parsed results come out in the shape the extraction logic actually needs - flattened and ready to use.' [5: Conclusion] Therefore, any correct answer must extract image strings at the schema layer rather than in extraction logic.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+    "title": "1.2: Flattens job/executor Docker images into arrays at schema parse time",
+    "annotations": {
+      "importance": "must have",
+      "description": "The schema must transform job and executor records to return flattened arrays of Docker image strings, eliminating nested iteration in the extraction layer.",
+      "evidence": "gold.patch lines 131-135 and 141-143 show transforms returning flattened arrays.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states extraction logic 'has to manually drill into structures and iterate through job.docker arrays to get the image strings.' [3: Logical Necessity] To eliminate this drilling, schemas must return flattened arrays. [5: Conclusion] Therefore, any correct answer must flatten job/executor images at schema level.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "title": "1.3: Eliminates nested loops in extract.ts for processing Docker images",
+    "annotations": {
+      "importance": "must have",
+      "description": "The extraction logic must iterate directly over flattened image arrays rather than using nested loops through job objects and their docker arrays.",
+      "evidence": "gold.patch lines 54-59 show direct iteration over flattened arrays.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states extraction logic 'has to manually drill into structures and iterate through job.docker arrays.' [3: Logical Necessity] With schemas returning flattened data, extraction can use simple iteration. [5: Conclusion] Therefore, any correct answer must eliminate nested loops for Docker image processing.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+    "title": "1.4: Eliminates intermediate array allocations in the orb/definition extraction logic",
+    "annotations": {
+      "importance": "must have",
+      "description": "The extraction logic must no longer create and return new arrays on each recursive call. This can be achieved by mutating a shared array, inlining the logic, or restructuring to avoid repeated allocations.",
+      "evidence": "gold.patch lines 19-28 and 37-38 show extractDefinition now mutates a passed-in deps array instead of creating/returning new arrays.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the extractDefinition function creates new arrays on each recursive call' as complexity to simplify. [5: Conclusion] Therefore, any correct answer must eliminate the pattern of creating new arrays on each recursive call.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
+    "title": "1.5: Removes dependency on `coerceArray` utility for Docker image iteration",
+    "annotations": {
+      "importance": "must have",
+      "description": "The extraction logic must no longer require the coerceArray utility function since schemas now return properly structured arrays.",
+      "evidence": "gold.patch line 7 removes coerceArray import.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt mentions 'use utility functions like coerceArray to handle optional fields' as current complexity. [3: Logical Necessity] With schemas handling optional fields via transforms, coerceArray becomes unnecessary. [5: Conclusion] Therefore, any correct answer must eliminate the need for coerceArray.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
+    "title": "3.1: Removes the unused `coerceArray` import and the unused `CircleCiJob` type import from extract.ts after refactoring",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "After refactoring, imports that are no longer used (such as coerceArray, CircleCiJob type) should be removed for cleaner code.",
+      "evidence": "gold.patch lines 7-8 and 16-17 show removal of coerceArray and CircleCiJob imports.",
+      "justification": "[4: Qualitative Requirement] Removing unused imports improves code clarity and reduces maintenance burden. [5: Conclusion] Therefore, any correct answer should remove imports that become unused after refactoring.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+    "title": "4.1: Modifies test files",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the solution does not modify any test files, as the prompt explicitly states that test changes have already been handled separately.",
+      "evidence": "The prompt states 'I've already taken care of all changes to the test files. This means you DON'T have to modify the testing logic or any of the tests in any way!'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly forbids modifying test files. [5: Conclusion] Therefore, any correct answer must NOT modify any test files.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+    "title": "4.2: Removes or breaks error logging for invalid CircleCI configuration files",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the refactoring preserves error logging behavior. When parsing fails, the error must still be logged with appropriate context.",
+      "evidence": "gold.patch lines 86-88 show error handling preserved.",
+      "justification": "[2: Implicit Codebase Constraint] The original code logs errors for debugging purposes. [4: Qualitative Requirement] Removing error logging would make debugging parse failures difficult. [5: Conclusion] Therefore, any correct answer must NOT remove error logging.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d4602e2af32a69a0ff959838680f9e70",
+    "title": "1.1: Removes the if ( items.length === 1 ) conditional check from getConfirmText function",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the getConfirmText function no longer contains the if (items.length === 1) conditional statement that previously branched between single-item and multi-item logic.",
+      "evidence": "gold.patch line 9 shows removal of 'if ( items.length === 1 ) {' and subsequent lines show direct access to items[0] without the conditional.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'There's still some leftover code handling cases that can't happen anymore'. [2: Implicit Code Base Constraint] ActionRenderModal usages show items is always passed as a single-element array. [3: Logical Necessity] Dead code that can't execute should be removed to simplify the logic. [4: Quality Necessity] Any good implementation removes unreachable code paths. [5: Conclusion] Therefore, ANY correct answer must remove the items.length === 1 conditional check in getConfirmText.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "8e7175053ee86d6d51449d60ed04d1a2",
+    "title": "1.2: Removes the multi-select switch statement that used items.length for pluralization in getConfirmText",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that getConfirmText no longer contains the fallback switch statement that used _n() with items.length to generate messages like 'You are about to activate %d selected plugins.'",
+      "evidence": "gold.patch lines 218-290 show removal of the multi-select fallback switch statement that pluralized based on items.length.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states to 'remove that dead code'. [2: Implicit Code Base Constraint] The multi-select code path using items.length is unreachable since ActionRenderModal always receives a single-element items array. [3: Logical Necessity] Unreachable code adds complexity without value. [4: Quality Necessity] Any good implementation eliminates dead code paths. [5: Conclusion] Therefore, ANY correct answer must remove the multi-select fallback switch statement.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "26ef965fa06371e096e3bca803ae0610",
+    "title": "1.3: Removes the if ( selected.length === 1 ) conditional check from buildSuccessPrefix function",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the buildSuccessPrefix function no longer contains the if (selected.length === 1) conditional statement that previously branched between single-item and multi-item logic.",
+      "evidence": "gold.patch lines 300-342 show removal of the if (selected.length === 1) block, leaving only direct access to selected[0].name.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states to 'simplify how the confirmation texts are built'. [2: Implicit Code Base Constraint] The selected parameter always has length 1 since it receives the items array which is always single-element. [3: Logical Necessity] Simplification requires removing unnecessary conditionals. [4: Quality Necessity] Any good implementation removes dead branching logic. [5: Conclusion] Therefore, ANY correct answer must remove the selected.length === 1 conditional check in buildSuccessPrefix.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ffd2db11457e9f28a3a7ee6870f9ea90",
+    "title": "1.4: Removes the multi-select switch statement that used selected.length for pluralization in buildSuccessPrefix",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that buildSuccessPrefix no longer contains the fallback switch statement that used _n() with selected.length to generate messages like 'Activated %d plugins'.",
+      "evidence": "gold.patch lines 347-404 show removal of the multi-select pluralization using _n() and selected.length in buildSuccessPrefix.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states to 'remove that dead code' and 'simplify how the confirmation texts are built'. [2: Implicit Code Base Constraint] The multi-select code path is unreachable since selected always contains one element. [3: Logical Necessity] Dead code must be removed for simplification. [4: Quality Necessity] Any good implementation cleans up unreachable paths. [5: Conclusion] Therefore, ANY correct answer must remove the multi-select fallback in buildSuccessPrefix.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "1706fa78948897cf5ae7288240de304c",
+    "title": "1.5: Removes the if ( selected.length === 1 ) conditional check from buildErrorPrefix function",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the buildErrorPrefix function no longer contains the if (selected.length === 1) conditional statement that previously branched between single-item and multi-item logic.",
+      "evidence": "gold.patch lines 415-457 show removal of the if (selected.length === 1) block, leaving only direct access to selected[0].name.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states to 'simplify how the confirmation texts are built'. [2: Implicit Code Base Constraint] The selected parameter always has length 1 since it receives the items array which is always single-element. [3: Logical Necessity] Consistent simplification across all three functions. [4: Quality Necessity] Any good implementation removes all instances of dead logic. [5: Conclusion] Therefore, ANY correct answer must remove the selected.length === 1 conditional check in buildErrorPrefix.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "42a181fa4420460991439d7f38bc0b16",
+    "title": "1.6: Removes the multi-select switch statement that used selected.length for pluralization in buildErrorPrefix",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that buildErrorPrefix no longer contains the fallback switch statement that used _n() with selected.length to generate messages like 'Failed to activate %d plugins'.",
+      "evidence": "gold.patch lines 462-539 show removal of the multi-select pluralization using _n() and selected.length in buildErrorPrefix.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states to 'remove that dead code' and 'simplify how the confirmation texts are built'. [2: Implicit Code Base Constraint] The multi-select code path is unreachable since selected always contains one element. [3: Logical Necessity] All three functions must be cleaned up consistently. [4: Quality Necessity] Any good implementation addresses all instances of the pattern. [5: Conclusion] Therefore, ANY correct answer must remove the multi-select fallback in buildErrorPrefix.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "04490a7c5a1b5f67884740d97abd1fe7",
+    "title": "1.7: Returns confirmation messages for all six action types (activate, deactivate, update, enable-autoupdate, disable-autoupdate, delete) in getConfirmText",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that getConfirmText produces distinct confirmation messages when called with each of the six actionId values. The implementation structure (switch, object map, if-else chain, etc.) is not prescribed.",
+      "evidence": "gold.patch lines 26-293 show all six action types are handled and return appropriate confirmation messages.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'keeping the same user-visible behavior'. [2: Implicit Code Base Constraint] The original code handles all six action types. [3: Logical Necessity] Behavior preservation requires all action types to remain functional. [4: Quality Necessity] Any good implementation maintains feature parity. [5: Conclusion] Therefore, ANY correct answer must produce confirmation messages for all six action types.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f0742b0ef71bb538447bdd3874d7a606",
+    "title": "1.8: Returns all 4 context-specific delete confirmation messages based on the extraActions array in getConfirmText (deactivate+disable-autoupdate combined, deactivate-only, disable-autoupdate-only, default remove-only)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that when actionId is 'delete', getConfirmText returns different confirmation messages based on the contents of the extraActions array (which may include 'deactivate' and/or 'disable-autoupdate').",
+      "evidence": "gold.patch lines 119-293 show the delete case produces distinct messages based on extraActions array contents.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'keeping the same user-visible behavior and copy'. [2: Implicit Code Base Constraint] The original delete case has conditional messages based on extraActions. [3: Logical Necessity] Context-specific delete messages must be preserved. [4: Quality Necessity] Any good implementation maintains conditional message logic. [5: Conclusion] Therefore, ANY correct answer must preserve context-specific delete confirmation messages based on extraActions.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "4346865f738c03554b6c243c263857c2",
+    "title": "1.9: Returns a fallback message for unrecognized actionId values in getConfirmText",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that getConfirmText returns a generic fallback message (such as 'You are about to perform this action.') when called with an actionId that does not match any of the six known action types.",
+      "evidence": "gold.patch line 294-295 shows a default fallback returning __('You are about to perform this action.').",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'keeping the same user-visible behavior'. [2: Implicit Code Base Constraint] The original code has a default fallback case. [3: Logical Necessity] Edge case handling must be preserved. [4: Quality Necessity] Any good implementation handles unexpected inputs gracefully. [5: Conclusion] Therefore, ANY correct answer must handle unknown actionId values with a fallback message.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "c022b5cac73cca967739ea0df07a0b95",
+    "title": "4.1: Alters the string 'You are about to activate the %1$s plugin on %2$d site' in getConfirmText",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the activate confirmation message string 'You are about to activate the %1$s plugin on %2$d site.' or its plural variant has been modified or removed from getConfirmText.",
+      "evidence": "gold.patch shows the message string 'You are about to activate the %1$s plugin on %2$d site.' is preserved exactly.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'keeping the same user-visible behavior and copy'. [2: Implicit Code Base Constraint] The existing strings are already translated. [3: Logical Necessity] Changing translated strings would break localization. [5: Conclusion] Therefore, ANY correct answer must preserve the exact message strings.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "041f879d9ef647eb2870e3eb772c11ff",
+    "title": "4.2: Alters the string 'You are about to deactivate the %1$s plugin installed on %2$d site' in getConfirmText",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the deactivate confirmation message string 'You are about to deactivate the %1$s plugin installed on %2$d site.' or its plural variant has been modified or removed from getConfirmText.",
+      "evidence": "gold.patch shows the message string 'You are about to deactivate the %1$s plugin installed on %2$d site.' is preserved exactly.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'keeping the same user-visible behavior and copy'. [2: Implicit Code Base Constraint] The existing strings are already translated. [3: Logical Necessity] Changing translated strings would break localization. [5: Conclusion] Therefore, ANY correct answer must preserve the exact message strings.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

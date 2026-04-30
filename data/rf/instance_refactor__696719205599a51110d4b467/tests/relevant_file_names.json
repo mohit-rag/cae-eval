@@ -1,0 +1,34 @@
+{
+  "files": [
+    {
+      "name": "pkg/api/k8s_handler_gvr_test.go"
+    },
+    {
+      "name": "pkg/registry/apps/playlist/legacy_storage_gvr_test.go"
+    },
+    {
+      "name": "pkg/registry/apps/playlist/register_test.go"
+    },
+    {
+      "name": "pkg/registry/apps/plugins/register_installapis_gvr_test.go"
+    },
+    {
+      "name": "pkg/registry/apps/shorturl/legacy_storage_gvr_test.go"
+    },
+    {
+      "name": "pkg/registry/apps/shorturl/register_test.go"
+    },
+    {
+      "name": "pkg/services/apiserver/builder/runner/admission_test.go"
+    },
+    {
+      "name": "pkg/services/cleanup/kubernetes_shorturl_gvr_test.go"
+    },
+    {
+      "name": "pkg/tests/apis/alerting/notifications/common/testing.go"
+    },
+    {
+      "name": "pkg/tests/apis/alerting/rules/common/testing.go"
+    }
+  ]
+}

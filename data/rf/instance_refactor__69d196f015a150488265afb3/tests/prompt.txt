@@ -1,0 +1,7 @@
+The handle_reply function in email_handler.py has inline logic for determining the From header when replying from an alias. It resolves which display name to use based on a priority: the alias's own name takes precedence; if the alias has no name but belongs to a custom domain, the domain's name is used instead; if neither is available, the plain email address is used as-is. When a display name is applied, the address is formatted with the name alongside the email in standard email address format. The function also logs which name source was chosen before setting the header.
+
+This name resolution logic is not reusable or testable in isolation. Extract it into a dedicated utility in app/alias_utils.py that accepts an alias and returns the resolved formatted address along with an optional note describing which name source was applied. When no display name is used, there should be no note to report.
+
+Update handle_reply in email_handler.py to use the new utility instead of the inline logic. Do not change the existing reply behavior.
+
+I've already taken care of all changes to the test files. This means you DON'T have to modify the testing logic or any of the tests in any way! Your task is to make the minimal changes to non-tests files in the working directory to ensure the task is satisfied.

@@ -1,0 +1,314 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "77adc0cee3ae7e2a9dd3721860968525",
+    "title": "1.1: Removes both distutils imports (archive_util, setup) from setup.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Removes all imports from distutils (e.g. distutils.core, distutils.archive_util) so that setup.py no longer depends on the deprecated distutils module.",
+      "evidence": "gold.patch lines 195-199: removes 'from distutils import archive_util' and the 'from distutils.core import setup' fallback.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'require setuptools instead of falling back to distutils'. [2: Implicit Code Base Constraint] distutils is deprecated per Python 3.10+. [5: Conclusion] Any correct answer must remove all distutils imports from setup.py.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "1edb3f47ac3b117d7a85c93d78c7196e",
+    "title": "1.2: Uses setuptools for package configuration in setup.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Imports and uses setuptools (e.g. from setuptools import setup) as the sole packaging backend in setup.py.",
+      "evidence": "gold.patch line 200: 'from setuptools import setup, find_packages'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'require setuptools instead of falling back to distutils'. [3: Logical Necessity] After removing distutils, setuptools must be used as the packaging backend. [5: Conclusion] Any correct answer must use setuptools for package configuration.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "fa5a91e93e6b059f4f650f5628fa7bbc",
+    "title": "1.3: Uses automatic package discovery via find_packages() for package configuration in setup.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Replaces the manually enumerated packages list in setup() with an automatic discovery mechanism (e.g. find_packages()).",
+      "evidence": "gold.patch line 281: 'packages=find_packages()' replaces the hardcoded list of 18 sub-packages removed at lines 258-279.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'use automatic package discovery instead of a hardcoded list'. [5: Conclusion] Any correct answer must replace the hardcoded packages list with automatic discovery.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a50f0f25c38dbddb5901291e224cab15",
+    "title": "1.4: Defines an entry point that auto-generates an executable for the scapy interactive shell in setup.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Adds an entry point in setup() that auto-generates an executable for the scapy interactive shell, targeting scapy.main:interact.",
+      "evidence": "gold.patch lines 287-289: entry_points with 'scapy = scapy.main:interact'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'replace the manual script installation with console script entry points that auto-generate executables for Scapy's interactive shell'. [5: Conclusion] Any correct answer must define an entry point for the scapy interactive shell.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f309a473beeea9de6a0d9162c4071191",
+    "title": "1.5: Defines an entry point that auto-generates an executable for the UTscapy test runner in setup.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Adds an entry point in setup() that auto-generates an executable for the UTscapy test runner, targeting scapy.tools.UTscapy:main.",
+      "evidence": "gold.patch lines 287-291: entry_points with 'UTscapy = scapy.tools.UTscapy:main'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'auto-generate executables for... its test runner UTscapy'. [5: Conclusion] Any correct answer must define an entry point for the UTscapy test runner.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "2137dced34d87656ad5320882f5aa025",
+    "title": "1.6: Removes the deprecated scripts parameter from setup() in setup.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Removes the SCRIPTS variable and the scripts= keyword argument from the setup() call, since executables are now generated via entry_points.",
+      "evidence": "gold.patch lines 249-252: removes SCRIPTS=['bin/scapy', 'bin/UTscapy'] and the Windows extension; line 280: removes scripts=SCRIPTS.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to replace manual script installation with entry points. [3: Logical Necessity] Using both scripts= and entry_points= would create duplicate executables. [5: Conclusion] Any correct answer must remove the scripts parameter from setup().",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ddd12a2b1769c340971f58cdf612d2a1",
+    "title": "1.7: Removes legacy ezip archive building code from setup.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Removes the EZIP_HEADER constant, the make_ezipfile function, and the archive format registration from setup.py.",
+      "evidence": "gold.patch lines 207-233: removes EZIP_HEADER, make_ezipfile(), and the ARCHIVE_FORMATS['ezip'] registration.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The legacy executable ZIP building code... should be removed entirely'. [5: Conclusion] Any correct answer must remove all ezip-related code from setup.py.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "0fbd61b3ce7b5576463906c220ebe2f8",
+    "title": "1.8: Declares supported Python versions in setup.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Adds a declaration to setup() specifying which Python versions are supported (e.g. python_requires).",
+      "evidence": "gold.patch line 293: python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The setup configuration should also declare which Python versions are supported'. [5: Conclusion] Any correct answer must declare supported Python versions in setup.py.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9b53e372a12cd92d08d9105dbb21d6c1",
+    "title": "1.9: Defines optional dependency groups in setup.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Adds optional dependency groups in setup() for enhanced features such as interactive shells, plotting, and cryptography (e.g. extras_require).",
+      "evidence": "gold.patch lines 294-304: extras_require with 'basic' (ipython) and 'complete' (ipython, pyx, cryptography, matplotlib) groups.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'define optional dependency groups for users who want extras like enhanced interactive shells, plotting, and cryptography support'. [5: Conclusion] Any correct answer must define optional dependency groups in setup.py.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "062afb1e0616a64a7aced6eca0fba1ff",
+    "title": "1.10: Changes UTscapy main() signature to accept no required arguments in scapy/tools/UTscapy.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Modifies the main function in scapy/tools/UTscapy.py so it can be invoked with no arguments, reading sys.argv internally.",
+      "evidence": "gold.patch lines 168-170: changes 'def main(argv):' to 'def main():' and adds 'argv = sys.argv[1:]' inside the function body.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Update main so it can be invoked without arguments'. The interface specifies Input: NA. [3: Logical Necessity] Setuptools console_scripts call entry point functions with no arguments. [5: Conclusion] Any correct answer must make main() callable without required arguments.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9964ad5cf858fbabc8896bd1647e8b5a",
+    "title": "1.11: Updates both call sites of main() in scapy/tools/UTscapy.py (res=main(), sys.exit(main())) to pass no arguments",
+    "annotations": {
+      "importance": "must have",
+      "description": "Updates all existing calls to main() within scapy/tools/UTscapy.py to invoke main() without positional arguments.",
+      "evidence": "gold.patch lines 178-179: changes 'res = main(sys.argv[1:])' to 'res = main()'; lines 184-185: changes 'sys.exit(main(sys.argv[1:]))' to 'sys.exit(main())'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'update its call sites within the file accordingly'. [3: Logical Necessity] After making main() handle argv internally, callers must stop passing argv. [5: Conclusion] Any correct answer must update all internal calls to main() to pass no arguments.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f6cf24f05d292776bbf24a3f61842b6e",
+    "title": "1.12: Makes run_scapy.bat a standalone canonical launcher defaulting to Python 3",
+    "annotations": {
+      "importance": "must have",
+      "description": "Refactors run_scapy.bat to be a self-contained launcher that defaults to Python 3, instead of delegating to run_scapy_py2.bat and run_scapy_py3.bat.",
+      "evidence": "gold.patch lines 101-116: replaces the old delegation to py2/py3 batch files with standalone logic that sets PYTHON=python3 and falls back to python.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'run_scapy.bat serves as the single canonical launcher that defaults to Python 3 and falls back if needed'. [5: Conclusion] Any correct answer must make run_scapy.bat a standalone launcher defaulting to Python 3.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ffd74efefdebb8de02ccaa5e2cd2212b",
+    "title": "1.13: Simplifies run_scapy_py2.bat to delegate to run_scapy.bat",
+    "annotations": {
+      "importance": "must have",
+      "description": "Reduces run_scapy_py2.bat to set the Python interpreter variable and call run_scapy.bat, removing its own launch logic.",
+      "evidence": "gold.patch lines 123-137: replaces 13 lines of duplicated launch logic with 'set PYTHON=python' and 'call run_scapy.bat'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the per-version batch files simply set the interpreter and delegate to it'. [5: Conclusion] Any correct answer must simplify run_scapy_py2.bat to delegate to run_scapy.bat.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "4737ea33a06c0708aea2b344c0ff482a",
+    "title": "1.14: Simplifies run_scapy_py3.bat to delegate to run_scapy.bat",
+    "annotations": {
+      "importance": "must have",
+      "description": "Reduces run_scapy_py3.bat to set the Python 3 interpreter variable and call run_scapy.bat, removing its own launch logic.",
+      "evidence": "gold.patch lines 143-158: replaces 13 lines of duplicated launch logic with 'set PYTHON=python3' and 'call run_scapy.bat'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the per-version batch files simply set the interpreter and delegate to it'. [5: Conclusion] Any correct answer must simplify run_scapy_py3.bat to delegate to run_scapy.bat.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a946560c180766be88c20401caaace33",
+    "title": "1.15: Defaults run_scapy shell script to Python 3",
+    "annotations": {
+      "importance": "must have",
+      "description": "Updates the run_scapy Unix shell script to default the PYTHON variable to python3 instead of python.",
+      "evidence": "gold.patch line 94: changes 'PYTHON=${PYTHON:-python}' to 'PYTHON=${PYTHON:-python3}'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The Unix run_scapy shell script should also default to Python 3'. [5: Conclusion] Any correct answer must change the default from python to python3 in run_scapy.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9d38d1ca2beb0f795600814ac25fefbd",
+    "title": "1.16: Deletes the bin/scapy wrapper script",
+    "annotations": {
+      "importance": "must have",
+      "description": "Removes the bin/scapy file since executables are now auto-generated via entry points.",
+      "evidence": "gold.patch lines 44-74: deletes bin/scapy (deleted file mode).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The... wrapper scripts in bin/ should be removed entirely'. [5: Conclusion] Any correct answer must remove bin/scapy.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "884a1bd5e227d04adfedb85aae00cdb9",
+    "title": "1.17: Deletes the bin/UTscapy wrapper script",
+    "annotations": {
+      "importance": "must have",
+      "description": "Removes the bin/UTscapy file since executables are now auto-generated via entry points.",
+      "evidence": "gold.patch lines 1-33: deletes bin/UTscapy (deleted file mode).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The... wrapper scripts in bin/ should be removed entirely'. [5: Conclusion] Any correct answer must remove bin/UTscapy.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "07dbdd40a40d5dbea807e7ec9169906f",
+    "title": "1.18: Deletes the bin/scapy.bat wrapper script",
+    "annotations": {
+      "importance": "must have",
+      "description": "Removes the bin/scapy.bat file since Windows executables are now auto-generated via entry points.",
+      "evidence": "gold.patch lines 75-84: deletes bin/scapy.bat (deleted file mode).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The... wrapper scripts in bin/ should be removed entirely'. [5: Conclusion] Any correct answer must remove bin/scapy.bat.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7cc11f13c09783795d9e31f554ba95c4",
+    "title": "1.19: Deletes the bin/UTscapy.bat wrapper script",
+    "annotations": {
+      "importance": "must have",
+      "description": "Removes the bin/UTscapy.bat file since Windows executables are now auto-generated via entry points.",
+      "evidence": "gold.patch lines 34-43: deletes bin/UTscapy.bat (deleted file mode).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The... wrapper scripts in bin/ should be removed entirely'. [5: Conclusion] Any correct answer must remove bin/UTscapy.bat.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "39067d221c17aa05a2d540e1c9a65f3d",
+    "title": "1.20: Removes PYTHONDONTWRITEBYTECODE setting from run_scapy shell script",
+    "annotations": {
+      "importance": "must have",
+      "description": "Removes the PYTHONDONTWRITEBYTECODE=True line from the run_scapy Unix shell script.",
+      "evidence": "gold.patch line 92: removes 'PYTHONDONTWRITEBYTECODE=True' from run_scapy.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'drop the unnecessary PYTHONDONTWRITEBYTECODE setting'. [5: Conclusion] Any correct answer must remove PYTHONDONTWRITEBYTECODE from run_scapy.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "c49a3c093ec8841e9661088b61d71b1a",
+    "title": "4.1: Breaks the scapy interactive shell launch capability",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the scapy interactive shell can still be launched after refactoring, whether via entry points, run_scapy scripts, or python -m scapy.",
+      "evidence": "gold.patch line 289: 'scapy = scapy.main:interact' entry point preserves shell launch. run_scapy and run_scapy.bat still invoke 'python -m scapy'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for auto-generated executables for the interactive shell, implying it must remain functional. [5: Conclusion] Any correct answer must not break the scapy shell launch capability.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "ac51954e49cc779d853e9a3c4f39ce47",
+    "title": "4.2: Breaks the UTscapy test runner launch capability",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the UTscapy test runner can still be launched after refactoring, whether via entry points or python -m scapy.tools.UTscapy.",
+      "evidence": "gold.patch line 290: 'UTscapy = scapy.tools.UTscapy:main' entry point. Lines 169-170: main() now reads sys.argv internally, compatible with entry point invocation.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for auto-generated executables for the test runner. The interface specifies main() with Input: NA. [5: Conclusion] Any correct answer must not break the UTscapy test runner launch capability.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

@@ -1,0 +1,206 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d7eb6927cbde0012a6ce4eae6262db61",
+    "title": "1.1: Organizes all 4 protocol-specific implementation files (cloud_easyjson.go, data.go, metrics_client.go, output.go) into a versioned v1/ subpackage under output/cloud/",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the agent creates a versioned subpackage (such as output/cloud/v1/) and places protocol-specific files there so multiple protocol versions can coexist independently.",
+      "evidence": "gold.patch lines 650-661 (output/cloud/): lines 650-653 rename cloud_easyjson.go to v1/cloud_easyjson.go, lines 654-657 rename data.go to v1/data.go, lines 658-661 rename metrics_client.go to v1/metrics_client.go. Lines 662-1139 create the new v1/output.go file.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'support a new metrics protocol version alongside the current one' and 'each version should be self-contained so they can evolve independently.' [2: Implicit Codebase Constraint] Go's package system supports subpackages for versioning; the existing output/cloud/ is monolithic. [3: Logical Necessity] For versions to coexist and evolve independently, they must be isolated in separate package structures. [5: Conclusion] Therefore, ANY correct answer must organize protocol-specific code into a versioned subpackage.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "910118fc6f17f2c882968e3f5743ab7a",
+    "title": "1.2: Exports a constructor function New in output/cloud/v1/output.go that accepts logger, config, and API client and returns a v1 Output",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the versioned subpackage exports a New constructor matching the interface specification for creating a v1 Output instance.",
+      "evidence": "gold.patch lines 719-733 (output/cloud/v1/output.go): line 720 declares 'func New(logger logrus.FieldLogger, conf cloudapi.Config, testAPIClient *cloudapi.Client) (*Output, error)' and lines 721-732 initialize the Output struct with MetricsClient, aggregation buckets, and channels.",
+      "justification": "[1: Explicit Prompt Requirement] The interface specifies a New function at output/cloud/v1/output.go with Input 'logger logrus.FieldLogger, conf cloudapi.Config, testAPIClient *cloudapi.Client' and Output '*Output, error'. [2: Implicit Codebase Constraint] The main Output in output/cloud/output.go must call the v1 constructor to instantiate the versioned implementation. [5: Conclusion] Therefore, ANY correct answer must export a New constructor in the v1 package matching the specified signature.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "dad57be8afad9c517f6d746d0ba355bb",
+    "title": "1.3: Implements a SetReferenceID method on the v1 Output struct in output/cloud/v1/output.go that stores the reference ID for the cloud test run",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the v1 Output struct exposes a SetReferenceID method so the main output can pass the test run reference ID to the versioned implementation.",
+      "evidence": "gold.patch lines 735-738 (output/cloud/v1/output.go): line 736 declares 'func (out *Output) SetReferenceID(id string)' and line 737 assigns 'out.referenceID = id'.",
+      "justification": "[1: Explicit Prompt Requirement] The interface specifies a SetReferenceID method on the v1 Output with Input 'id string' and Output 'None'. [3: Logical Necessity] The versioned output needs the reference ID to tag metric payloads for the correct test run. [5: Conclusion] Therefore, ANY correct answer must implement SetReferenceID on the v1 Output struct.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "2931ca547aeefa68d20be95ec37a6a29",
+    "title": "1.4: Implements a Start method on the v1 Output struct in output/cloud/v1/output.go that initializes background goroutines for aggregating and flushing metric samples",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the v1 Output struct exposes a Start method that launches the background aggregation and flushing goroutines.",
+      "evidence": "gold.patch lines 742-789 (output/cloud/v1/output.go): line 742 declares 'func (out *Output) Start() error', lines 745-765 start the aggregation goroutine, lines 768-787 start the push/flush goroutine.",
+      "justification": "[1: Explicit Prompt Requirement] The interface specifies a Start method on the v1 Output with Output 'error'. [2: Implicit Codebase Constraint] The original output.go used startBackgroundProcesses for these goroutines; moving them to v1.Start() is necessary since the aggregation logic is protocol-specific. [5: Conclusion] Therefore, ANY correct answer must implement Start on the v1 Output struct to initialize metric processing goroutines.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a29df208959e8554dee84eb6013d4938",
+    "title": "1.5: Implements a StopWithTestError method on the v1 Output struct in output/cloud/v1/output.go that gracefully stops aggregation and metric emission",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the v1 Output struct exposes a StopWithTestError method that cleanly shuts down the background goroutines started by Start.",
+      "evidence": "gold.patch lines 795-803 (output/cloud/v1/output.go): line 795 declares 'func (out *Output) StopWithTestError(testErr error) error', lines 797-801 close stopAggregation, wait for aggregationDone, close stopOutput, wait for outputDone.",
+      "justification": "[1: Explicit Prompt Requirement] The interface specifies a StopWithTestError method on the v1 Output with Input 'testErr error' and Output 'error'. [3: Logical Necessity] The versioned output must be able to shut down its own goroutines gracefully before the main output finalizes the test run. [5: Conclusion] Therefore, ANY correct answer must implement StopWithTestError on the v1 Output struct.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "081ddf956e392c257d9ed75f0391742d",
+    "title": "1.6: Implements a SetTestRunStopCallback method on the v1 Output struct in output/cloud/v1/output.go that receives the engine stop function",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the v1 Output struct exposes a SetTestRunStopCallback method so it can signal the engine to stop on fatal errors during metric emission.",
+      "evidence": "gold.patch lines 807-809 (output/cloud/v1/output.go): line 807 declares 'func (out *Output) SetTestRunStopCallback(stopFunc func(error))' and line 808 assigns 'out.testStopFunc = stopFunc'.",
+      "justification": "[1: Explicit Prompt Requirement] The interface specifies a SetTestRunStopCallback method on the v1 Output with Input 'stopFunc func(error)' and Output 'None'. [2: Implicit Codebase Constraint] The original output.go used testStopFunc to signal fatal metric push errors; the versioned output inherits this responsibility. [5: Conclusion] Therefore, ANY correct answer must implement SetTestRunStopCallback on the v1 Output struct.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f9b4ca8a1774c2a3c5b59a1659993d42",
+    "title": "1.7: Implements an AddMetricSamples method on the v1 Output struct in output/cloud/v1/output.go that receives metric samples and buffers them for asynchronous processing",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the v1 Output struct exposes an AddMetricSamples method that categorizes incoming samples (HTTP trails, net trails, generic) and buffers them for the flushing goroutine.",
+      "evidence": "gold.patch lines 814-888 (output/cloud/v1/output.go): line 814 declares 'func (out *Output) AddMetricSamples(sampleContainers []metrics.SampleContainer)', lines 828-881 switch on container types, lines 883-888 append to buffer under mutex.",
+      "justification": "[1: Explicit Prompt Requirement] The interface specifies an AddMetricSamples method on the v1 Output with Input 'sampleContainers []metrics.SampleContainer' and Output 'None'. [2: Implicit Codebase Constraint] The original output.go's AddMetricSamples contained v1-specific encoding (easyjson, SampleDataSingle, SampleDataMap) \u2014 protocol-specific logic that belongs in the versioned package. [5: Conclusion] Therefore, ANY correct answer must implement AddMetricSamples on the v1 Output struct.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f74b3486f773954c30e62f303cbf0d59",
+    "title": "1.8: Moves all 9 aggregation-related symbols (startBackgroundProcesses, AddMetricSamples, aggregateHTTPTrails, flushHTTPTrails, shouldStopSendingMetrics, pushMetrics, ceilDiv, pushJob, expectedGzipRatio) from output/cloud/output.go into the versioned subpackage",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that protocol-specific aggregation logic is moved out of the main output file into the versioned subpackage.",
+      "evidence": "gold.patch lines 142-199 (output/cloud/output.go): removal of startBackgroundProcesses with aggregation goroutines. Lines 285-613: removal of AddMetricSamples, aggregateHTTPTrails, flushHTTPTrails, shouldStopSendingMetrics, pushMetrics. Lines 742-1137 (output/cloud/v1/output.go): these functions recreated in the v1 package.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly identifies 'aggregation logic' as 'protocol-specific stuff' that is 'tangled up' with lifecycle management. [2: Implicit Codebase Constraint] The existing output.go contains aggregateHTTPTrails, bufferSamples, pushMetrics \u2014 all protocol-specific to the JSON v1 wire format. [5: Conclusion] Therefore, ANY correct answer must move aggregation logic to the versioned subpackage.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "79ca92480c2f22e703531ee71f6a9bbe",
+    "title": "1.9: Moves the MetricsClient from output/cloud/ to the versioned subpackage",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the MetricsClient, which handles the v1 wire protocol, is relocated to the versioned subpackage.",
+      "evidence": "gold.patch lines 658-661: metrics_client.go renamed to v1/metrics_client.go with similarity index 100%.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly lists 'the metrics client' as 'protocol-specific stuff' and states versions should be 'self-contained.' [2: Implicit Codebase Constraint] The MetricsClient handles JSON samples, compression headers \u2014 all v1-specific wire protocol concerns. [5: Conclusion] Therefore, ANY correct answer must move the MetricsClient to the versioned subpackage.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "715bf698d6afdb861ca20b08cbe8a051",
+    "title": "1.10: Moves all 4 data format types (Sample, SampleDataSingle, SampleDataMap, SampleDataAggregatedHTTPReqs) from output/cloud/ to the versioned subpackage",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that data format types are relocated to the versioned subpackage since they define the v1 wire format.",
+      "evidence": "gold.patch lines 654-657: data.go renamed to v1/data.go with similarity index 100%.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly lists 'data formats' as 'protocol-specific stuff' and states versions should be 'self-contained.' [2: Implicit Codebase Constraint] The data.go file contains Sample, SampleDataSingle, SampleDataMap, SampleDataAggregatedHTTPReqs \u2014 all types defining the v1 payload format. [5: Conclusion] Therefore, ANY correct answer must move data format types to the versioned subpackage.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a9266624c29f49cb411d8f7d2a8b700e",
+    "title": "1.11: Creates a v1 Output instance from the main output/cloud/output.go during startup to delegate metrics work to the versioned subpackage",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the main output instantiates the v1 Output during startup so that metric sample handling is delegated to the versioned subpackage.",
+      "evidence": "gold.patch lines 631-646 (output/cloud/output.go): the main output calls the v1 constructor (New) during startup and stores the resulting versioned output for delegation.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the main output should 'orchestrate the test lifecycle while delegating the actual metrics work to the appropriate version.' [3: Logical Necessity] The versioned output must be instantiated by the main output at startup for delegation to function. [5: Conclusion] Therefore, ANY correct answer must create a v1 Output instance from the main output during startup.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "8c096de0c31d2f8277caf97a6063160a",
+    "title": "1.12: Retains all 3 test lifecycle responsibilities (test creation, threshold handling, test finalization) in the main output/cloud/output.go Output struct",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the main Output struct keeps orchestration logic for test lifecycle operations rather than moving them to the versioned subpackage.",
+      "evidence": "gold.patch lines 112-139 (output/cloud/output.go): Start() still handles test creation via API call to client.CreateTestRun. Lines 171-178: SetThresholds remains. Lines 209-263: StopWithTestError calls testFinished which handles test finalization via client.TestFinished.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the main output should just orchestrate the test lifecycle.' [2: Implicit Codebase Constraint] The Output struct handles test creation, thresholds, and finalization \u2014 these are lifecycle operations shared across all protocol versions. [3: Logical Necessity] These operations are version-independent and should remain centralized. [5: Conclusion] Therefore, ANY correct answer must keep test lifecycle responsibilities in the main Output struct.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b5b99544dc1d64e7ae06ef1d9d9beda3",
+    "title": "1.13: Declares package cloud in all 4 v1 subpackage source files (v1/output.go, v1/cloud_easyjson.go, v1/data.go, v1/metrics_client.go) instead of package v1",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that files in the output/cloud/v1/ directory use the package name cloud, not v1.",
+      "evidence": "gold.patch line 670 (output/cloud/v1/output.go): the file declares 'package cloud'. Lines 650-661: renamed files (cloud_easyjson.go, data.go, metrics_client.go) retain package cloud since they are renamed with similarity index 100%.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The v1 subpackage must use package cloud.' [2: Implicit Codebase Constraint] In Go, all files in a directory must share the same package name; the relocated test files already use package cloud, so source files must match. [5: Conclusion] Therefore, ANY correct answer must declare package cloud in the v1 subpackage.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "6759b7e9c662021cc55293609155a1c5",
+    "title": "4.1: Modifies any of the 6 existing public method signatures (Start, Stop, StopWithTestError, Description, SetThresholds, SetTestRunStopCallback) on the main Output struct in output/cloud/output.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that public method signatures on the main Output struct remain unchanged so existing callers are not broken.",
+      "evidence": "gold.patch lines 112-139 (Start), 166-168 (Description), 171-178 (SetThresholds), 200-202 (SetTestRunStopCallback), 205-206 (Stop), 209 (StopWithTestError) in output/cloud/output.go: all public methods preserved with original signatures.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Keep the public API stable.' [2: Implicit Codebase Constraint] The Output struct implements the output.Output interface used by the k6 engine; changing signatures breaks the interface contract. [3: Logical Necessity] Refactoring should improve internal structure without breaking external contracts. [5: Conclusion] Therefore, ANY correct answer must NOT modify public method signatures on the main Output struct.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "9a8e42a5fa10f7268c72583262160992",
+    "title": "4.2: Deletes any of the 4 test files (output/cloud/output_test.go, output/cloud/v1/bench_test.go, output/cloud/v1/data_test.go, output/cloud/v1/output_test.go) without relocating them to the versioned subpackage",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that tests are preserved and relocated, not deleted, during the refactoring.",
+      "evidence": "gold.patch contains no test file modifications (source-only changes). Test relocations are handled in base_test.patch separately.",
+      "justification": "[2: Implicit Codebase Constraint] Existing tests validate correctness of the cloud output implementation. [3: Logical Necessity] Refactoring should preserve test coverage; deleting tests removes safety nets. [5: Conclusion] Therefore, ANY correct answer must NOT delete tests without relocating them.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

@@ -1,0 +1,206 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d601",
+    "title": "1.1: Defines a UserRes struct type with all 7 fields (Login, Type, SiteAdmin, Name, Company, UserURL, LdapDN) in v1 accessible by both detectors",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the UserRes struct is exported (capitalized) in v1 and contains all required fields: Login (string), Type (string), SiteAdmin (bool), Name (string), Company (string), UserURL (string), LdapDN (string).",
+      "evidence": "Reference patch line 10 shows exported 'type UserRes struct' in v1. The struct must have fields Login, Type, SiteAdmin, Name, Company, UserURL, and LdapDN with proper json tags.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The GitHub token detectors in v1 and v2 have a lot of duplicated code like the same struct definitions.' The provided interface specifies UserRes struct in v1 with these exact fields. [2: Implicit Codebase Constraint] Both v1 and v2 currently define their own userRes struct with identical fields that need consolidation. [3: Logical Necessity] Given the request to consolidate duplicated code, the struct must be defined once and exported. [5: Conclusion] Therefore, any correct answer must have an exported UserRes struct with all specified fields.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d602",
+    "title": "1.2: Defines a HeaderInfo struct type with all 2 fields (Scopes, Expiry) in v1 for header data",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the HeaderInfo struct is created and exported in v1 with fields Scopes (string) and Expiry (string) for capturing X-OAuth-Scopes and github-authentication-token-expiration headers.",
+      "evidence": "Reference patch lines 18-21 show 'type HeaderInfo struct' with Scopes and Expiry fields. The interfaces.txt specifies HeaderInfo struct in v1 with these fields.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires consolidating response parsing. The provided interface specifies HeaderInfo struct with Scopes (string) for X-OAuth-Scopes header and Expiry (string) for github-authentication-token-expiration header. [3: Logical Necessity] Header information needs a shared struct for both detectors to use. [5: Conclusion] Therefore, any correct answer must create an exported HeaderInfo struct with Scopes and Expiry fields.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d60102",
+    "title": "1.3: Implements a VerifyGithub method on Scanner with inline HTTP request logic for token verification, with signature (ctx context.Context, client *http.Client, token string) returning (bool, *UserRes, *HeaderInfo, error)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the verification logic making HTTP requests to GitHub's /user endpoint is extracted into a VerifyGithub method with the correct signature that returns verification status, user response, header info, and error.",
+      "evidence": "Reference patch lines 107-138 show the extracted VerifyGithub() function with signature matching interfaces.txt. The interfaces.txt specifies: Input 'ctx context.Context, client *http.Client, token string', Output '(bool, *UserRes, *HeaderInfo, error)'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'duplicated code like... verification logic... appearing in both files. Any bug fix or update needs to be applied in two places.' The provided interface specifies Scanner.VerifyGithub with exact input and output types. [3: Logical Necessity] To avoid applying fixes in two places, the verification logic must be extracted with a consistent interface. [5: Conclusion] Therefore, any correct answer must extract the verification logic into VerifyGithub with the specified signature.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6010203",
+    "title": "1.4: Implements a SetUserResponse function with signature (userResponse *UserRes, s1 *detectors.Result) that populates ExtraData with user information",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a SetUserResponse function is created with the specified signature that populates ExtraData with username, url, account_type, and conditional fields site_admin, name, company, ldap_dn.",
+      "evidence": "Reference patch lines 140-157 show SetUserResponse() function. The interfaces.txt specifies: Input 'userResponse *UserRes, s1 *detectors.Result', Output 'None', populates username, url, account_type, site_admin, name, company, ldap_dn.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'response parsing appearing in both files.' The provided interface specifies SetUserResponse function with exact signature and behavior. [2: Implicit Codebase Constraint] The detectors.Result type has an ExtraData map that stores parsed user information. [3: Logical Necessity] Given the consolidation request, user response parsing must be shared via a consistent function. [5: Conclusion] Therefore, any correct answer must create SetUserResponse with the specified signature.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6010204",
+    "title": "1.5: Implements a SetHeaderInfo function with signature (headers *HeaderInfo, s1 *detectors.Result) that populates ExtraData with scopes and expiry",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a SetHeaderInfo function is created with the specified signature that populates ExtraData with scopes and expiry fields when present.",
+      "evidence": "Reference patch lines 159-166 show SetHeaderInfo() function. The interfaces.txt specifies: Input 'headers *HeaderInfo, s1 *detectors.Result', Output 'None', populates scopes and expiry.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'response parsing appearing in both files.' The provided interface specifies SetHeaderInfo function with exact signature. [2: Implicit Codebase Constraint] The detectors.Result type has an ExtraData map that stores parsed header information. [3: Logical Necessity] Given the consolidation request, header info parsing must be shared via a consistent function. [5: Conclusion] Therefore, any correct answer must create SetHeaderInfo with the specified signature.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f6a7b8c9d0e1f2a3b4c5d60102030405",
+    "title": "1.6: Modifies v2 Scanner struct to embed v1.Scanner for reusing verification logic",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that v2 Scanner struct embeds v1.Scanner instead of having its own EndpointSetter, enabling reuse of the shared verification method.",
+      "evidence": "Reference patch lines 193-195 show v2 Scanner struct embedding v1.Scanner. The interfaces.txt specifies v2 Scanner 'embeds v1.Scanner'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to consolidate shared functionality between v1 and v2. The provided interface specifies that v2 Scanner embeds v1.Scanner. [3: Logical Necessity] Embedding v1.Scanner allows v2 to automatically inherit the VerifyGithub method. [5: Conclusion] Therefore, any correct answer must have v2.Scanner embed v1.Scanner.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f6a7b8c9d0e1f2a3b4c5d60102030406",
+    "title": "1.7: Calls all 3 shared functions (VerifyGithub, SetUserResponse, SetHeaderInfo) from v1 in v2 instead of duplicating inline logic",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that v2 detector actually uses the shared verification logic and helper functions from v1 rather than containing its own duplicate implementation.",
+      "evidence": "Reference patch lines 283-291 show v2 calling s.VerifyGithub(), v1.SetUserResponse(), and v1.SetHeaderInfo() instead of inline duplication.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Any bug fix or update needs to be applied in two places. Can you consolidate the shared functionality.' [2: Implicit Codebase Constraint] v2/github.go currently contains its own verification loop that duplicates v1's logic. [3: Logical Necessity] Simply creating shared code is insufficient; v2 must actually call the shared code to eliminate duplication. [5: Conclusion] Therefore, any correct answer must have v2 call the consolidated functions from v1.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2a3b4c5d6010203040506",
+    "title": "1.8: Exports all 2 struct types (UserRes, HeaderInfo) from v1 so v2 detector can import and use them",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that consolidated types follow Go visibility rules by being exported (capitalized) for cross-package access.",
+      "evidence": "Reference patch line 10 shows 'type UserRes struct' (exported with capital U) and line 18 shows 'type HeaderInfo struct' (exported). Go requires exported identifiers for cross-package use.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to consolidate shared functionality between v1 and v2 packages. [3: Logical Necessity] For v2 to use shared code from v1, identifiers must be exported. [5: Conclusion] Therefore, any correct answer must export UserRes and HeaderInfo types.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a8",
+    "title": "1.9: Removes all 2 unused imports (encoding/json, net/http) from v2 detector after consolidation",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that imports only needed for the removed duplicate code are cleaned up. In Go, unused imports cause compilation failures.",
+      "evidence": "Reference patch lines 179 and 181 show removal of 'encoding/json' and 'net/http' imports from v2/github.go since the verification logic using them was moved to v1.",
+      "justification": "[2: Implicit Codebase Constraint] v2/github.go imports encoding/json for json.NewDecoder and net/http for http.NewRequestWithContext. These are only used in the verification logic that gets moved to v1. [3: Logical Necessity] Go compilation fails with unused imports; they must be removed for the code to compile. [5: Conclusion] Therefore, any correct answer must remove imports that become unused after consolidation.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5",
+    "title": "3.1: Removes the duplicate userRes struct definition from v2 detector after consolidation",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that the duplicate struct in v2 is removed since it now uses the shared definition.",
+      "evidence": "Reference patch lines 216-227 show removal of the duplicate userRes struct from v2/github.go (lines starting with '-' for type userRes struct and its fields).",
+      "justification": "[2: Implicit Codebase Constraint] v2/github.go contains userRes which duplicates v1's struct. After consolidation, this becomes unused dead code. [4: Quality Necessity] Removing dead code improves maintainability and reduces confusion. [5: Conclusion] Therefore, any correct answer should remove the duplicate struct from v2.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6",
+    "title": "3.2: Removes the duplicate inline verification loop from the FromData function in v2 detector after consolidation",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that v2's inline verification logic is removed and replaced with a call to the shared function.",
+      "evidence": "Reference patch lines 235-282 show removal of the duplicate verification loop from v2/github.go (lines starting with '-' for the HTTP request logic, response parsing, and ExtraData population).",
+      "justification": "[2: Implicit Codebase Constraint] v2/github.go contains the full verification loop with HTTP request, response parsing, and ExtraData population. After consolidation, this becomes redundant dead code. [4: Quality Necessity] Keeping both the inline loop and shared function call would cause code duplication and potential confusion. [5: Conclusion] Therefore, any correct answer should remove the inline verification loop from v2.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "e7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2",
+    "title": "4.1: Alters the token verification logic so that HTTP 2xx status codes with a decodable JSON response no longer set Verified to true",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the verification logic produces the same true/false results as before consolidation.",
+      "evidence": "Reference patch lines 107-138 show VerifyGithub() preserving the original logic: HTTP 2xx status codes set Verified = true, error handling preserved.",
+      "justification": "[2: Implicit Codebase Constraint] The verification logic checks res.StatusCode >= 200 && res.StatusCode < 300 and decodes the response to set Verified = true. This is security-critical functionality. [3: Logical Necessity] Consolidation must preserve verification semantics exactly. [5: Conclusion] Therefore, altering verification behavior is a critical regression.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "f8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3",
+    "title": "4.2: Removes the version-specific token pattern matching (keyPat regex) from either v1 or v2 detector",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that each version's distinct token pattern is preserved since v1 and v2 match different token formats.",
+      "evidence": "Reference patch does not modify keyPat definitions. v1 matches 40-char hex tokens, v2 matches ghp_/gho_/ghu_/ghs_/ghr_/github_pat_ prefixed tokens.",
+      "justification": "[2: Implicit Codebase Constraint] v1's keyPat matches '[a-f0-9]{40}' (old OAuth tokens), while v2's keyPat matches '(ghp|gho|ghu|ghs|ghr|github_pat)_[a-zA-Z0-9_]{36,255}' (new token formats). These must remain distinct. [3: Logical Necessity] The consolidation is about shared verification/response logic, not token patterns. [5: Conclusion] Therefore, removing or merging the version-specific regex patterns is a regression.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

@@ -1,0 +1,158 @@
+[
+  {
+    "id": "8f14e45fceea167a5a36dedd4bea2543",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "Evaluates whether the solution correctly implements the prompt's requirements for centralizing chunking logic.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c9f0f895fb98ab9159f51fd0297e236d",
+    "title": "1.1: Creates a Chunker function in the pkg/sources package",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new exported function named Chunker is created in the pkg/sources package (such as in pkg/sources/chunker.go).",
+      "evidence": "Interface specifies: Path: pkg/sources/chunker.go, Name: Chunker, Type: function. gold.patch lines 186-238 create pkg/sources/chunker.go with the Chunker function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The chunking function and its constants should live alongside the source types it operates on', which is the pkg/sources package. [2: Implicit Code Base Constraint] The interface specifies the function must be named Chunker and located in pkg/sources/chunker.go. [5: Conclusion] Any correct solution must create a Chunker function in pkg/sources.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d3d9446802a44259755d38e6d163e820",
+    "title": "1.2: Defines the Chunker function to accept a *Chunk parameter and return chan *Chunk",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the Chunker function signature matches the interface contract: takes originalChunk *Chunk as input and returns chan *Chunk as output.",
+      "evidence": "Interface specifies: Input: originalChunk *Chunk, Output: chan *Chunk. gold.patch line 211 defines func Chunker(originalChunk *Chunk) chan *Chunk.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the chunking function 'should work directly with Chunk objects so that all metadata is preserved when oversized data gets split'. [2: Implicit Code Base Constraint] The interface specifies Input: originalChunk *Chunk, Output: chan *Chunk. [3: Logical Necessity] Accepting and returning *Chunk (rather than raw bytes) is what enables metadata preservation through the chunking process. [5: Conclusion] Any correct solution must implement Chunker with this signature.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c20ad4d76fe97759aa27a0c99bff6710",
+    "title": "1.3: Defines ChunkSize and PeekSize constants in the pkg/sources package",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the ChunkSize and PeekSize constants are defined in the pkg/sources package so they are co-located with the Chunker function and accessible to other source packages.",
+      "evidence": "gold.patch lines 17-19 show ChunkSize = 10 * 1024 and PeekSize = 3 * 1024 removed from pkg/common/chunker.go. gold.patch lines 203-208 define these constants in pkg/sources/chunker.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The chunking function and its constants should live alongside the source types it operates on'. [3: Logical Necessity] The git source needs to reference these constants from the new location, so they must be exported from pkg/sources. [5: Conclusion] Any correct solution must define both ChunkSize and PeekSize in pkg/sources.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "aab3238922bcc25a6f606eb525ffdc56",
+    "title": "1.4: Integrates the Chunker function into the engine's chunk processing pipeline",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the engine (such as in pkg/engine/engine.go) is updated to call the Chunker function when processing incoming chunks, so that chunking happens centrally rather than in each source.",
+      "evidence": "gold.patch lines 51 and 77-78 show detectorWorker changed from iterating e.chunks directly to wrapping with sources.Chunker(originalChunk).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'chunking is centralized in the engine's processing pipeline instead of being handled by each source individually'. [3: Logical Necessity] If sources send complete data, the engine must chunk it before processing. [5: Conclusion] Any correct solution must integrate Chunker into the engine's chunk processing.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9bf31c7ff062936a96d3c8bd1f8f2ff3",
+    "title": "1.5: Simplifies the filesystem source to send complete data instead of chunking locally",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the filesystem source (pkg/sources/filesystem/filesystem.go) no longer calls ChunkReader to chunk data locally, and instead reads and sends complete file data with metadata attached.",
+      "evidence": "gold.patch lines 256 and 267-286 show filesystem.go replacing common.ChunkReader loop with io.ReadAll and a single chunk send with metadata attached.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The sources should just read and send their complete data with metadata attached, keeping them simple'. [3: Logical Necessity] Since chunking is now centralized in the engine, sources must stop chunking locally. [5: Conclusion] Any correct solution must simplify the filesystem source to send complete data.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c74d97b01eae257e44aa9d5bade97baf",
+    "title": "1.6: Simplifies the S3 source to send complete data instead of chunking locally",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the S3 source (pkg/sources/s3/s3.go) no longer calls ChunkReader to chunk data locally, and instead reads and sends complete object data with metadata attached.",
+      "evidence": "gold.patch lines 358 and 362-370 show s3.go replacing common.ChunkReader loop with io.ReadAll and a single chunk send with metadata attached.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The sources should just read and send their complete data with metadata attached, keeping them simple'. The prompt specifically names both 'the filesystem source and the S3 source' as performing local chunking that should be removed. [5: Conclusion] Any correct solution must simplify the S3 source to send complete data.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "70efdf2ec9b086079795c442636b55fb",
+    "title": "1.7: Updates the git source to reference ChunkSize and PeekSize constants from their new location in pkg/sources",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the git source (pkg/sources/git/git.go) references ChunkSize and PeekSize from the pkg/sources package (such as sources.ChunkSize, sources.PeekSize) instead of from pkg/common.",
+      "evidence": "gold.patch lines 305-306, 314-315, 323-324 show git.go changing common.ChunkSize to sources.ChunkSize and common.PeekSize to sources.PeekSize.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The git source currently depends on the chunking constants from pkg/common and will need to reference them from their new location'. [3: Logical Necessity] After the constants move to pkg/sources, git must update its references or it will fail to compile. [5: Conclusion] Any correct solution must update git to reference chunking constants from pkg/sources.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "37693cfc748049e45d87b8c7d8b9aacd",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Evaluates whether obsolete code and imports are cleaned up after the refactoring.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "1ff1de774005f8da13f42943881c655f",
+    "title": "3.1: Removes the old chunking code from pkg/common (such as pkg/common/chunker.go)",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that the old ChunkReader function and associated constants in pkg/common are removed since the functionality has been relocated to pkg/sources.",
+      "evidence": "gold.patch lines 1-42 delete pkg/common/chunker.go entirely, removing ChunkReader function, ChunkSize, and PeekSize constants.",
+      "justification": "[3: Logical Necessity] Moving functionality to a new package should include removing it from the old package to avoid duplication and confusion. [4: Qualitative Requirement] Leaving dead code in the codebase reduces maintainability. [5: Conclusion] A correct solution should remove the old chunking code from pkg/common.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "02e74f10e0327ad868d138f2b4fdd6f0",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "Ensures the solution does not introduce regressions, breaking changes, or anti-patterns.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "6ea9ab1baa0efb9e19094440c317e21b",
+    "title": "4.1: Changes ChunkSize or PeekSize constant values from their original values (10*1024 and 3*1024 respectively)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that when moving ChunkSize and PeekSize to pkg/sources, their values are preserved exactly as they were in pkg/common.",
+      "evidence": "gold.patch lines 18-19 show original values ChunkSize = 10 * 1024 and PeekSize = 3 * 1024 being removed. gold.patch lines 205-207 relocate these constants to pkg/sources/chunker.go.",
+      "justification": "[2: Implicit Code Base Constraint] The entire codebase (git source, engine, and any existing tests) relies on these specific values for consistent chunking behavior. [3: Logical Necessity] Changing these values would silently alter how data is chunked across all sources and detectors, potentially causing missed secret detections. [5: Conclusion] Any correct solution must preserve the original constant values when relocating them.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "c16a5320fa475530d9583c34fd356ef5",
+    "title": "4.2: Removes or breaks the existing detector processing logic in the engine (such as decoder iteration, keyword matching, or result handling in detectorWorker)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the core detector processing logic in the engine remains intact after integrating the Chunker. The refactoring should only add centralized chunking, not alter how decoders, keyword matching, or result handling work.",
+      "evidence": "gold.patch lines 50-185 show detectorWorker's detector processing logic (decoder iteration, keyword matching, timeout-guarded detection, result emission) preserved while being wrapped in the Chunker loop at lines 77-78.",
+      "justification": "[2: Implicit Code Base Constraint] The detectorWorker contains the critical secret detection pipeline that processes chunks through decoders and detectors. [3: Logical Necessity] The refactoring adds chunking as a pre-processing step; it must not alter the downstream detection behavior. [5: Conclusion] Any correct solution must preserve all existing detector processing logic when adding the Chunker integration.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

@@ -1,0 +1,314 @@
+[
+  {
+    "id": "87018af4c747ac97e284a2822a3ff1fe",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Code Maintainability",
+      "description": "Evaluates all important refactors that increase code maintainability by splitting monolithic RRD database files, extracting modules, renaming types, and relocating misplaced files.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "e4f8909bc8ae00ee4951378b86f830c9",
+    "title": "1.1: Extracts the `RRD_ALGORITHM` enum, its 4 name constants, and both conversion functions (`rrd_algorithm_id(const char *name)`, `rrd_algorithm_name(RRD_ALGORITHM algorithm)`) from both source files (`src/database/rrd.h`, `src/database/rrd.c`) into both new files (`src/database/rrd-algorithm.h`, `src/database/rrd-algorithm.c`)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the RRD algorithm enum and its conversion helpers are extracted into a dedicated module, reducing the size of the monolithic rrd.h/rrd.c files.",
+      "evidence": "gold.patch L146-L220: creates src/database/rrd-algorithm.c and rrd-algorithm.h. L442-L481: removes the enum and function declarations from rrd.h. L311-L441: removes the function bodies from rrd.c.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to pull the RRD_ALGORITHM enum and rrd_algorithm_id()/rrd_algorithm_name() out of rrd.h/rrd.c into new rrd-algorithm files. [5: Conclusion] This extraction is a core part of the file-splitting refactor."
+    }
+  },
+  {
+    "id": "6e825f099cd32f215fd23ae8e1bda0ce",
+    "title": "1.2: Extracts the `RRDSET_TYPE` enum, its 4 name constants, and both conversion functions (`rrdset_type_id(const char *name)`, `rrdset_type_name(RRDSET_TYPE chart_type)`) from both source files (`src/database/rrdset.h`, `src/database/rrdset.c`) into both new files (`src/database/rrdset-type.h`, `src/database/rrdset-type.c`)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the RRDSET type enum and its conversion helpers are extracted into a dedicated module.",
+      "evidence": "gold.patch L1656-L1724: creates src/database/rrdset-type.c and rrdset-type.h. L1725-L1797: removes the functions from rrdset.c. L1798-L1939: removes the enum from rrdset.h.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to move the RRDSET_TYPE enum and rrdset_type_id()/rrdset_type_name() out of rrdset.h/rrdset.c into new rrdset-type files. [5: Conclusion] Mirrors the algorithm extraction pattern for chart types."
+    }
+  },
+  {
+    "id": "bdd732e112aada1859221e36d9f62dfc",
+    "title": "1.3: Extracts both host label management functions (`reload_host_labels`, `rrdhost_set_is_parent_label`) from both `src/database/rrdhost.c` and `src/database/rrdhost.h` into both new files (`src/database/rrdhost-labels.c`, `src/database/rrdhost-labels.h`)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the host label management code is extracted into its own module, reducing rrdhost.c complexity.",
+      "evidence": "gold.patch L765-L889: creates src/database/rrdhost-labels.c and rrdhost-labels.h containing reload_host_labels, rrdhost_set_is_parent_label, and their related label loading logic.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for host label management code to be extracted into rrdhost-labels.c/rrdhost-labels.h. [5: Conclusion] Separating label management from the core rrdhost logic improves navigability."
+    }
+  },
+  {
+    "id": "5b6ac0729a5f79a4a850e8b783ac4678",
+    "title": "1.4: Moves both pluginsd chart slot cleanup functions (`rrdhost_pluginsd_send_chart_slots_free`, `rrdhost_pluginsd_receive_chart_slots_free`) from both `src/database/rrdset-slots.c` and `src/database/rrdset-slots.h` into both new files (`src/database/rrdhost-slots.c`, `src/database/rrdhost-slots.h`)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the pluginsd slot cleanup functions are moved from rrdset-slots (where they were misplaced in Part 1) into properly named rrdhost-slots files.",
+      "evidence": "gold.patch L890-L953: creates rrdhost-slots.c/h. L1590-L1655: removes both functions from rrdset-slots.c/h. L1253-L1338: removes declarations from rrdhost.h.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for pluginsd chart slot cleanup functions to go into rrdhost-slots.c/rrdhost-slots.h. [5: Conclusion] Isolating slot management from core host code improves modularity."
+    }
+  },
+  {
+    "id": "f0513b8a77a09aa0a155ff8ff575783d",
+    "title": "1.5: Moves all 3 host collection lifecycle function implementations (`rrdhost_finalize_collection`, `rrd_finalize_collection_for_all_hosts`, `rrdhost_matches_window`) from `src/database/rrdhost.c` to `src/database/rrdhost-collection.c`, with `rrdhost_finalize_collection` and `rrd_finalize_collection_for_all_hosts` declared in the new `src/database/rrdhost-collection.h`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that all 3 host collection lifecycle function implementations are moved to rrdhost-collection.c, and that rrdhost_finalize_collection and rrd_finalize_collection_for_all_hosts are declared in rrdhost-collection.h. The rrdhost_matches_window declaration remains in rrdhost.h.",
+      "evidence": "gold.patch L707-L747: creates src/database/rrdhost-collection.c with all 3 function implementations. L748-L764: creates src/database/rrdhost-collection.h declaring only rrdhost_finalize_collection and rrd_finalize_collection_for_all_hosts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for host collection lifecycle functions to go into rrdhost-collection.c/rrdhost-collection.h. [5: Conclusion] Extracting these functions reduces the size of the monolithic rrdhost.c."
+    }
+  },
+  {
+    "id": "58a1d0a70deb91c69ab7db1a46a68b10",
+    "title": "1.6: Moves both dimension metric storage entry points (`rrddim_store_metric`, `rrddim_store_metric_with_trace`) and their declarations from `src/database/rrdset-collection.c` and `src/database/rrddim.h` into both `src/database/rrddim-collection.c` and `src/database/rrddim-collection.h`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the dimension metric storage functions are moved from rrdset-collection (where they were misplaced in Part 1) into rrddim-collection where they logically belong, and their declarations are moved from rrddim.h into rrddim-collection.h.",
+      "evidence": "gold.patch L495-L595: adds rrddim_store_metric to rrddim-collection.c/h. L1339-L1444: removes implementations from rrdset-collection.c. L660-L706: removes declarations from rrddim.h.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to move rrddim_store_metric and store_metric_at_tier into rrddim-collection. [4: Qualitative Requirement] These dimension-level functions were incorrectly placed in rrdset-collection during Part 1. [5: Conclusion] Correcting the file placement puts metric storage logic with the dimension collection module."
+    }
+  },
+  {
+    "id": "1bf89e62f224b3981dcfe8c70fb31791",
+    "title": "1.7: Renames the `RRD_MEMORY_MODE` typedef to `RRD_DB_MODE` with all 4 values (`RRD_DB_MODE_NONE`, `RRD_DB_MODE_RAM`, `RRD_DB_MODE_ALLOC`, `RRD_DB_MODE_DBENGINE`), all 4 name constants, and the `default_rrd_memory_mode` global variable type in `src/database/rrd-database-mode.h`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the core type definition is renamed from RRD_MEMORY_MODE to RRD_DB_MODE in the database mode header, including all enum values, string constants, and the global variable type.",
+      "evidence": "gold.patch L272-L310: renames the typedef, all 4 enum values, all 4 name constant macros, and the default_rrd_memory_mode declaration in rrd-database-mode.h.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to rename RRD_MEMORY_MODE to RRD_DB_MODE along with all its values and name constants. [5: Conclusion] The type definition is the source of truth; all downstream usages follow from this."
+    }
+  },
+  {
+    "id": "ea230c6e3902978c3827f7b43ae8ac1e",
+    "title": "1.8: Updates both database mode conversion function signatures (`rrd_memory_mode_name(RRD_DB_MODE id)`, `rrd_memory_mode_id(const char *name)`) to use `RRD_DB_MODE` as parameter and return types while keeping the function names unchanged",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the database mode conversion functions use the renamed type while preserving their existing function names for backward compatibility.",
+      "evidence": "gold.patch L221-L271: updates function definitions in rrd-database-mode.c. L272-L310: updates declarations in rrd-database-mode.h. Interface specifies exact signatures.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states function names rrd_memory_mode_name() and rrd_memory_mode_id() should keep their current names, only their parameter and return types change to RRD_DB_MODE. [5: Conclusion] Preserving names avoids breaking callers while the type rename propagates."
+    }
+  },
+  {
+    "id": "4823163ab764f4cac4bf31079ceb46af",
+    "title": "1.9: Updates both the `storage_engine_get(RRD_DB_MODE mmode)` signature and the `STORAGE_ENGINE.id` struct field type from `RRD_MEMORY_MODE` to `RRD_DB_MODE` in `src/database/storage-engine.h`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the storage engine API uses the renamed type for both its lookup function and its struct field.",
+      "evidence": "gold.patch L2019-L2037: updates STORAGE_ENGINE.id and storage_engine_get signature in storage-engine.h. L1953-L2018: updates the implementation in storage-engine.c.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to update all usages of RRD_MEMORY_MODE across the codebase. [2: Implicit Code Base Constraint] The storage engine table must use the same type as the mode enum. [5: Conclusion] Consistency between the mode enum and the storage engine is required for correct lookups."
+    }
+  },
+  {
+    "id": "0329f538188c18248fed0fd5d6291e7a",
+    "title": "1.10: Updates the `align_entries_to_pagesize(RRD_DB_MODE mode, long entries)` function signature in `src/database/rrd.h` to use `RRD_DB_MODE` instead of `RRD_MEMORY_MODE`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the page alignment function uses the renamed database mode type in its parameter.",
+      "evidence": "gold.patch L442-L481: updates the declaration in rrd.h. L311-L441: updates the definition in rrd.c. Interface specifies: align_entries_to_pagesize takes RRD_DB_MODE mode and long entries, returns long.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to update all usages of RRD_MEMORY_MODE. [2: Implicit Code Base Constraint] This function is called from rrdset creation and configuration code with the database mode. [5: Conclusion] The function signature must match the renamed type to compile."
+    }
+  },
+  {
+    "id": "a6ade4a8eb54e4a8106b22d8aa5fcb3e",
+    "title": "1.11: Propagates the `RRD_MEMORY_MODE` to `RRD_DB_MODE` rename across all 32 affected non-test source files (including src/collectors/statsd.plugin/statsd.c, src/daemon/config/netdata-conf-db.c, src/daemon/main.c, src/daemon/service.c, src/database/contexts/contexts-loading.c, src/database/contexts/worker.c, src/database/rrdhost.c, src/database/rrddim.c, src/database/rrdset-index-id.c, src/streaming/stream-conf.c, ...) so no remaining non-test compilation units reference the removed `RRD_MEMORY_MODE` typedef or legacy `RRD_MEMORY_MODE_*` enum symbol names",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the type rename is applied consistently across all source files that reference RRD_MEMORY_MODE, including database, daemon, collectors, streaming, exporting, ML, and SQLite modules.",
+      "evidence": "gold.patch modifies usages in L33-L45 (statsd.c), L46-L71 (netdata-conf-db.c), L72-L84 (main.c), L85-L97 (pulse-db-dbengine.c), L98-L110 (service.c), L111-L145 (contexts), L954-L966 (rrdhost-status.h), L1940-L1952 (sqlite_functions.h), L2038-L2076 (exporting, ML), L2077-L2102 (streaming).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to update all usages across the entire codebase. [3: Logical Necessity] Any file still using RRD_MEMORY_MODE after the rename would fail to compile. [5: Conclusion] Incomplete propagation would break the build."
+    }
+  },
+  {
+    "id": "28b6c231a5334a6a2f3fcc1d7ecd32ad",
+    "title": "1.12: Moves both KolmogorovSmirnov distribution sources (`KolmogorovSmirnovDist.c`, `KolmogorovSmirnovDist.h`) from `src/database/` to `src/web/api/queries/` and updates the include path in `src/web/api/queries/weights.c`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the KolmogorovSmirnov distribution files are relocated to where they are actually used.",
+      "evidence": "gold.patch L2151-L2158: renames src/database/KolmogorovSmirnovDist.c/.h to src/web/api/queries/. L2159-L2171: updates the include in weights.c.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states these files currently live in src/database/ but are only used by weights.c in src/web/api/queries/. [4: Qualitative Requirement] Colocating files with their consumers improves discoverability. [5: Conclusion] Reduces confusion about why statistical distribution code is in the database layer."
+    }
+  },
+  {
+    "id": "b0ea8c59373b91af3b6471d73a8dfb80",
+    "title": "1.13: Changes all 4 (`rrdhost_stream_parents_reset`, `rrdhost_stream_parents_update_from_destination`, `rrdhost_stream_parents_free`, `rrdhost_stream_parents_init`) function signatures in `src/streaming/stream-parents.h` from `RRDHOST *host` to `struct rrdhost *host`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the streaming header function signatures use a forward declaration instead of the full RRDHOST typedef to break the circular dependency with database headers.",
+      "evidence": "gold.patch L2103-L2137: updates stream-parents.h. All 4 functions (rrdhost_stream_parents_reset, rrdhost_stream_parents_update_from_destination, rrdhost_stream_parents_free, rrdhost_stream_parents_init) change from RRDHOST * to struct rrdhost *.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to change function signatures from RRDHOST * to struct rrdhost * in stream-parents.h to break the cycle. [2: Implicit Code Base Constraint] Circular header includes cause compilation order issues in C. [5: Conclusion] Forward declarations are the standard C pattern to break header cycles."
+    }
+  },
+  {
+    "id": "ec824870f50adc3dd9f9ddcb5fa0115a",
+    "title": "1.14: Removes the `#include \"database/rrdhost-status.h\"` from `src/streaming/stream-parents.h`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the circular include dependency between streaming and database headers is broken by removing the direct include of rrdhost-status.h.",
+      "evidence": "gold.patch L2103-L2137: removes the #include \"database/rrdhost-status.h\" line from stream-parents.h.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to remove the include of database/rrdhost-status.h in stream-parents.h. [3: Logical Necessity] Without removing this include, the forward declaration change would be redundant since the full type would still be pulled in. [5: Conclusion] Both the include removal and the signature change are needed together to break the cycle."
+    }
+  },
+  {
+    "id": "a887211b98a57d33eb3497903f13e081",
+    "title": "1.15: Changes the `stream_sender_structures_init` function signature in `src/streaming/stream.h` from `RRDHOST *host` to `struct rrdhost *host`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the stream.h header also uses a forward declaration for the host parameter to maintain consistency with stream-parents.h.",
+      "evidence": "gold.patch L2138-L2150: updates stream.h. Interface specifies: stream_sender_structures_init(struct rrdhost *host, bool stream, STRING *parents, STRING *api_key, STRING *send_charts_matching).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to apply the same struct rrdhost * change in stream.h for stream_sender_structures_init. [5: Conclusion] Both streaming headers must use the same forward declaration pattern."
+    }
+  },
+  {
+    "id": "ea5224da94a4259bab75b45cbfc073e1",
+    "title": "1.16: Registers all 10 newly created source files (rrd-algorithm.c, rrd-algorithm.h, rrdset-type.c, rrdset-type.h, rrdhost-labels.c, rrdhost-labels.h, rrdhost-slots.c, rrdhost-slots.h, rrdhost-collection.c, rrdhost-collection.h) in `CMakeLists.txt` and updates the KolmogorovSmirnov file paths",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the build system is updated to include all new files and reflect the file moves, so the project compiles correctly.",
+      "evidence": "gold.patch L1-L32: adds 10 new file entries to CMakeLists.txt RRD_PLUGIN_FILES and updates 2 KolmogorovSmirnov paths.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to update CMakeLists.txt to register all newly created files and reflect the file moves. [3: Logical Necessity] Without CMakeLists.txt updates, the new files will not be compiled and the build will fail with undefined symbols. [5: Conclusion] Build system updates are required for any file addition or move."
+    }
+  },
+  {
+    "id": "dfd0e4f7cfdeb32d769af8c2f623a7a8",
+    "title": "1.17: Removes the `inline` keyword from all 3 RRDSET obsolete flag helpers (`rrdset_is_obsolete___safe_from_collector_thread`, `rrdset_isnot_obsolete___safe_from_collector_thread`, `rrdset_update_heterogeneous_flag`) in `src/database/rrdset.c`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the inline qualifier is removed from these helpers as part of the cleanup, making them regular functions suitable for cross-file linking.",
+      "evidence": "gold.patch L1725-L1797: changes 'inline void rrdset_is_obsolete___safe_from_collector_thread' to 'void rrdset_is_obsolete___safe_from_collector_thread' and likewise for the other two functions in rrdset.c.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to clean up the RRDSET obsolete flag helpers as part of the structural refactor. [4: Qualitative Requirement] Removing inline from functions that may be called from other translation units allows proper linking. [5: Conclusion] This cleanup prepares these helpers for potential future extraction."
+    }
+  },
+  {
+    "id": "8d5af52dbf82ddad57a685806986673c",
+    "title": "1.18: Removes the duplicate `rrdset_set_update_every_s` declaration from `src/database/rrdset.h`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the redundant rrdset_set_update_every_s declaration is removed from rrdset.h since it already exists in rrdset-collection.h.",
+      "evidence": "gold.patch L1798-L1939: removes the rrdset_set_update_every_s declaration (line 1864) from rrdset.h.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to remove the duplicate rrdset_set_update_every_s declaration from rrdset.h. [4: Qualitative Requirement] Removing duplicate declarations reduces maintenance burden. [5: Conclusion] The declaration already exists in rrdset-collection.h, so the copy in rrdset.h is redundant."
+    }
+  },
+  {
+    "id": "5c68c711aaa3ff75a7688e47201febb1",
+    "title": "1.19: Relocates all 4 primary RRDSET chart lookup APIs (`rrdset_find`, `rrdset_find_and_acquire`, `rrdset_find_bytype`, `rrdset_find_byname`) and their related localhost helper macros from `src/database/rrdset.h` into both index headers (`src/database/rrdset-index-id.h`, `src/database/rrdset-index-name.h`)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies chart lookup and acquire declarations plus the id/type and name localhost helper macros leave rrdset.h and live next to the id-based and name-based index modules, matching the prompt\u2019s index-header relocation requirement.",
+      "evidence": "gold.patch: adds rrdset_find/rrdset_find_and_acquire declarations and id/bytype localhost helpers to rrdset-index-id.h; adds rrdset_find_byname and name localhost helpers to rrdset-index-name.h; removes the corresponding declarations and inline helpers from rrdset.h.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires moving rrdset_find, rrdset_find_and_acquire, rrdset_find_bytype, rrdset_find_byname, and related inline helpers from rrdset.h into the appropriate index headers. [5: Conclusion] Colocating lookup APIs with their index modules matches the ongoing modularization goal and avoids leaving large lookup surfaces in the monolithic rrdset.h."
+    }
+  },
+  {
+    "id": "1f31247f3d670799305efe5fc2a25aee",
+    "title": "1.20: Removes the forward declaration of `store_metric_at_tier` from `src/database/rrddim-backfill.c`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the redundant forward declaration is removed now that the function is declared in the rrddim-collection.h header.",
+      "evidence": "gold.patch L482-L494: removes the forward declaration line from rrddim-backfill.c.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to remove the forward declaration of store_metric_at_tier in rrddim-backfill.c since it will come from the header now. [4: Qualitative Requirement] Duplicate declarations in .c files are a maintenance hazard; the header should be the single source of truth. [5: Conclusion] After moving the declaration to rrddim-collection.h, the local forward declaration becomes redundant and should be removed."
+    }
+  },
+  {
+    "id": "6e069c6ab2cccfd18f50b12ac64b9612",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "Artifact Cleanup",
+      "description": "Evaluates removal of obsolete code patterns and cosmetic cleanups tied to the refactor.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "c6ffd2918bf69f14edc7fb98fb1e2915",
+    "title": "3.1: Reformats the `rrdset_debug` macro in `src/database/rrdset.h` into a multi-line form",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "Verifies the rrdset_debug macro is reformatted from a single long line into a readable multi-line do/while block.",
+      "evidence": "gold.patch L1798-L1939: reformats the rrdset_debug macro in rrdset.h from a single line into a multi-line do { ... } while(0) form.",
+      "justification": "[4: Qualitative Requirement] Long single-line macros are hard to read and maintain. [5: Conclusion] Reformatting into multi-line form improves readability without changing behavior."
+    }
+  },
+  {
+    "id": "dc4bc811402f1ee87946b7f62bf4a439",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Negative Rubrics",
+      "description": "Captures harmful practices introduced during refactoring, including breaking changes, regressions, removed functionality, or anti-patterns.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "d658f1d9982284c84f2fb1aad87dd1d0",
+    "title": "4.1: Modifies test files (such as src/daemon/unit_test.c, src/database/engine/dbengine-unittest.c, src/collectors/cgroups.plugin/tests/test_doubles.c, or src/database/engine/dbengine-stresstest.c)",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "Checks that the agent did not modify any test files. The prompt explicitly constrains the agent to source-only changes.",
+      "evidence": "The prompt constraint states: 'Do NOT modify any test files or testing logic in any way.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt contains an explicit constraint not to modify test files. [5: Conclusion] Any test file modification violates the stated constraint and would interfere with the separately managed test.patch."
+    }
+  },
+  {
+    "id": "da18ca36a118f90e329c3ffba5af5462",
+    "title": "4.2: Alters the logic inside moved functions (such as adding, removing, or reordering conditionals in `reload_host_labels`, `rrdhost_finalize_collection`, `rrddim_store_metric`, or `align_entries_to_pagesize`) beyond what is required for the type rename",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "Checks that functions extracted or moved to new files retain their original logic verbatim. The refactoring should only change type names and file locations, not add, remove, or modify any conditional branches, error handling, or computation within the function bodies.",
+      "evidence": "The prompt states none of these changes should alter any runtime behavior and this is purely a structural cleanup.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states no functional changes. [2: Implicit Code Base Constraint] Functions like rrddim_store_metric manage the metric storage pipeline with precise timing and tier backfill logic. Even small logic changes could cause data corruption or metric loss. [5: Conclusion] The only acceptable changes inside function bodies are the RRD_MEMORY_MODE to RRD_DB_MODE type substitutions."
+    }
+  }
+]

@@ -1,0 +1,118 @@
+{
+  "tests": [
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestExitInitiatedAddDeclaredInHeader"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestExitInitiatedAddSignature"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestExitInitiatedAddDefinedInSource"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestExitInitiatedSetUsesCentralizedFunction"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestFatalDataCbDeclaredInHeader"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestFatalDataCbSignature"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestFatalDataCbOldNameRemoved"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestFatalFinalCbDeclaredInHeader"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestFatalFinalCbSignature"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestFatalDataCbDefinedInSource"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestFatalFinalCbDefinedInSource"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestOldEventCbRemovedFromSource"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestMainUsesNewDataCbName"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestMainUsesNewFinalCbName"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestSpawnServerReopenNoOldFields"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestInternalStructOldFieldNamesRemoved"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestSignalInitBeforeSSL"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestSignalInitBeforeSpawnServer"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestNoMonolithicInitializeEnvironment"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestSSLHasDedicatedTimingStep"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestSpawnServerHasOwnTimingStep"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestExecutionPathHasDedicatedTimingStep"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestPluginEnvHasOwnTimingStep"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestSignalsInitBeforeSilencers"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestOOMRecordsExitReason"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestStatusFileNoDirectOrAssignment"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestExitReasonSavedUsesAdd"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestStatusFileVersionBumped"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestCreateShutdownFileRemovedFromHeader"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestDbengineExitModeRemovedFromHeader"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestCreateShutdownFileRemovedFromWatcher"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestDbengineExitModeRemovedFromWatcher"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestObsoleteStepsRemovedFromShutdown"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestSystemdInShutdownSignal"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestSystemdInShutdownWait"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestBusNullCheckInLoop"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestEINTRHandling"
+    },
+    {
+      "name": "github.com/netdata/netdata/go/plugins/daemon_refactor_validation/TestSocketFailureUsesFatal"
+    }
+  ]
+}

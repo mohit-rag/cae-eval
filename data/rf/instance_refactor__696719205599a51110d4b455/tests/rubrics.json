@@ -1,0 +1,134 @@
+[
+  {
+    "id": "cb82894adfc3a4247bbb3fcf3ca856e1",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ca23f32ee7392dd7867dafde4963220b",
+    "title": "1.1: Moves all 4 exported RV type definitions (RV update request, version upsert request, version get request, version response) from queries.go into the rvmanager package",
+    "annotations": {
+      "importance": "must have",
+      "description": "The 4 resource version related type definitions currently in queries.go must be moved into the rvmanager package as exported (capitalized) definitions.",
+      "evidence": "Reference patch lines 322-411 show new file rvmanager/queries.go with exported types: SqlResourceUpdateRVRequest (line 334), ResourceVersionResponse (line 360), SqlResourceVersionUpsertRequest (line 386), SqlResourceVersionGetRequest (line 396).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Move resource version queries: The resource version related type definitions in queries.go (the RV update request, version upsert request, version get request, and version response types) along with the RV-related SQL template variable declarations should move into the new rvmanager package as exported definitions.' [3: Logical Necessity] Without these type definitions in the rvmanager package, the package cannot define its query operations independently and callers would have no request/response types to use. [5: Conclusion] Therefore, ANY correct answer must move all 4 RV type definitions from queries.go into the rvmanager package as exported definitions.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8",
+    "title": "1.2: Moves all 5 exported SQL template variable declarations (SqlResourceUpdateRV, SqlResourceHistoryUpdateRV, SqlResourceVersionGet, SqlResourceVersionUpdate, SqlResourceVersionInsert) from queries.go into the rvmanager package",
+    "annotations": {
+      "importance": "must have",
+      "description": "The 5 RV-related SQL template variable declarations currently in queries.go must be moved into the rvmanager package as exported (capitalized) variables.",
+      "evidence": "Reference patch lines 611-646 show new file rvmanager/templates.go with exported template variables: SqlResourceUpdateRV, SqlResourceHistoryUpdateRV, SqlResourceVersionGet, SqlResourceVersionUpdate, SqlResourceVersionInsert (lines 641-645).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Move resource version queries: The resource version related type definitions in queries.go (the RV update request, version upsert request, version get request, and version response types) along with the RV-related SQL template variable declarations should move into the new rvmanager package as exported definitions.' [3: Logical Necessity] Without the template variable declarations in the rvmanager package, the package cannot reference its SQL templates and all SQL operations would fail. [5: Conclusion] Therefore, ANY correct answer must move all 5 RV-related SQL template variable declarations into the rvmanager package as exported definitions.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "09deb252420aba8e60b5a189a9d97a55",
+    "title": "1.3: Exports ResourceVersionManager from rvmanager package with both public methods (Lock, SaveRV)",
+    "annotations": {
+      "importance": "must have",
+      "description": "The ResourceVersionManager type must be exported from the rvmanager package along with its Lock and SaveRV methods to enable reuse from other packages without import cycles.",
+      "evidence": "Reference patch lines 412-597 show rv_manager.go moved to rvmanager package. Type renamed from 'resourceVersionManager' to 'ResourceVersionManager' (line 449). Methods renamed: 'lock' to 'Lock' (line 554), 'saveRV' to 'SaveRV' (line 593).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Export the manager: The manager struct must be exported so external packages can hold references to it' and 'Export locking and saving methods: The methods for locking a resource version and saving a resource version must be exported so external packages can call them directly within their own transactions.' The provided interface specifies ResourceVersionManager struct, ResourceVersionManager.Lock method, and ResourceVersionManager.SaveRV method in rvmanager/rv_manager.go. [3: Logical Necessity] Without exporting the struct and its methods, external packages cannot reference the type or call Lock and SaveRV directly within their own transactions. [5: Conclusion] Therefore, ANY correct answer must export ResourceVersionManager with public Lock and SaveRV methods.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f8e2a3b1c4d5e6f7a8b9c0d1e2f3a4b5",
+    "title": "1.4: Rewires both parent package source files (backend.go and bulk.go) to import and delegate resource version operations to the rvmanager package",
+    "annotations": {
+      "importance": "must have",
+      "description": "The parent package source files (backend.go, bulk.go, queries.go) must be updated to import the new rvmanager package and use its exported types and methods instead of the old local definitions.",
+      "evidence": "Reference patch lines 1-45 show backend.go importing rvmanager (line 9) and using rvmanager.ResourceVersionManager (line 18), rvmanager.NewResourceVersionManager (line 27), rvmanager.SqlResourceVersionGet (line 36). Lines 77-96 show bulk.go calling rvmanager methods b.rvManager.Lock (line 86) and b.rvManager.SaveRV (line 93).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Update the parent package: Clean up the parent package to remove moved definitions entirely and update all call sites in backend.go and bulk.go to import and use the new rvmanager package.' [3: Logical Necessity] Without updating the parent package to use rvmanager imports, the refactoring would be incomplete and the old local references would cause compilation errors. [5: Conclusion] Therefore, ANY correct answer must rewire parent package files to use rvmanager.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1.5: Sets up independent template loading in the rvmanager package that parses SQL files from its own data directory into the exported template variables",
+    "annotations": {
+      "importance": "must have",
+      "description": "The rvmanager package must be set up so that SQL templates can be loaded and parsed, typically using Go's embed directive to include SQL files.",
+      "evidence": "Reference patch lines 611-646 show rvmanager/templates.go with go:embed directive (line 627: '//go:embed data/*.sql') and template parsing (line 630: 'template.Must(template.New(\"sql\").ParseFS(sqlTemplatesFS, `data/*.sql`))').",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Move SQL template files: The SQL template files for resource version operations should move into the new package with their own independent template loading setup.' The provided interface specifies SqlResourceUpdateRV, SqlResourceHistoryUpdateRV, SqlResourceVersionGet, SqlResourceVersionUpdate, and SqlResourceVersionInsert as exported template variables in rvmanager/templates.go. [3: Logical Necessity] Without proper template loading, these exported variables would be nil and SQL operations would fail. [5: Conclusion] Therefore, ANY correct answer must ensure templates are properly loaded in the rvmanager package.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a2f5c61737b521237873c03bdb1ba945",
+    "title": "1.6: Removes all 5 RV-related template variables (sqlResourceUpdateRV, sqlResourceHistoryUpdateRV, sqlResourceVersionGet, sqlResourceVersionUpdate, sqlResourceVersionInsert) entirely from queries.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The RV-related template variable declarations must be removed from queries.go since they now exist in the rvmanager package.",
+      "evidence": "Reference patch lines 122-141 show removal of template declarations: sqlResourceUpdateRV (line 126), sqlResourceHistoryUpdateRV (line 129), sqlResourceVersionGet/Update/Insert (lines 137-139).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Update the parent package: Clean up the parent package to remove moved definitions entirely and update all call sites in backend.go and bulk.go to import and use the new rvmanager package.' [3: Logical Necessity] Leaving duplicate template declarations in the parent package would cause ambiguity and potential compilation errors when both packages define the same symbols. [5: Conclusion] Therefore, ANY correct answer must remove the moved RV-related template declarations from queries.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ce2ac7c6b0d96d897e615f007eed2451",
+    "title": "1.7: Removes all 4 RV-related type definitions (sqlResourceUpdateRVRequest, resourceVersionResponse, sqlResourceVersionUpsertRequest, sqlResourceVersionGetRequest) entirely from queries.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The RV-related type definitions must be removed from queries.go since they now exist in the rvmanager package.",
+      "evidence": "Reference patch lines 149-217 show removal of types: sqlResourceUpdateRVRequest (lines 151-175), resourceVersionResponse (lines 178-185), sqlResourceVersionUpsertRequest (lines 192-200), sqlResourceVersionGetRequest (lines 202-217).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Update the parent package: Clean up the parent package to remove moved definitions entirely and update all call sites in backend.go and bulk.go to import and use the new rvmanager package.' [3: Logical Necessity] Leaving duplicate type definitions in the parent package would cause compilation errors since the types are redefined in the rvmanager package. [5: Conclusion] Therefore, ANY correct answer must remove the moved RV-related type definitions from queries.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a258b940d177fe62794a6bb8765b6b6b",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "9a343e6462977fa73023f69f1e547eaa",
+    "title": "4.1: Keeps ResourceVersionManager or its methods unexported in the rvmanager package",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that all required types and methods are properly exported from the rvmanager package to enable reuse. The patch must show the rvmanager package files with capitalized (exported) type and method names.",
+      "evidence": "Reference patch shows exported members: ResourceVersionManager (line 449), Lock (line 554), SaveRV (line 593), SqlResourceUpdateRV (line 641), ResourceVersionResponse (line 360), SqlResourceVersionGetRequest (line 396).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The manager struct must be exported so external packages can hold references to it' and 'The methods for locking a resource version and saving a resource version must be exported.' The provided interface specifies ResourceVersionManager, Lock, SaveRV, ExecWithRV, NewResourceVersionManager, ResourceManagerOptions, SqlResourceUpdateRVRequest, ResourceVersionResponse, SqlResourceVersionUpsertRequest, SqlResourceVersionGetRequest, and 5 template variables as exported. [3: Logical Necessity] Keeping types unexported would prevent reuse and defeat the purpose of the refactoring. [5: Conclusion] Therefore, ANY correct answer must not leave these required types or methods unexported.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0",
+    "title": "4.2: Leaves SQL template files in the parent package instead of moving them to rvmanager/data/",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the SQL template files for resource version operations are moved to the new rvmanager package's data directory, not left in the parent package.",
+      "evidence": "Reference patch lines 302-321 show SQL files renamed from pkg/storage/unified/sql/data/ to pkg/storage/unified/sql/rvmanager/data/ (resource_history_update_rv.sql, resource_update_rv.sql, resource_version_get.sql, resource_version_insert.sql, resource_version_update.sql).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Move SQL template files: The SQL template files for resource version operations should move into the new package with their own independent template loading setup.' [3: Logical Necessity] If SQL files remain in the parent package, the rvmanager package's go:embed directive cannot access them. [5: Conclusion] Therefore, ANY correct answer must move the SQL template files to rvmanager/data/.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

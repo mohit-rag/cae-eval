@@ -1,0 +1,19 @@
+{
+  "files": [
+    {
+      "name": "public/app/features/alerting/unified/rule-list/hooks/datasourceFilter.test.ts"
+    },
+    {
+      "name": "public/app/features/alerting/unified/rule-list/hooks/filterNormalization.test.ts"
+    },
+    {
+      "name": "public/app/features/alerting/unified/rule-list/hooks/filterPredicates.test.ts"
+    },
+    {
+      "name": "public/app/features/alerting/unified/rule-list/hooks/grafanaFilter.test.ts"
+    },
+    {
+      "name": "public/app/features/alerting/unified/rule-list/hooks/useFilteredRulesIterator.test.ts"
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d0a68b526fdee1bb4da6e3f15f97574d",
+    "title": "1.1: Introduces GroupSummary as a centralized mechanism that derives the group hierarchy from emitted metrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new component (such as an output handler or aggregator) is added to build the group tree by processing metrics containing group tags.",
+      "evidence": "gold.patch lines 362-493 in lib/test_state.go show the creation of the GroupSummary struct implementing the output.Output interface with Start(), Stop(), AddMetricSamples(), and handleSample() methods that process metric samples to build the group hierarchy.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The emitted metrics already contain group tags, so maintaining this state separately seems redundant.' The interface specifies GroupSummary in lib/test_state.go as 'An internal output implementation that aggregates group and check metrics' that 'Implements the output.Output interface' and 'Processes metric samples containing group tags to reconstruct the group hierarchy'. [2: Implicit Codebase Constraint] The existing codebase emits metrics with group tags (metrics.TagGroup) in js/modules/k6/k6.go and js/runner.go, meaning group information flows through the metrics pipeline. [3: Logical Necessity] Given that metrics contain group information and the prompt asks to eliminate redundant state, the group hierarchy must be derived from metrics rather than maintained separately. [5: Conclusion] Therefore, ANY correct answer must introduce a centralized mechanism that derives the group hierarchy from metric samples.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9d8ac4229c2269110dd4e128e077276e",
+    "title": "1.2: Reconstructs the group hierarchy by splitting the group tag value on the :: separator in the centralized GroupSummary mechanism",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the new centralized mechanism correctly parses group paths from metrics (including root and nested groups) to build accurate parent-child relationships in the group tree.",
+      "evidence": "gold.patch lines 419-430 in lib/test_state.go show the buildGroup function that splits the group path by '::' and traverses/creates the group hierarchy. Lines 432-463 show handleSample processing group_duration and checks metrics to build groups and track check pass/fail counts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for 'a single source of truth for the group hierarchy', which requires correct reconstruction of the hierarchy. [2: Implicit Codebase Constraint] The codebase uses empty string '' as the root group path and '::' as GroupSeparator (defined in lib/models.go). Group tags in metrics follow the pattern '::outer::inner'. [3: Logical Necessity] When deriving the group hierarchy from metrics, the solution must correctly parse these paths to build accurate parent-child relationships in the tree structure. [4: Quality Necessity] Any good implementation must handle path parsing correctly to produce an accurate group hierarchy. [5: Conclusion] Therefore, ANY correct answer must correctly reconstruct the group hierarchy from metric tags, handling both root and nested group paths.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b27f916e8d939bcaaed4dc6a409093b1",
+    "title": "1.3: Updates the group() function in js/modules/k6/k6.go to track groups via tags",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies the group() function uses tag-based tracking instead of mutating a Group object on VU state.",
+      "evidence": "gold.patch lines 91-121 in js/modules/k6/k6.go show the group() function now reads the current group from tags via state.Tags.GetCurrentValues().Tags.Get(metrics.TagGroup.String()), computes the new group path with lib.NewGroupPath(), and sets the tag to the new path instead of mutating state.Group.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'each VU mutating its group state as tests run through nested groups' is the problem to solve. The interface specifies NewGroupPath(old, path) in lib/models.go to 'construct a new group path by appending a group name to an existing path using the GroupSeparator', which is the mechanism for tag-based group tracking. [2: Implicit Codebase Constraint] The current Group() function in js/modules/k6/k6.go mutates state.Group and restores it via defer. Tags are already being updated via state.Tags.Modify(). [3: Logical Necessity] To eliminate the mutable Group state on VU, the group() function must track groups through tags only, using NewGroupPath to compute paths and reading/writing the group path from tags. [5: Conclusion] Therefore, ANY correct answer must modify the group() function to use tag-based tracking instead of state.Group mutation.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "23be8d1f8107013927c4cda5159e5dbc",
+    "title": "1.4: Updates the check() function in js/modules/k6/k6.go to use the check name directly for metric tagging",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies the check() function resolves check records using tags or check names directly instead of calling state.Group.Check().",
+      "evidence": "gold.patch lines 131-190 in js/modules/k6/k6.go show the check() function no longer calls state.Group.Check(name). Instead it validates the name doesn't contain GroupSeparator (lines 141-143), uses the check name directly for tagging (line 149), removes atomic pass/fail tracking on Check structs (lines 155-177 removed), and emits the sample unconditionally (lines 178-190).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies 'Group and check state is duplicated' as the problem to solve. [2: Implicit Codebase Constraint] The Check() function in js/modules/k6/k6.go currently calls state.Group.Check(name) to get or create check records, tightly coupling it to the mutable Group state. [3: Logical Necessity] If state.Group is removed from VU state, the check() function must use tags or the check name directly instead. [4: Quality Necessity] Any good implementation must update all functions that depend on the removed state to use the new approach. [5: Conclusion] Therefore, ANY correct answer must update the check() function to use an alternative to state.Group.Check().",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "466cc075ce4a48250953717581f2776c",
+    "title": "1.5: Updates the end-of-test summary generation in cmd/run.go to use testRunState.GroupSummary.Group() as the RootGroup",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies summary generation retrieves the group hierarchy from the new centralized source instead of Runner.GetDefaultGroup().",
+      "evidence": "gold.patch lines 36-44 in cmd/run.go show RootGroup changed from testRunState.Runner.GetDefaultGroup() to testRunState.GroupSummary.Group().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for 'a single source of truth for the group hierarchy'. The interface specifies GroupSummary.Group method as 'Used by cmd/run.go for the end-of-test summary'. [2: Implicit Codebase Constraint] cmd/run.go passes Runner.GetDefaultGroup() to lib.Summary for end-of-test summary generation. This is one of the duplicated sources that maintains its own group tree. [3: Logical Necessity] To have a single source of truth, summary generation must use the new centralized source that aggregates from metrics. [5: Conclusion] Therefore, ANY correct answer must update summary generation in cmd/run.go to use the new centralized group source.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d21dd5e999cf4fcceb779d7949dd55ba",
+    "title": "1.6: Updates both REST API group route handlers (handleGetGroups, handleGetGroup) in api/v1/group_routes.go to use GroupSummary.Group()",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies API routes retrieve group data from the new centralized source instead of Runner.GetDefaultGroup().",
+      "evidence": "gold.patch lines 9-10 and 18-19 in api/v1/group_routes.go show handleGetGroups() and handleGetGroup() changed from cs.RunState.Runner.GetDefaultGroup() to cs.RunState.GroupSummary.Group().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for 'a single source of truth for the group hierarchy'. The interface specifies GroupSummary.Group method as 'Used by... api/v1/group_routes.go for the REST API'. [2: Implicit Codebase Constraint] api/v1/group_routes.go calls Runner.GetDefaultGroup() in handleGetGroups() and handleGetGroup() functions to serve group data via the REST API. [3: Logical Necessity] For consistency, API routes must use the same centralized source as summary generation. [5: Conclusion] Therefore, ANY correct answer must update the API routes in api/v1/group_routes.go to use the new centralized group source.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "79d7c6b1f6030858218cc873fc301b8e",
+    "title": "1.7: Adds GroupSummary to the outputs pipeline in cmd/run.go to receive metric samples via the output.Output interface",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the centralized component which derives the group hierarchy from metrics is properly wired into the test execution flow to receive metric samples via the output pipeline.",
+      "evidence": "gold.patch lines 27-35 in cmd/run.go show outputs = append(outputs, testRunState.GroupSummary) adding the GroupSummary to the output pipeline. Lines 45-55 in cmd/test_load.go show GroupSummary: lib.NewGroupSummary(lct.preInitState.Logger) initializing it in the TestRunState. Lines 57-70 in cmd/ui.go show the GroupSummaryDescription being filtered from output descriptions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states metrics already contain group tags, implying the solution must process these metrics during execution. The interface specifies GroupSummary 'Implements the output.Output interface (Start, Stop, AddMetricSamples, Description)' and is 'Added as a field on TestRunState', and NewGroupSummary is 'initialized with a root group and internal channels, ready to be started'. [2: Implicit Codebase Constraint] The codebase has established patterns for test lifecycle: TestRunState initialization in cmd/test_load.go, output management in cmd/run.go with Start()/Stop()/AddMetricSamples() lifecycle. Outputs are added to the outputs slice and receive samples. [3: Logical Necessity] The centralized mechanism that derives groups from metrics must be integrated into this lifecycle to receive and process metric samples containing group tags. [5: Conclusion] Therefore, ANY correct answer must integrate the metrics-derived group mechanism into the test run lifecycle to receive metric samples.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9fe7711c1591ba63e87c9802bf57e814",
+    "title": "1.8: Removes the Group field from the VU State struct in lib/vu_state.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies the mutable Group field is removed from VU state since groups are now tracked via tags.",
+      "evidence": "gold.patch lines 521-534 in lib/vu_state.go show removal of the 'Group *Group' field and its comment from the State struct.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'removing the redundant Group field from VU state'. [2: Implicit Codebase Constraint] lib/vu_state.go defines State struct with 'Group *Group' field, with comment indicating it's used for tagging metrics. [3: Logical Necessity] If groups are now tracked via tags and derived from metrics, this field becomes redundant. [5: Conclusion] Therefore, ANY correct answer must remove the Group field from VU State in lib/vu_state.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3b97b16e1cd5dc282159af9f1aca7e46",
+    "title": "1.9: Removes the GetDefaultGroup() method from the Runner interface in lib/runner.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies the GetDefaultGroup method is removed from the Runner interface since groups come from the new centralized source.",
+      "evidence": "gold.patch lines 339-361 in lib/runner.go show removal of 'GetDefaultGroup() *Group' from the Runner interface and the associated nolint:interfacebloat comment.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'removing... the GetDefaultGroup method from the Runner'. [2: Implicit Codebase Constraint] lib/runner.go defines Runner interface with GetDefaultGroup() method. This method returns one of the duplicated group sources. [3: Logical Necessity] With a new single source of truth, this interface method becomes obsolete and must be removed as the prompt requires. [5: Conclusion] Therefore, ANY correct answer must remove GetDefaultGroup() from the Runner interface in lib/runner.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "d285f10e06803840dbfd3576790cfa8f",
+    "title": "3.1: Removes the defaultGroup field from the Runner struct in js/runner.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies the JS Runner no longer maintains its own defaultGroup field.",
+      "evidence": "gold.patch lines 198-202 in js/runner.go show removal of the 'defaultGroup *lib.Group' field from the Runner struct.",
+      "justification": "[2: Implicit Codebase Constraint] js/runner.go has a defaultGroup field that stores the root group, initialized in NewFromBundle(). With GetDefaultGroup() removed from the Runner interface (as the prompt requires), this field has no remaining consumers. [3: Logical Necessity] This field becomes obsolete with a centralized source derived from metrics. [4: Quality Necessity] Clean implementations should not have unused fields. [5: Conclusion] Therefore, ANY good answer should remove the defaultGroup field from the Runner struct in js/runner.go.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "87da48deb11e8959b7c97fc1cca06118",
+    "title": "3.2: Removes the GetDefaultGroup() method implementation from js/runner.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies the JS Runner no longer implements the GetDefaultGroup() method.",
+      "evidence": "gold.patch lines 240-248 in js/runner.go show removal of the GetDefaultGroup() method implementation that returned r.defaultGroup.",
+      "justification": "[2: Implicit Codebase Constraint] js/runner.go implements GetDefaultGroup() to satisfy the Runner interface. [3: Logical Necessity] If the interface method is removed from lib/runner.go (as the prompt requires) and the defaultGroup field is removed, this implementation must also be removed to compile. [4: Quality Necessity] Clean implementations should not have dead code. [5: Conclusion] Therefore, ANY good answer should remove the GetDefaultGroup() method implementation from js/runner.go.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "5930e19f8c6a96b8cbc5b2f9b9232cf1",
+    "title": "4.1: Removes the group tag from emitted metrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks if the refactoring removes group tagging from metrics, which would break the ability to filter or aggregate metrics by group.",
+      "evidence": "gold.patch lines 91-121 in js/modules/k6/k6.go preserve the group tag in metrics via state.Tags.Modify() with SetSystemTagOrMeta(metrics.TagGroup, ...). The prompt states 'emitted metrics already contain group tags' as the basis for the new approach.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'emitted metrics already contain group tags' as the basis for the new approach. [2: Implicit Codebase Constraint] The codebase tags metrics with metrics.TagGroup in js/modules/k6/k6.go. This is fundamental to how groups work and is the foundation for deriving the group hierarchy. [3: Logical Necessity] The new approach relies on these tags to reconstruct the group hierarchy; removing them would break the entire solution. [4: Quality Necessity] Any correct implementation must preserve existing metric tagging behavior. [5: Conclusion] Therefore, removing group tags from metrics would be a critical regression that breaks the refactoring.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "2e2c8996b730d7de197675e995263dfb",
+    "title": "4.2: Breaks the REST API /v1/groups endpoint",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks if the REST API /v1/groups endpoint no longer returns the group hierarchy correctly.",
+      "evidence": "gold.patch lines 9-10 and 18-19 in api/v1/group_routes.go show both handleGetGroups() and handleGetGroup() now use cs.RunState.GroupSummary.Group() to serve group data, preserving the API functionality.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to refactor while implicitly preserving API functionality. [2: Implicit Codebase Constraint] The API routes in api/v1/group_routes.go serve group data to external consumers via /v1/groups endpoint. This is part of k6's documented API for programmatic access during test runs. [3: Logical Necessity] The refactoring must preserve API functionality using the new group source. [4: Quality Necessity] Any correct implementation must ensure API consumers can still query group information. [5: Conclusion] Therefore, breaking the /v1/groups API endpoint would be a critical regression for API consumers.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

@@ -1,0 +1,170 @@
+[
+  {
+    "id": "8f14e45fceea167a5a36dedd4bea2543",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "c9f0f895fb98ab9159f51fd0297e236d",
+    "title": "1.1: Adds `_pkt_ls(obj, verbose=False)` function in `scapy/packet.py` that returns field metadata as list",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a `_pkt_ls()` function that takes `obj` and optional `verbose=False` as input and returns a list of tuples containing (name, cls, clsname_extras, default, long_attrs) for each field is added to scapy/packet.py.",
+      "evidence": "Gold patch adds `_pkt_ls()` in scapy/packet.py at source line 1934 (63 added lines within hunk @@ -1934,6 +1934,69 @@).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'display fields in a structured table with their names, types, and defaults clearly visible'. [2: Implicit Codebase Constraint] fields_desc is an internal attribute of Packet classes that cannot be directly rendered by Sphinx autodoc. [3: Logical Necessity] A function is needed to extract and structure field metadata for documentation rendering. The provided interface specifies `_pkt_ls(obj, verbose=False)` returning `list` in `scapy/packet.py`. [5: Conclusion] Therefore, ANY correct answer must add a field extraction function as specified in the interface."
+    }
+  },
+  {
+    "id": "d3d9446802a44259755d38e6d163e820",
+    "title": "1.2: Documentation renders Packet `fields_desc` as a structured table with field names, types, and defaults",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a mechanism (e.g., Sphinx extension, autodoc hook, or equivalent) is implemented so that generated documentation for Packet classes displays their fields_desc as a structured table showing field names, types, and default values instead of raw Python object representations.",
+      "evidence": "Gold patch adds doc/scapy/_ext/scapy_doc.py containing an `AttrsDocumenter` class (extending `AttributeDocumenter`) that intercepts `fields_desc` rendering via `add_directive_header` and outputs a ReST grid table using `generate_rest_table()` and `get_fields_desc()`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Packet classes currently show their fields_desc as raw Python object representations... The documentation should display fields in a structured table with their names, types, and defaults clearly visible'. [2: Implicit Codebase Constraint] The codebase uses Sphinx autodoc (automodule directives in RST files) which renders class attributes via repr() by default, producing raw object strings for fields_desc. [3: Logical Necessity] A custom rendering mechanism must exist to intercept and transform fields_desc into readable table markup. [5: Conclusion] Therefore, ANY correct answer must implement a mechanism that renders fields_desc as a structured table in the generated documentation. The specific implementation (Sphinx extension, custom directive, post-processing, etc.) is not prescribed."
+    }
+  },
+  {
+    "id": "6512bd43d9caa6e02c990b0a82652dca",
+    "title": "1.3: Documentation renders `payload_guess` attribute showing which layers can follow which",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that generated documentation for Packet classes displays payload_guess information, showing which payload layers can follow the current layer and under what conditions.",
+      "evidence": "Gold patch handles `payload_guess` in the `AttrsDocumenter.add_directive_header` method, rendering it as a 'Possible sublayers' text list with Sphinx `:class:` cross-references to payload classes.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The payload_guess attribute should also be rendered to show which layers can follow which'. [2: Implicit Codebase Constraint] payload_guess is a class attribute storing a list of tuples with class references that Sphinx autodoc cannot render meaningfully by default. [3: Logical Necessity] Custom rendering logic must handle payload_guess to display layer relationships in readable form. [5: Conclusion] Therefore, ANY correct answer must render payload_guess relationships in the documentation. The specific format (table, list, etc.) is not prescribed."
+    }
+  },
+  {
+    "id": "c20ad4d76fe97759aa27a0c99bff6710",
+    "title": "1.4: Removes 'module' suffix from all 199 RST module page titles (including scapy.packet, scapy.fields, scapy.volatile, scapy.layers.inet, scapy.contrib.ospf, scapy.ansmachine, scapy.config, scapy.automaton, scapy.asn1fields, scapy.dadict, ...)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the generated RST documentation pages have cleaned-up titles \u2014 e.g., 'scapy.packet' instead of 'scapy.packet module'. This may be achieved through post-processing, template customization, or direct RST edits.",
+      "evidence": "Gold patch removes 'module' suffix from 199 RST module page titles and their underlines (each title like 'scapy.packet module' becomes 'scapy.packet'). Additionally adds doc/scapy/sphinx_apidoc_postprocess.py to automate this cleanup for future sphinx-apidoc runs.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'titles say \"scapy.packet module\" instead of just \"scapy.packet\"... These should be cleaned up'. [2: Implicit Codebase Constraint] The documentation build uses sphinx-apidoc (configured in tox.ini) which generates RST titles with 'module' suffix by default. [3: Logical Necessity] These suffixes must be removed either by editing the generated files or by adding a post-processing step. [5: Conclusion] Therefore, ANY correct answer must clean up the RST module page titles. The specific mechanism (post-processing script, manual edits, etc.) is not prescribed."
+    }
+  },
+  {
+    "id": "c51ce410c124a10e0db5e4b97fc2af39",
+    "title": "1.5: Removes all 11 'Submodules' section headers from 11 RST parent pages (including scapy.contrib.automotive.bmw, scapy.contrib.automotive.gm, scapy.contrib.automotive.obd.iid, scapy.contrib.automotive.obd.mid, scapy.contrib.automotive.obd.pid, scapy.contrib.automotive.obd.tid, scapy.contrib.automotive.obd, scapy.contrib.automotive, scapy.contrib.scada.iec104, scapy.layers.tls.crypto, ...)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that unnecessary 'Submodules' section headers are removed from the generated RST documentation pages.",
+      "evidence": "Gold patch removes 11 'Submodules' section headers (and their underlines) from 11 RST parent pages: scapy.contrib.automotive.bmw, scapy.contrib.automotive.gm, scapy.contrib.automotive.obd.iid, scapy.contrib.automotive.obd.mid, scapy.contrib.automotive.obd.pid, scapy.contrib.automotive.obd.tid, scapy.contrib.automotive.obd, scapy.contrib.automotive, scapy.contrib.scada.iec104, scapy.layers.tls.crypto, scapy.layers.tls.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states there are 'unnecessary \"Submodules\" and \"Subpackages\" section headers. These should be cleaned up'. [2: Implicit Codebase Constraint] The documentation build uses sphinx-apidoc which generates 'Submodules' section headers in parent RST pages by default. [3: Logical Necessity] These headers add visual clutter without informational value and must be removed. [5: Conclusion] Therefore, ANY correct answer must remove these section headers."
+    }
+  },
+  {
+    "id": "d67d8ab4f4c10bf22aa353e27879133c",
+    "title": "1.6: Removes all 4 'Subpackages' section headers from 4 RST parent pages (scapy.contrib.automotive, scapy.contrib.automotive.obd, scapy.contrib.scada, scapy.layers.tls)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that unnecessary 'Subpackages' section headers are removed from the generated RST documentation pages.",
+      "evidence": "Gold patch removes 4 'Subpackages' section headers (and their underlines) from 4 RST parent pages: scapy.contrib.automotive, scapy.contrib.automotive.obd, scapy.contrib.scada, scapy.layers.tls.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states there are 'unnecessary \"Submodules\" and \"Subpackages\" section headers. These should be cleaned up'. [2: Implicit Codebase Constraint] The documentation build uses sphinx-apidoc which generates 'Subpackages' section headers in parent RST pages by default. [3: Logical Necessity] These headers add visual clutter without informational value and must be removed. [5: Conclusion] Therefore, ANY correct answer must remove these section headers."
+    }
+  },
+  {
+    "id": "e4da3b7fbbce2345d7772b0674a318d5",
+    "title": "1.7: Changes `AutoTime` class in `scapy/volatile.py` to inherit from `RandNum` with `__init__(self, base=None)`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the `AutoTime` class that takes optional `base=None` as input has its base class changed from VolatileValue to RandNum to fix documentation rendering issues in scapy/volatile.py.",
+      "evidence": "Gold patch modifies scapy/volatile.py at source line 932 (hunk @@ -930,7 +930,7 @@), changing `class AutoTime(VolatileValue):` to `class AutoTime(RandNum):`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'rendering bugs where some classes cause repr() crashes during documentation generation should be fixed'. [2: Implicit Codebase Constraint] AutoTime inheriting from VolatileValue causes repr() crashes during Sphinx autodoc rendering. [3: Logical Necessity] Changing AutoTime's base class to RandNum fixes the repr() crash. The provided interface specifies `AutoTime(base=None)` as a subclass of `RandNum` in `scapy/volatile.py`. [5: Conclusion] Therefore, ANY correct answer must change AutoTime's inheritance as specified in the interface."
+    }
+  },
+  {
+    "id": "b6d767d2f8ed5d21a44b0e5886680cb9",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "37693cfc748049e45d87b8c7d8b9aacd",
+    "title": "2.1: Includes docstrings in new Python files created for documentation processing",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability",
+      "description": "Verifies that any new Python files added for documentation processing (e.g., Sphinx extensions, post-processing scripts) contain docstrings explaining their purpose.",
+      "evidence": "Gold patch includes module docstrings in both doc/scapy/_ext/scapy_doc.py ('A Sphinx Extension for Scapy's doc preprocessing') and doc/scapy/sphinx_apidoc_postprocess.py ('Scapy's post process of sphinx-api command').",
+      "justification": "[4: Quality Necessity] Documentation processing code should be self-documenting for maintainability. [5: Conclusion] Therefore, ANY correct answer should include explanatory docstrings in newly created files."
+    }
+  },
+  {
+    "id": "9bf31c7ff062936a96d3c8bd1f8f2ff3",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02e74f10e0327ad868d138f2b4fdd6f0",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "33e75ff09dd601bbe69f351039152189",
+    "title": "4.1: Produces documentation containing raw Python object repr strings (such as '<scapy.fields.ByteField object at 0x...>') in Packet class pages",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the generated documentation for Packet classes contains raw Python object repr strings instead of formatted field information.",
+      "evidence": "Gold patch adds _pkt_ls() which returns structured tuples, and a Sphinx extension that renders them as formatted tables instead of raw repr output.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Packet classes currently show raw Python object representations like \"<scapy.fields.ByteField object at 0x...>\" instead of readable field information'. [3: Logical Necessity] If raw repr strings remain in Packet class documentation pages, the stated problem of unreadable field information persists. [5: Conclusion] Therefore, ANY correct answer must NOT produce documentation containing raw object repr strings."
+    }
+  },
+  {
+    "id": "6ea9ab1baa0efb9e19094440c317e21b",
+    "title": "4.2: Deletes essential documentation files (such as doc/scapy/usage.rst) from the repository",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if essential documentation files are removed from the repository.",
+      "evidence": "Gold patch does not delete usage.rst or other essential documentation files.",
+      "justification": "[3: Logical Necessity] Deleting essential documentation files would break the existing documentation build and remove content that is unrelated to the cleanup task. [5: Conclusion] Therefore, ANY correct answer must NOT delete essential documentation files."
+    }
+  }
+]

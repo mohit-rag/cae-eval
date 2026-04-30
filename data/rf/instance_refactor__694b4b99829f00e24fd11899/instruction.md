@@ -1,0 +1,28 @@
+The mailbox assignment logic in our API views is getting out of hand. Both `app/api/views/alias.py` and `app/api/views/custom_domain.py` have nearly identical code for validating and setting mailboxes: checking ownership, verifying the mailbox is verified, deleting old links, creating new ones. It's duplicated across both files and any bug fix needs to happen in two places.
+
+I'd like to consolidate this into reusable utilities. Note that `custom_domain_utils.py` already has a mailbox assignment utility for custom domains, so the duplication in `custom_domain.py` can be resolved by leveraging it. The validation and assignment should be tested in isolation without going through the API endpoints. Right now we also don't have any upper bound on how many mailboxes can be assigned, which could be a problem, so let's cap it at 20 mailboxes per alias.
+
+The current behavior stores the first mailbox in `alias.mailbox_id` and any additional mailboxes in the `AliasMailbox` table. This pattern should be preserved.
+
+Can you refactor this to reduce the duplication and make it more maintainable? The API responses should stay the same so we don't break clients.
+
+I've already taken care of all changes to the test files. This means you DON'T have to modify the testing logic or any of the tests in any way!
+
+Your task is to make the minimal changes to non-tests files in the working directory to ensure the task is satisfied.
+
+Use the below Interface:
+
+- Path: `app/alias_mailbox_utils.py`
+- Name: `CannotSetMailboxesForAliasCause`
+- Type: class
+- Bases: Enum
+- Input: NA
+- Output: NA
+- Description: Enum representing reasons why mailboxes cannot be set for an alias. Values include Forbidden, EmptyMailboxes, and TooManyMailboxes.
+
+- Path: `app/alias_mailbox_utils.py`
+- Name: `set_mailboxes_for_alias`
+- Type: function
+- Input: `user_id: int, alias: Alias, mailbox_ids: List[int]`
+- Output: `Optional[CannotSetMailboxesForAliasCause]`
+- Description: Validates and sets mailboxes for an alias. Returns None on success, or a CannotSetMailboxesForAliasCause error if validation fails (empty list, too many mailboxes, or forbidden mailboxes).

@@ -1,0 +1,134 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3b19a7c4e5b510840b9c6cd286e090f4",
+    "title": "1.1: Removes all 3 unused dashboard version types (DashboardVersionList, DashboardVersionInfo, and VersionsQueryOptions) from types.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that all unused version history type definitions are removed from the v0alpha1 types.go file. These types became obsolete when history handling moved to label filters.",
+      "evidence": "Gold patch lines 22-61 in types.go show removal of DashboardVersionList (lines 22-29), DashboardVersionInfo (lines 31-47), and VersionsQueryOptions (lines 49-61) struct definitions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Remove these unused types' referring to 'version history types that became obsolete'. [2: Implicit Code Base Constraint] The v0alpha1/types.go file defines DashboardVersionList, DashboardVersionInfo, and VersionsQueryOptions which are no longer referenced after history moved to label filters. [5: Conclusion] Therefore, ANY correct answer must remove all unused version history types from types.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "32b04e0f75dd465663c1b27eaa8e2a44",
+    "title": "1.2: Removes both scheme registrations for unused types (DashboardVersionList and VersionsQueryOptions) from register.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the unused types are unregistered from the Kubernetes scheme in register.go to prevent compile errors.",
+      "evidence": "Gold patch lines 9-10 in register.go show removal of '&DashboardVersionList{}' and '&VersionsQueryOptions{}' from addKnownTypes function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Remove these unused types'. [2: Implicit Code Base Constraint] The v0alpha1/register.go uses Kubernetes-style type registration; removing type definitions without unregistering causes compile errors. [3: Logical Necessity] Type registration must be removed alongside type definitions. [5: Conclusion] Therefore, ANY correct answer must remove scheme registrations from register.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7eb00bba85e1b1dc634dfe8c8991d5d7",
+    "title": "1.3: Removes both generated conversion functions (autoConvert and Convert) for VersionsQueryOptions from zz_generated.conversion.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the auto-generated conversion functions for VersionsQueryOptions are removed. These functions use VersionsQueryOptions as a parameter type, so they must be removed for compilation.",
+      "evidence": "Gold patch lines 82-86 show removal of AddGeneratedConversionFunc registration, and lines 95-118 show removal of autoConvert and Convert functions for VersionsQueryOptions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Remove these unused types'. [2: Implicit Code Base Constraint] The generated conversion functions use VersionsQueryOptions as a parameter type; leaving them causes compilation errors. [3: Logical Necessity] Go cannot compile functions that reference non-existent types. [5: Conclusion] Therefore, ANY correct answer must remove generated conversion functions from zz_generated.conversion.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "8047ecc20921adf77504f4b6d5eaa8f1",
+    "title": "1.4: Removes all 8 generated deepcopy functions (DashboardVersionInfo.DeepCopyInto, DashboardVersionInfo.DeepCopy, DashboardVersionList.DeepCopyInto, DashboardVersionList.DeepCopy, DashboardVersionList.DeepCopyObject, VersionsQueryOptions.DeepCopyInto, VersionsQueryOptions.DeepCopy, VersionsQueryOptions.DeepCopyObject) from zz_generated.deepcopy.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that all auto-generated deepcopy functions are removed. These functions use the deleted types as receiver and parameter types, so they must be removed for compilation.",
+      "evidence": "Gold patch lines 127-172 show removal of deepcopy functions for DashboardVersionInfo and DashboardVersionList, and lines 181-205 show removal of VersionsQueryOptions deepcopy functions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Remove these unused types'. [2: Implicit Code Base Constraint] The generated deepcopy functions use the deleted types as receiver types (e.g., func (in *DashboardVersionInfo)); leaving them causes compilation errors. [3: Logical Necessity] Go cannot compile methods on non-existent types. [5: Conclusion] Therefore, ANY correct answer must remove generated deepcopy functions from zz_generated.deepcopy.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "bc3c0315f8e9e5e2f984606b8ba5c643",
+    "title": "1.5: Removes all 3 generated OpenAPI schema functions (schema_pkg_apis_dashboard_v0alpha1_DashboardVersionInfo, schema_pkg_apis_dashboard_v0alpha1_DashboardVersionList, schema_pkg_apis_dashboard_v0alpha1_VersionsQueryOptions) from zz_generated.openapi.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that all 3 auto-generated OpenAPI schema functions and their map entries are removed. These functions reference the deleted types in schema definitions, so they must be removed for compilation.",
+      "evidence": "Gold patch lines 214-215 and 223 show removal of map entries, and lines 231-374 show removal of schema_pkg_apis_dashboard_v0alpha1_DashboardVersionInfo, DashboardVersionList, and VersionsQueryOptions functions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Remove these unused types'. [2: Implicit Code Base Constraint] The generated OpenAPI schema functions reference the deleted types; leaving them causes compilation errors. [3: Logical Necessity] Go cannot compile code that references non-existent types. [5: Conclusion] Therefore, ANY correct answer must remove generated OpenAPI schema definitions from zz_generated.openapi.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "a0a9e7b9c79af57d63523cc85aeed5e3",
+    "title": "4.1: Removes or modifies any of the 10 actively used types in types.go (Dashboard, DashboardList, LibraryPanel, LibraryPanelList, LibraryPanelSpec, LibraryPanelStatus, DashboardWithAccessInfo, DashboardAccess, AnnotationPermission, AnnotationActions)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the implementation incorrectly removes or modifies types that are actively used by the API, which would break existing functionality.",
+      "evidence": "Gold patch preserves all actively used types in types.go; only the unused version types (DashboardVersionList, DashboardVersionInfo, VersionsQueryOptions) are removed while all 10 active types remain intact.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'making sure not to break any actively used API types'. [2: Implicit Code Base Constraint] The v0alpha1 package defines 10 active types that are referenced by other packages and API consumers. [3: Logical Necessity] Removing in-use types would break API consumers and cause runtime failures. [5: Conclusion] Therefore, ANY correct answer must NOT remove or modify actively used types.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "500df0b688dde15eea69f93bacce0d04",
+    "title": "4.2: Modifies files outside the v0alpha1 package scope (such as v1beta1, v2alpha1, or v2beta1)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the implementation makes changes to files outside the scoped v0alpha1 package, which would be out of scope.",
+      "evidence": "Gold patch only modifies files in apps/dashboard/pkg/apis/dashboard/v0alpha1/ (types.go, register.go, zz_generated.conversion.go, zz_generated.deepcopy.go, zz_generated.openapi.go). No changes to v1beta1, v2alpha1, v2beta1, or other packages.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly scopes the task to 'the v0alpha1 dashboard API'. [2: Implicit Code Base Constraint] The dashboard API has other version packages (v1beta1, v2alpha1, v2beta1) under apps/dashboard/pkg/apis/dashboard/ with their own independent type definitions that should not be modified for this type removal task. [3: Logical Necessity] Modifying other API versions would be scope creep and could introduce unintended breaking changes. [5: Conclusion] Therefore, ANY correct answer must NOT modify files outside the v0alpha1 package.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

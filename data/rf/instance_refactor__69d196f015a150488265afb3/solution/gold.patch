@@ -1,0 +1,98 @@
+diff --git a/app/alias_utils.py b/app/alias_utils.py
+index e9a27974..f8a9e197 100644
+--- a/app/alias_utils.py
++++ b/app/alias_utils.py
+@@ -1,6 +1,7 @@
+ import csv
+ from io import StringIO
+ import re
++from dataclasses import dataclass
+ from typing import Optional, Tuple
+ 
+ from email_validator import validate_email, EmailNotValidError
+@@ -23,6 +24,7 @@ from app.email_utils import (
+     send_cannot_create_domain_alias,
+     send_email,
+     render,
++    sl_formataddr,
+ )
+ from app.errors import AliasInTrashError
+ from app.events.event_dispatcher import EventDispatcher
+@@ -541,3 +543,31 @@ def change_alias_status(alias: Alias, enabled: bool, commit: bool = False):
+ 
+     if commit:
+         Session.commit()
++
++
++@dataclass
++class AliasRecipientName:
++    name: str
++    message: Optional[str] = None
++
++
++def get_alias_recipient_name(alias: Alias) -> AliasRecipientName:
++    """
++    Logic:
++    1. If alias has name, use it
++    2. If alias has custom domain, and custom domain has name, use it
++    3. Otherwise, use the alias email as the recipient
++    """
++    if alias.name:
++        return AliasRecipientName(
++            name=sl_formataddr((alias.name, alias.email)),
++            message=f"Put alias name {alias.name} in from header",
++        )
++    elif alias.custom_domain:
++        if alias.custom_domain.name:
++            return AliasRecipientName(
++                name=sl_formataddr((alias.custom_domain.name, alias.email)),
++                message=f"Put domain default alias name {alias.custom_domain.name} in from header",
++            )
++    else:
++        return AliasRecipientName(name=alias.email)
+diff --git a/email_handler.py b/email_handler.py
+index 2baee1ad..d44555b3 100644
+--- a/email_handler.py
++++ b/email_handler.py
+@@ -53,7 +53,11 @@ from flanker.addresslib.address import EmailAddress
+ from sqlalchemy.exc import IntegrityError
+ 
+ from app import pgp_utils, s3, config, contact_utils
+-from app.alias_utils import try_auto_create, change_alias_status
++from app.alias_utils import (
++    try_auto_create,
++    change_alias_status,
++    get_alias_recipient_name,
++)
+ from app.config import (
+     EMAIL_DOMAIN,
+     URL,
+@@ -1161,23 +1165,11 @@ def handle_reply(envelope, msg: Message, rcpt_to: str) -> (bool, str):
+ 
+     Session.commit()
+ 
+-    # make the email comes from alias
+-    from_header = alias.email
+-    # add alias name from alias
+-    if alias.name:
+-        LOG.d("Put alias name %s in from header", alias.name)
+-        from_header = sl_formataddr((alias.name, alias.email))
+-    elif alias.custom_domain:
+-        # add alias name from domain
+-        if alias.custom_domain.name:
+-            LOG.d(
+-                "Put domain default alias name %s in from header",
+-                alias.custom_domain.name,
+-            )
+-            from_header = sl_formataddr((alias.custom_domain.name, alias.email))
+-
+-    LOG.d("From header is %s", from_header)
+-    add_or_replace_header(msg, headers.FROM, from_header)
++    recipient_name = get_alias_recipient_name(alias)
++    if recipient_name.message:
++        LOG.d(recipient_name.message)
++    LOG.d("From header is %s", recipient_name.name)
++    add_or_replace_header(msg, headers.FROM, recipient_name.name)
+ 
+     try:
+         if str(msg[headers.TO]).lower() == "undisclosed-recipients:;":

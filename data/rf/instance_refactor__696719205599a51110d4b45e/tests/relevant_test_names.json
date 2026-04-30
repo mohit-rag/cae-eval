@@ -1,0 +1,361 @@
+{
+  "tests": [
+    {
+      "name": "buildTitleSearch > should combine ruleName and freeFormWords"
+    },
+    {
+      "name": "buildTitleSearch > should filter out empty strings from freeFormWords"
+    },
+    {
+      "name": "buildTitleSearch > should return freeFormWords when only freeFormWords are provided"
+    },
+    {
+      "name": "buildTitleSearch > should return ruleName when only ruleName is provided"
+    },
+    {
+      "name": "buildTitleSearch > should return undefined when no title filters are provided"
+    },
+    {
+      "name": "buildTitleSearch > should return undefined when only empty strings are provided"
+    },
+    {
+      "name": "buildTitleSearch > should trim whitespace from inputs"
+    },
+    {
+      "name": "contactPointFilter > should return false for non-Grafana alerting rules"
+    },
+    {
+      "name": "contactPointFilter > should return false when contact point does not match"
+    },
+    {
+      "name": "contactPointFilter > should return false when rule has no notification settings"
+    },
+    {
+      "name": "contactPointFilter > should return true when contact point matches"
+    },
+    {
+      "name": "contactPointFilter > should return true when contactPoint is not set"
+    },
+    {
+      "name": "dashboardUidFilter > should return false for alerting rules without dashboard annotation"
+    },
+    {
+      "name": "dashboardUidFilter > should return false for recording rules when dashboardUid filter is active"
+    },
+    {
+      "name": "dashboardUidFilter > should return false when dashboard UID does not match"
+    },
+    {
+      "name": "dashboardUidFilter > should return true when dashboard UID matches"
+    },
+    {
+      "name": "dashboardUidFilter > should return true when dashboardUid is not set"
+    },
+    {
+      "name": "dataSourceNamesFilter > should return false when rule does not query the filtered datasource"
+    },
+    {
+      "name": "dataSourceNamesFilter > should return false when there is an error resolving datasource"
+    },
+    {
+      "name": "dataSourceNamesFilter > should return true for non-Grafana rules even when dataSourceNames is set"
+    },
+    {
+      "name": "dataSourceNamesFilter > should return true when dataSourceNames is empty"
+    },
+    {
+      "name": "dataSourceNamesFilter > should return true when rule queries the filtered datasource"
+    },
+    {
+      "name": "datasource-managed rules > groupFilter > should filter by group name"
+    },
+    {
+      "name": "datasource-managed rules > groupFilter > should filter by namespace (file path)"
+    },
+    {
+      "name": "datasource-managed rules > groupFilter > should return true when no filters are applied"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > dataSourceNames filter > should filter out rules that don't use the filtered datasource"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > dataSourceNames filter > should match rules that use the filtered datasource"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > dataSourceNames filter > should return false when there is an error parsing the query"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should combine multiple filters with AND logic"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should filter by alert instance labels"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should filter by dashboard UID"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should filter by free form words in rule name"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should filter by labels"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should filter by rule health"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should filter by rule name"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should filter by rule state"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should filter by rule type"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should filter out recording rules when filtering by dashboard UID"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should filter out recording rules when filtering by rule state"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should normalize health values when filtering"
+    },
+    {
+      "name": "datasource-managed rules > ruleFilter > should return false if any filter does not match"
+    },
+    {
+      "name": "freeFormFilter > should join multiple freeFormWords for matching"
+    },
+    {
+      "name": "freeFormFilter > should return false when rule name does not match freeFormWords"
+    },
+    {
+      "name": "freeFormFilter > should return true when freeFormWords is empty"
+    },
+    {
+      "name": "freeFormFilter > should return true when rule name matches freeFormWords"
+    },
+    {
+      "name": "grafana-managed rules > backend filtering with alertingUIUseBackendFilters feature toggle > when alertingUIUseBackendFilters is enabled > should combine ruleName and freeFormWords in title"
+    },
+    {
+      "name": "grafana-managed rules > groupFilter > should filter by group name"
+    },
+    {
+      "name": "grafana-managed rules > groupFilter > should filter by namespace (file path)"
+    },
+    {
+      "name": "grafana-managed rules > groupFilter > should return true when no filters are applied"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is disabled > should return false for backend-only filters (state, health, contactPoint)"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is disabled > should return false when no filters are applied"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is disabled > should return true for client-side only filters"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is disabled > should return true for dashboardUid filter"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is disabled > should return true for groupName filter"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is disabled > should return true for ruleType filter"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is disabled > should return true for title-related filters (freeFormWords, ruleName)"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is enabled > should return false for backend-only filters (state, health, contactPoint)"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is enabled > should return false for dashboardUid filter (handled by backend)"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is enabled > should return false for groupName filter (handled by backend)"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is enabled > should return false for ruleType filter (handled by backend)"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is enabled > should return false for title-related filters (handled by backend)"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is enabled > should return false when no filters are applied"
+    },
+    {
+      "name": "grafana-managed rules > hasClientSideFilters > when alertingUIUseBackendFilters is enabled > should return true for client-side only filters"
+    },
+    {
+      "name": "grafana-managed rules > ruleFilter - frontend filters > dataSourceNames filter > should filter out rules that don't use the filtered datasource"
+    },
+    {
+      "name": "grafana-managed rules > ruleFilter - frontend filters > dataSourceNames filter > should match rules that use the filtered datasource"
+    },
+    {
+      "name": "grafana-managed rules > ruleFilter - frontend filters > should filter by dashboard UID"
+    },
+    {
+      "name": "grafana-managed rules > ruleFilter - frontend filters > should filter by free form words in rule name"
+    },
+    {
+      "name": "grafana-managed rules > ruleFilter - frontend filters > should filter by labels"
+    },
+    {
+      "name": "grafana-managed rules > ruleFilter - frontend filters > should filter by rule name"
+    },
+    {
+      "name": "grafana-managed rules > ruleFilter - frontend filters > should filter by rule type"
+    },
+    {
+      "name": "groupMatches > should apply AND logic across both filters"
+    },
+    {
+      "name": "groupMatches > should return false when groupName filter fails"
+    },
+    {
+      "name": "groupMatches > should return false when namespace filter fails"
+    },
+    {
+      "name": "groupMatches > should return true when all filters in config are null"
+    },
+    {
+      "name": "groupMatches > should return true when filters pass"
+    },
+    {
+      "name": "groupNameFilter > should return false when groupName does not match"
+    },
+    {
+      "name": "groupNameFilter > should return true when groupName is not set"
+    },
+    {
+      "name": "groupNameFilter > should return true when groupName matches (fuzzy)"
+    },
+    {
+      "name": "labelsFilter > should handle multiple label matchers with AND logic"
+    },
+    {
+      "name": "labelsFilter > should handle rules with no labels"
+    },
+    {
+      "name": "labelsFilter > should match against alert instance labels"
+    },
+    {
+      "name": "labelsFilter > should return false when rule labels do not match"
+    },
+    {
+      "name": "labelsFilter > should return true when labels filter is empty"
+    },
+    {
+      "name": "labelsFilter > should return true when rule labels match"
+    },
+    {
+      "name": "namespaceFilter > should match case-insensitively when filter state is pre-normalized"
+    },
+    {
+      "name": "namespaceFilter > should return false when namespace does not match"
+    },
+    {
+      "name": "namespaceFilter > should return true when namespace is not set"
+    },
+    {
+      "name": "namespaceFilter > should return true when namespace matches (fuzzy)"
+    },
+    {
+      "name": "normalizeFilterState > should handle undefined values"
+    },
+    {
+      "name": "normalizeFilterState > should lowercase all relevant fields in a complex filter"
+    },
+    {
+      "name": "normalizeFilterState > should lowercase freeFormWords"
+    },
+    {
+      "name": "normalizeFilterState > should lowercase groupName"
+    },
+    {
+      "name": "normalizeFilterState > should lowercase namespace"
+    },
+    {
+      "name": "normalizeFilterState > should lowercase ruleName"
+    },
+    {
+      "name": "normalizeFilterState > should preserve other filter properties"
+    },
+    {
+      "name": "pluginsFilter > should return false for plugin-provided rules when plugins is \"hide\""
+    },
+    {
+      "name": "pluginsFilter > should return true for non-plugin rules when plugins is \"hide\""
+    },
+    {
+      "name": "pluginsFilter > should return true when plugins filter is not set"
+    },
+    {
+      "name": "ruleHealthFilter > should match error health correctly"
+    },
+    {
+      "name": "ruleHealthFilter > should normalize legacy health value \"err\" to \"error\""
+    },
+    {
+      "name": "ruleHealthFilter > should return false when rule health does not match"
+    },
+    {
+      "name": "ruleHealthFilter > should return true when rule health matches"
+    },
+    {
+      "name": "ruleHealthFilter > should return true when ruleHealth is not set"
+    },
+    {
+      "name": "ruleMatches > should apply AND logic across all active filters"
+    },
+    {
+      "name": "ruleMatches > should return false when any active filter fails"
+    },
+    {
+      "name": "ruleMatches > should return true when all filters in config are null"
+    },
+    {
+      "name": "ruleMatches > should skip null filters and only evaluate non-null ones"
+    },
+    {
+      "name": "ruleNameFilter > should return false when rule name does not match"
+    },
+    {
+      "name": "ruleNameFilter > should return true when rule name matches"
+    },
+    {
+      "name": "ruleNameFilter > should return true when ruleName is not set"
+    },
+    {
+      "name": "ruleStateFilter > should return false for recording rules when state filter is active"
+    },
+    {
+      "name": "ruleStateFilter > should return false when rule state does not match"
+    },
+    {
+      "name": "ruleStateFilter > should return true for recording rules when no state filter is set"
+    },
+    {
+      "name": "ruleStateFilter > should return true when rule state matches"
+    },
+    {
+      "name": "ruleStateFilter > should return true when ruleState is not set"
+    },
+    {
+      "name": "ruleTypeFilter > should match recording rules"
+    },
+    {
+      "name": "ruleTypeFilter > should return false when rule type does not match"
+    },
+    {
+      "name": "ruleTypeFilter > should return true when rule type matches alerting"
+    },
+    {
+      "name": "ruleTypeFilter > should return true when ruleType is not set"
+    }
+  ]
+}

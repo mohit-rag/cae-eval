@@ -1,0 +1,314 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "de562f80fcd3f6f5b25ba7ba781f294b",
+    "title": "1.1: Changes NewMetricsEngine in metrics/engine/engine.go to accept both explicit dependencies (*metrics.Registry, logrus.FieldLogger)",
+    "annotations": {
+      "importance": "must have",
+      "description": "NewMetricsEngine should accept explicit dependencies (a metrics registry and a logger) rather than the entire TestRunState struct, decoupling the constructor from the test run lifecycle.",
+      "evidence": "gold.patch lines 137-145 (metrics/engine/engine.go): line 137 removes `func NewMetricsEngine(runState *lib.TestRunState)`, line 138 adds `func NewMetricsEngine(registry *metrics.Registry, logger logrus.FieldLogger)`, and lines 139-145 store registry and logger directly on the struct.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'NewMetricsEngine should take its actual dependencies (registry, logger) instead of the whole TestRunState.' [2: Implicit Codebase Constraint] The existing MetricsEngine only uses the registry and logger from TestRunState; the rest of the struct fields are unused by the constructor. [3: Logical Necessity] Given the prompt's decoupling requirement and the codebase's actual usage, the constructor must accept only the dependencies it needs. [5: Conclusion] Therefore, ANY correct answer must change NewMetricsEngine to accept a registry and logger instead of TestRunState.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3300e6ce86b309c6c3e25531bcc12a26",
+    "title": "1.2: Removes threshold and submetric initialization logic from the NewMetricsEngine constructor body in metrics/engine/engine.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The NewMetricsEngine constructor should no longer call initSubMetricsAndThresholds or check RuntimeOptions. It should only store dependencies and return.",
+      "evidence": "gold.patch lines 147-154 (metrics/engine/engine.go): the if-block checking `NoSummary`/`NoThresholds` and calling `initSubMetricsAndThresholds()` (lines 147-152) is removed; the constructor now returns immediately at line 154.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Pull the sub-metrics/threshold initialization out of the constructor into an exported InitSubMetricsAndThresholds method.' [3: Logical Necessity] To externalize initialization, it must first be removed from the constructor. [5: Conclusion] Therefore, ANY correct answer must remove threshold/submetric init from the NewMetricsEngine constructor.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a6a74cc2f2bded08f78521a134e26297",
+    "title": "1.3: Exports an InitSubMetricsAndThresholds method on MetricsEngine in metrics/engine/engine.go that accepts both parameters (lib.Options and a flag controlling error-only logging)",
+    "annotations": {
+      "importance": "must have",
+      "description": "MetricsEngine should expose an exported method for initializing submetrics and thresholds, accepting the options it needs as parameters rather than reading them from internal state.",
+      "evidence": "gold.patch lines 183-196 (metrics/engine/engine.go): line 183 removes `func (me *MetricsEngine) initSubMetricsAndThresholds() error`, lines 185-188 add the GoDoc comment and `func (me *MetricsEngine) InitSubMetricsAndThresholds(options lib.Options, onlyLogErrors bool) error`, and lines 189-196 update the body to use the `options` and `onlyLogErrors` parameters.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Pull the sub-metrics/threshold initialization out of the constructor into an exported InitSubMetricsAndThresholds method that takes the options it needs.' [2: Implicit Codebase Constraint] The existing initSubMetricsAndThresholds reads from me.test.Options and me.test.RuntimeOptions; after decoupling from TestRunState, these must be passed as parameters. [3: Logical Necessity] The method must be exported so callers in cmd/run.go can invoke it conditionally. [5: Conclusion] Therefore, ANY correct answer must export an InitSubMetricsAndThresholds method that accepts the options and error-logging flag as parameters.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "56bbba3f64b61b58d71eb5934c703e52",
+    "title": "1.4: Calls InitSubMetricsAndThresholds only when thresholds or end-of-test summary are enabled in cmd/run.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The run path should gate InitSubMetricsAndThresholds behind a condition that checks whether thresholds or end-of-test summary are enabled, so metrics processing is skipped when neither is needed.",
+      "evidence": "gold.patch lines 15-31 (cmd/run.go): lines 19-20 introduce `shouldProcessMetrics` conditional, line 22 gates the block with `if shouldProcessMetrics`, and line 23 calls `metricsEngine.InitSubMetricsAndThresholds(conf.Options, ...)` inside the conditional.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'only call it when thresholds or end-of-test summary are actually enabled.' [2: Implicit Codebase Constraint] The existing codebase already has a conditional block for attaching the ingester; the init must be gated by the same condition. [3: Logical Necessity] Without conditional gating, InitSubMetricsAndThresholds would run unconditionally, defeating the purpose of externalizing it. [5: Conclusion] Therefore, ANY correct answer must conditionally invoke InitSubMetricsAndThresholds based on thresholds/summary being enabled.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ec0d130e9f7fd0c83f167306245e9d76",
+    "title": "1.5: Exports the outputIngester type as OutputIngester in metrics/engine/ingester.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The unexported outputIngester struct should be renamed to OutputIngester so it can be referenced from outside the package.",
+      "evidence": "gold.patch lines 239-284 (metrics/engine/ingester.go): line 239 changes the interface assertion from `&outputIngester{}` to `&OutputIngester{}`, lines 248-251 rename the type declaration from `type outputIngester struct` to `type OutputIngester struct`, and lines 259-284 update all method receivers from `*outputIngester` to `*OutputIngester`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Export the outputIngester type.' [2: Implicit Codebase Constraint] The type implements output.Output and needs to be passed explicitly to StartThresholdCalculations from cmd/run.go, which is in a different package. [3: Logical Necessity] For cross-package usage, the type must be exported. [5: Conclusion] Therefore, ANY correct answer must export outputIngester as OutputIngester (or equivalent exported name).",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "66d131f9155318694a7e41e42307e0ab",
+    "title": "1.6: Updates StartThresholdCalculations in metrics/engine/engine.go to accept an *OutputIngester parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "StartThresholdCalculations should receive the ingester as an explicit parameter so the finalize callback can stop it without reaching into MetricsEngine's internal fields.",
+      "evidence": "gold.patch lines 209-230 (metrics/engine/engine.go): line 210 adds `ingester *OutputIngester` as the first parameter, lines 223-227 update the finalize closure to use the `ingester` parameter instead of `me.outputIngester`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'have thresholds use an explicitly-passed ingester instead of reaching into engine state.' [2: Implicit Codebase Constraint] The existing code stores outputIngester on the MetricsEngine struct and reads it in the finalize closure; this couples threshold finalization to engine internals. [3: Logical Necessity] Passing the ingester explicitly removes the coupling and the need for the outputIngester field on the struct. [5: Conclusion] Therefore, ANY correct answer must pass the ingester as a parameter to StartThresholdCalculations.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7920952e034a7ebb83fd44fdc9e4674a",
+    "title": "1.7: Changes CreateIngester in metrics/engine/engine.go to return *OutputIngester as the concrete type",
+    "annotations": {
+      "importance": "must have",
+      "description": "CreateIngester should return the concrete exported type so callers can pass it to StartThresholdCalculations without type assertions.",
+      "evidence": "gold.patch lines 159-168 (metrics/engine/engine.go): line 159 removes `func (me *MetricsEngine) CreateIngester() output.Output`, line 161 adds `func (me *MetricsEngine) CreateIngester() *OutputIngester`, and lines 162-166 return the struct directly instead of storing it on the engine.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires exporting outputIngester and passing it explicitly to thresholds. [2: Implicit Codebase Constraint] StartThresholdCalculations needs the concrete type to call Stop(); returning output.Output would require a type assertion. [3: Logical Necessity] For the ingester to be passed to StartThresholdCalculations as the concrete type, CreateIngester must return that type. [5: Conclusion] Therefore, ANY correct answer must have CreateIngester return the exported concrete ingester type.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "191ff6aa5a6e26d4471aa8492945c037",
+    "title": "1.8: Adds all 5 accessor methods (Min(), Max(), Count(), Avg(), Total()) to TrendSink in metrics/sink.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "TrendSink should expose Min, Max, Count, Avg, and Total as methods, providing encapsulation for the unexported fields and a consistent accessor for Sum.",
+      "evidence": "gold.patch lines 425-451 (metrics/sink.go): lines 426-428 add `func (t *TrendSink) Min() float64`, lines 431-433 add `Max() float64`, lines 436-438 add `Count() uint64`, lines 441-446 add `Avg() float64` with a zero-count guard, and lines 448-451 add `Total() float64` returning Sum.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'switch Min, Max, Count, Avg, and Values to unexported fields, add accessor methods for Min, Max, Count, and Avg' and separately 'add a Total() accessor that returns Sum for internal use.' [2: Implicit Codebase Constraint] The existing TrendSink exposes Min, Max, Count, and Avg as public fields read by callers; Sum stays exported but needs a Total() accessor for internal consistency. [3: Logical Necessity] Switching from fields to methods requires adding accessor methods that return the same values. [5: Conclusion] Therefore, ANY correct answer must add all 5 accessor methods (Min, Max, Count, Avg, Total) to TrendSink.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "20afbdc0fe35d32a6508ef5bf199f3f1",
+    "title": "1.9: Adds a NewTrendSink constructor function in metrics/sink.go that returns *TrendSink",
+    "annotations": {
+      "importance": "must have",
+      "description": "TrendSink should have an exported constructor function so callers create instances through a supported path rather than struct literals.",
+      "evidence": "gold.patch lines 344-347 (metrics/sink.go): lines 344-346 add `func NewTrendSink() *TrendSink { return &TrendSink{} }`, and line 336 updates `NewSink(Trend)` to call `NewTrendSink()` instead of `&TrendSink{}`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'switch Min, Max, Count, and Avg to unexported fields with accessor methods, and add a constructor.' [2: Implicit Codebase Constraint] With fields becoming unexported, callers can no longer use TrendSink{} struct literals to set initial values; a constructor provides the supported creation path. [3: Logical Necessity] Encapsulation requires a constructor when fields are private. [5: Conclusion] Therefore, ANY correct answer must add an exported TrendSink constructor function.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3590484239e8b63b55be26359f65c9ed",
+    "title": "1.10: Updates callers of TrendSink in metrics/sample.go to use all 4 accessor methods (Min(), Max(), Avg(), Count())",
+    "annotations": {
+      "importance": "must have",
+      "description": "GetResolversForTrendColumns in metrics/sample.go should call TrendSink accessor methods rather than reading exported fields.",
+      "evidence": "gold.patch lines 296-304 (metrics/sample.go): line 296 changes `s.Avg` to `s.Avg()`, line 297 changes `s.Min` to `s.Min()`, line 301 changes `s.Max` to `s.Max()`, and line 302 changes `s.Count` to `s.Count()`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'switch Min, Max, Count, and Avg to unexported fields with accessor methods.' [2: Implicit Codebase Constraint] GetResolversForTrendColumns in metrics/sample.go reads TrendSink fields directly in its resolver map; once fields are unexported, these accesses break. [3: Logical Necessity] Switching fields to methods requires updating all callers to use the new methods. [5: Conclusion] Therefore, ANY correct answer must update TrendSink callers in metrics/sample.go to use accessor methods.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "0593ca15419e87fb11b9a08bd2e0ffb2",
+    "title": "1.11: Updates Thresholds.Run in metrics/thresholds.go to use the 3 TrendSink accessor methods (Min(), Max(), Avg())",
+    "annotations": {
+      "importance": "must have",
+      "description": "The TrendSink case in Thresholds.Run should call accessor methods rather than reading exported fields.",
+      "evidence": "gold.patch lines 490-495 (metrics/thresholds.go): line 490 changes `sinkImpl.Min` to `sinkImpl.Min()`, line 491 changes `sinkImpl.Max` to `sinkImpl.Max()`, and line 492 changes `sinkImpl.Avg` to `sinkImpl.Avg()`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'switch Min, Max, Count, and Avg to unexported fields with accessor methods.' [2: Implicit Codebase Constraint] Thresholds.Run in metrics/thresholds.go reads TrendSink.Min, .Max, .Avg directly in the type switch; once fields are unexported, these accesses break. [3: Logical Necessity] Switching fields to methods requires updating all callers to use the new methods. [5: Conclusion] Therefore, ANY correct answer must update the TrendSink case in Thresholds.Run to use accessor methods.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "bd03383a711b5919673e1aa10e467190",
+    "title": "1.12: Renames the named error return in Scheduler.Init in execution/scheduler.go to an error name derived from the function name",
+    "annotations": {
+      "importance": "must have",
+      "description": "The named error return variable in Scheduler.Init should be renamed from the generic 'err' to a name based on the function name for easier identification.",
+      "evidence": "gold.patch lines 62-67 (execution/scheduler.go): line 66 removes `(stopVUEmission func(), err error)` and line 67 adds `(stopVUEmission func(), initErr error)` in the Scheduler.Init signature.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'rename the named error returns in Scheduler.Init and Scheduler.Run to error names based on the function names, so it is easier to identify them.' [3: Logical Necessity] The rename must apply to Scheduler.Init specifically. [5: Conclusion] Therefore, ANY correct answer must rename the named error return in Scheduler.Init to a function-name-based identifier like initErr.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "6bc7370c1007529876076694146d427b",
+    "title": "1.13: Renames the named error return in Scheduler.Run in execution/scheduler.go to an error name derived from the function name",
+    "annotations": {
+      "importance": "must have",
+      "description": "The named error return variable in Scheduler.Run should be renamed from the generic 'err' to a name based on the function name for easier identification.",
+      "evidence": "gold.patch lines 90-91 (execution/scheduler.go): line 90 removes `func (e *Scheduler) Run(...) (err error)` and line 91 adds `func (e *Scheduler) Run(...) (runErr error)`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'rename the named error returns in Scheduler.Init and Scheduler.Run to error names based on the function names, so it is easier to identify them.' [3: Logical Necessity] The rename must apply to Scheduler.Run specifically. [5: Conclusion] Therefore, ANY correct answer must rename the named error return in Scheduler.Run to a function-name-based identifier like runErr.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "0d5a7486ae1ac4caf53d2536a1172b10",
+    "title": "1.14: Updates the deferred closure in Scheduler.Init in execution/scheduler.go to reference the renamed error variable",
+    "annotations": {
+      "importance": "must have",
+      "description": "After renaming the named return, the deferred closure in Scheduler.Init that logs and reassigns the error must reference the new variable name.",
+      "evidence": "gold.patch lines 72-85 (execution/scheduler.go): line 75 removes `interruptErr, err` and line 76 adds `interruptErr, initErr` in the Debugf call; lines 78-82 update the assignment and nil-check from `err` to `initErr`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states to rename the error returns and 'fix the defer/logging bits that reference them' (from the original intent visible in the codebase pattern). [2: Implicit Codebase Constraint] The existing deferred closure references the named return 'err' in a Debugf call and an assignment; these must be updated to compile. [3: Logical Necessity] Renaming the return variable without updating references would cause a compilation error. [5: Conclusion] Therefore, ANY correct answer must update the deferred closure in Scheduler.Init to use the renamed variable.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "0610d7021493609c6ba49b5314010b4e",
+    "title": "1.15: Updates deferred closure in Scheduler.Run in execution/scheduler.go to reference the renamed error variable",
+    "annotations": {
+      "importance": "must have",
+      "description": "After renaming the named return, the deferred closure in Scheduler.Run that logs and reassigns the error must reference the new variable name.",
+      "evidence": "gold.patch lines 93-101 (execution/scheduler.go): line 96 removes `interruptErr, err` and line 97 adds `interruptErr, runErr` in the Debugf call; lines 99-100 update the assignment from `err = interruptErr` to `runErr = interruptErr`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires renaming the error returns in both scheduler functions. [2: Implicit Codebase Constraint] The existing deferred closure in Scheduler.Run references 'err' in a Debugf call and an assignment. [3: Logical Necessity] Renaming the return variable without updating references would cause a compilation error. [5: Conclusion] Therefore, ANY correct answer must update the deferred closure in Scheduler.Run to use the renamed variable.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b3f880ac97333effd0f6150eb24545b4",
+    "title": "1.16: Removes the DummySink type and all 3 of its methods (IsEmpty, Add, Format) from metrics/sink.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The DummySink type, which only exists for tests and panics on Add, should be removed from production code.",
+      "evidence": "gold.patch lines 469-481 (metrics/sink.go): lines 470-481 remove the `type DummySink map[string]float64` declaration and its `IsEmpty`, `Add`, and `Format` methods.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Remove DummySink since it only exists for tests and can't handle real samples.' [2: Implicit Codebase Constraint] DummySink.Add panics with an error, making it unusable for real metric processing. [5: Conclusion] Therefore, ANY correct answer must remove DummySink and its methods from metrics/sink.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "4ad0ff9473cceb85aba0bda32c029f73",
+    "title": "1.17: Removes the DummySink case from the type switch in Thresholds.Run in metrics/thresholds.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "After removing DummySink, the case DummySink branch in Thresholds.Run should also be removed to avoid referencing a deleted type.",
+      "evidence": "gold.patch lines 503-506 (metrics/thresholds.go): lines 503-506 remove the `case DummySink:` branch and its body from the type switch in Thresholds.Run.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires removing DummySink. [2: Implicit Codebase Constraint] Thresholds.Run contains a case DummySink: branch that would fail to compile after the type is deleted. [3: Logical Necessity] Removing a type requires removing all references to it. [5: Conclusion] Therefore, ANY correct answer must remove the DummySink case from Thresholds.Run.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "34e4077258b4e37ac964d14495f8a65f",
+    "title": "1.18: Removes all 5 TrendSink fields (Min, Max, Count, Avg, Values) from the public API of metrics/sink.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The TrendSink fields Min, Max, Count, Avg, and Values must no longer be accessible as exported fields. This can be achieved by unexporting them (lowercasing) or by removing them entirely and computing values on-the-fly in accessor methods.",
+      "evidence": "gold.patch lines 349-362 (metrics/sink.go): lines 350-351 change `Values []float64` to `values []float64`, lines 354-358 change `Count uint64` and `Min, Max float64` to `count uint64` and `min, max float64`, and lines 356-362 replace `Sum, Avg float64` with just `Sum float64` (Avg is removed as a stored field and computed on-the-fly in the Avg() accessor method).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'switch Min, Max, Count, Avg, and Values to unexported fields.' [3: Logical Necessity] Removing these fields from the public API enforces that all access goes through the accessor methods and constructor, completing the encapsulation. Both unexporting and removing a field satisfy this requirement. [5: Conclusion] Therefore, ANY correct answer must make all 5 specified TrendSink fields inaccessible as exported fields.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "fd83df1468745ec2bbb64623d9597b2e",
+    "title": "2.1: Adds a GoDoc comment for the exported InitSubMetricsAndThresholds method in metrics/engine/engine.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "The newly exported InitSubMetricsAndThresholds method should have a GoDoc comment explaining its purpose.",
+      "evidence": "gold.patch lines 185-187 (metrics/engine/engine.go): lines 185-187 add a GoDoc comment above InitSubMetricsAndThresholds: '// InitSubMetricsAndThresholds parses the thresholds from the test Options and initializes both the thresholds themselves, as well as any submetrics that were referenced in them.'",
+      "justification": "[2: Implicit Codebase Constraint] Go convention requires exported functions to have GoDoc comments; the existing codebase follows this pattern for other exported methods on MetricsEngine. [4: Quality Necessity] Any good implementation should document newly exported public API methods. [5: Conclusion] Therefore, ANY correct and good answer should add a GoDoc comment for InitSubMetricsAndThresholds.",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "4ac90dc78fb8c6118ca7c918646536e2",
+    "title": "3.1: Removes the outputIngester field from the MetricsEngine struct in metrics/engine/engine.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "After passing the ingester explicitly to StartThresholdCalculations, the outputIngester field on MetricsEngine is no longer needed and should be removed.",
+      "evidence": "gold.patch lines 119-125 (metrics/engine/engine.go): line 122 removes `outputIngester *outputIngester` from the MetricsEngine struct definition, leaving only `registry` and `logger` as stored fields.",
+      "justification": "[2: Implicit Codebase Constraint] The outputIngester field was only used by StartThresholdCalculations' finalize closure; with explicit passing, it becomes dead state. [4: Quality Necessity] Removing unused fields is good cleanup after decoupling. [5: Conclusion] Therefore, ANY correct and good answer should remove the outputIngester field from MetricsEngine.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "ae3a1bbf81979f61b75d461c6084fde0",
+    "title": "4.1: Leaves the call site in cmd/run.go still using the old NewMetricsEngine(*lib.TestRunState) signature",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks whether the production call site in cmd/run.go still calls NewMetricsEngine with the old TestRunState parameter after the signature change.",
+      "evidence": "gold.patch lines 10-11 (cmd/run.go): line 10 removes `engine.NewMetricsEngine(executionState.Test)` and line 11 adds `engine.NewMetricsEngine(testRunState.Registry, logger)`, updating the only non-test call site.",
+      "justification": "[2: Implicit Codebase Constraint] cmd/run.go calls NewMetricsEngine; after changing the signature, all callers must be updated. [3: Logical Necessity] Leaving old call sites causes compilation failure and indicates incomplete refactoring. [5: Conclusion] Therefore, leaving old NewMetricsEngine call sites is a critical regression.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "5d105912ee2600e26bff97055f0b44c7",
+    "title": "4.2: Leaves production code reading TrendSink statistics via direct access to any of the 4 unexported fields (.Min, .Max, .Avg, .Count) instead of using accessor methods",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks whether any non-test code still reads TrendSink fields directly instead of using the new accessor methods.",
+      "evidence": "gold.patch lines 296-304 (metrics/sample.go) and lines 490-495 (metrics/thresholds.go) update all production callers from direct field access (s.Avg, s.Min, s.Max, s.Count, sinkImpl.Min, sinkImpl.Max, sinkImpl.Avg) to accessor method calls.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'switch Min, Max, Count, and Avg to unexported fields with accessor methods.' [2: Implicit Codebase Constraint] metrics/sample.go and metrics/thresholds.go read TrendSink.Min, .Max, .Avg, .Count directly; once these fields are unexported, these accesses break. [3: Logical Necessity] If fields are unexported, direct access causes compilation errors. [5: Conclusion] Therefore, leaving direct field access to Min, Max, Avg, or Count in production code is a regression.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

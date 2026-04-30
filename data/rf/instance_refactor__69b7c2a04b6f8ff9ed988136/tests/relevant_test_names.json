@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "AppLayerParserTest03"
+    },
+    {
+      "name": "AppLayerParserTest04"
+    },
+    {
+      "name": "AppLayerParserTest05"
+    },
+    {
+      "name": "AppLayerParserTest06"
+    },
+    {
+      "name": "AppLayerParserTest07"
+    }
+  ]
+}

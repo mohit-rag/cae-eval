@@ -1,0 +1,194 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "48011e196338bf2299aeeb0459e4fead",
+    "title": "1.1: Moves the set_default_mailbox function from app/mailbox_utils.py to app/user_settings.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that set_default_mailbox is defined in app/user_settings.py, accepting a User and mailbox_id and returning a Mailbox, with the same validation and commit logic as the original.",
+      "evidence": "gold.patch lines 114-129 (app/user_settings.py): lines 114-129 add the full set_default_mailbox function definition with ownership check, verification check, and Session.commit().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the set_default_mailbox function 'doesn't really belong in mailbox utils \u2014 it's more of a user setting, so please move it over'. [2: Implicit Codebase Constraint] The existing app/user_settings.py already contains set_default_alias_domain, establishing it as the location for user default-setting functions. [5: Conclusion] Therefore, ANY correct answer must define set_default_mailbox in app/user_settings.py with equivalent logic to the original."
+    }
+  },
+  {
+    "id": "9e44fbf6753bf5aadd782583c47336ce",
+    "title": "1.2: Creates a CannotSetMailbox exception class in app/user_settings.py with a msg attribute, following the same pattern as the existing CannotSetAlias class",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a CannotSetMailbox exception class exists in app/user_settings.py with an __init__ that accepts a msg string parameter and stores it as self.msg.",
+      "evidence": "gold.patch lines 100-102 (app/user_settings.py): line 100 declares class CannotSetMailbox(Exception), line 101 defines __init__(self, msg: str), line 102 assigns self.msg = msg.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests a new exception class 'like CannotSetMailbox, similar to the existing CannotSetAlias' to replace the generic MailboxError. [2: Implicit Codebase Constraint] The existing CannotSetAlias class in app/user_settings.py stores a msg attribute, establishing the pattern. [5: Conclusion] Therefore, ANY correct answer must create a CannotSetMailbox exception class in app/user_settings.py with a msg attribute."
+    }
+  },
+  {
+    "id": "1e5133bbcbef031f84b7553557c50151",
+    "title": "1.3: Updates the moved set_default_mailbox function in app/user_settings.py to raise CannotSetMailbox instead of MailboxError",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the set_default_mailbox function in its new location raises CannotSetMailbox for invalid mailbox and unverified mailbox conditions, rather than MailboxError.",
+      "evidence": "gold.patch lines 118-121 (app/user_settings.py): line 118 raises CannotSetMailbox('Invalid mailbox') and line 121 raises CannotSetMailbox('This is mailbox is not verified').",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the function 'should use its own exception class (like CannotSetMailbox) instead of the generic MailboxError'. [3: Logical Necessity] Since the function is moved to user_settings.py, it must use the exception class defined in that module rather than importing MailboxError from mailbox_utils. [5: Conclusion] Therefore, ANY correct answer must have the moved function raise CannotSetMailbox instead of MailboxError."
+    }
+  },
+  {
+    "id": "3ecc42c28416d29e86f4bc6b61fe7ddb",
+    "title": "1.4: Updates all 4 log messages (not premium, not valid email, email already used, email is invalid) in create_mailbox in app/mailbox_utils.py to reflect that the user only attempted to create a mailbox",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that all four LOG.i messages in the create_mailbox validation branches no longer say the user 'has created mailbox' and instead convey that the user only tried or attempted to create one (e.g. 'tried to create mailbox', 'has tried to create mailbox', 'attempted to create mailbox').",
+      "evidence": "gold.patch lines 34-54 (app/mailbox_utils.py): line 35 changes to 'has tried to create mailbox...but is not premium', line 41 to '...but is not valid email', line 47 to '...but email is already used', line 53 to '...but email is invalid'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the log messages in create_mailbox are misleading \u2014 when validation fails the user hasn't actually created anything, they've only tried to. Please fix the wording to reflect that.' The prompt does not prescribe an exact string, only that the wording must convey an attempt rather than a completed action. [3: Logical Necessity] All four validation branches log the same incorrect wording and must all be updated for consistency. [5: Conclusion] Therefore, ANY correct answer must update all 4 log messages to replace 'has created' with wording that conveys the user only tried or attempted to create a mailbox."
+    }
+  },
+  {
+    "id": "efe52983529a223a4f7784883856f7fc",
+    "title": "1.5: Adds the user_settings import to app/dashboard/views/mailbox.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that app/dashboard/views/mailbox.py imports the user_settings module so the moved function and exception are accessible.",
+      "evidence": "gold.patch line 10 (app/dashboard/views/mailbox.py): line 10 changes the import to include user_settings alongside parallel_limiter and mailbox_utils.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'make sure anything that calls the old function is updated to use the new location and exception'. [3: Logical Necessity] The caller must import user_settings before it can reference user_settings.set_default_mailbox or user_settings.CannotSetMailbox. [5: Conclusion] Therefore, ANY correct answer must add the user_settings import to app/dashboard/views/mailbox.py."
+    }
+  },
+  {
+    "id": "3882c7af97ad10bafbc9ddafa08cae47",
+    "title": "1.6: Updates the mailbox_route function in app/dashboard/views/mailbox.py to call user_settings.set_default_mailbox instead of mailbox_utils.set_default_mailbox",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the mailbox_route function calls user_settings.set_default_mailbox instead of mailbox_utils.set_default_mailbox.",
+      "evidence": "gold.patch line 20 (app/dashboard/views/mailbox.py): line 20 calls user_settings.set_default_mailbox(current_user, mailbox_id).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'make sure anything that calls the old function is updated to use the new location'. [2: Implicit Codebase Constraint] The mailbox_route function in app/dashboard/views/mailbox.py is the only caller of set_default_mailbox; it must switch to the new module path. [5: Conclusion] Therefore, ANY correct answer must update mailbox_route to call user_settings.set_default_mailbox."
+    }
+  },
+  {
+    "id": "480c0ce1d1b77358152522dcf4724a8c",
+    "title": "1.7: Updates the mailbox_route function in app/dashboard/views/mailbox.py to catch user_settings.CannotSetMailbox instead of mailbox_utils.MailboxError",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the mailbox_route function catches user_settings.CannotSetMailbox instead of mailbox_utils.MailboxError.",
+      "evidence": "gold.patch line 21 (app/dashboard/views/mailbox.py): line 21 catches user_settings.CannotSetMailbox.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'make sure anything that calls the old function is updated to use the new location and exception'. [3: Logical Necessity] Since the moved function now raises CannotSetMailbox, the caller must catch the new exception class to handle errors correctly. [5: Conclusion] Therefore, ANY correct answer must update mailbox_route to catch user_settings.CannotSetMailbox instead of mailbox_utils.MailboxError."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "9f34abd30a89d60d8ab1c7cd69a8a280",
+    "title": "3.1: Removes the original set_default_mailbox function from app/mailbox_utils.py after moving it to app/user_settings.py",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that the set_default_mailbox function definition is no longer present in app/mailbox_utils.py after being relocated.",
+      "evidence": "gold.patch lines 62-77 (app/mailbox_utils.py): lines 62-77 remove the entire set_default_mailbox function definition including all validation logic and Session.commit().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'move' the function, which implies removing it from the original location. [4: Quality Necessity] Leaving a duplicate function definition in the old module after moving it would create confusion and maintenance burden. [5: Conclusion] Therefore, ANY correct answer should remove the original set_default_mailbox from app/mailbox_utils.py."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "df86a6f06e08907507a7e3d0f431657b",
+    "title": "4.1: Introduces syntax errors or import errors in app/user_settings.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the refactoring introduces syntax errors, missing imports, or undefined name errors in app/user_settings.py.",
+      "evidence": "gold.patch lines 92-129 (app/user_settings.py): adds the Mailbox import, CannotSetMailbox class, and set_default_mailbox function, all of which must be syntactically valid.",
+      "justification": "[2: Implicit Codebase Constraint] app/user_settings.py is a core module imported by other parts of the application; syntax or import errors would break the entire app. [5: Conclusion] Therefore, ANY solution that introduces syntax or import errors in app/user_settings.py triggers this negative criterion."
+    }
+  },
+  {
+    "id": "73b8748ba0f807643b7475c9228f3087",
+    "title": "4.2: Introduces syntax errors or import errors in app/mailbox_utils.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the refactoring introduces syntax errors, missing imports, or undefined name errors in app/mailbox_utils.py.",
+      "evidence": "gold.patch lines 34-55 and 62-77 (app/mailbox_utils.py): modifies log messages and removes the set_default_mailbox function, both of which must leave the file syntactically valid.",
+      "justification": "[2: Implicit Codebase Constraint] app/mailbox_utils.py is imported throughout the application for mailbox operations; syntax or import errors would break dependent modules. [5: Conclusion] Therefore, ANY solution that introduces syntax or import errors in app/mailbox_utils.py triggers this negative criterion."
+    }
+  },
+  {
+    "id": "a7c19f128be33b72324772a7e533e4e6",
+    "title": "4.3: Introduces syntax errors or import errors in app/dashboard/views/mailbox.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the refactoring introduces syntax errors, missing imports, or undefined name errors in app/dashboard/views/mailbox.py.",
+      "evidence": "gold.patch lines 10, 20-21 (app/dashboard/views/mailbox.py): adds the user_settings import and updates the call site, both of which must leave the file syntactically valid.",
+      "justification": "[2: Implicit Codebase Constraint] app/dashboard/views/mailbox.py serves the mailbox dashboard route; syntax or import errors would break the web interface. [5: Conclusion] Therefore, ANY solution that introduces syntax or import errors in app/dashboard/views/mailbox.py triggers this negative criterion."
+    }
+  },
+  {
+    "id": "62f32f8b5daddb954cfee560cf9ec57a",
+    "title": "4.4: Changes the behavior or return values of the set_default_mailbox function beyond switching the exception class",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the refactoring alters the validation logic, error messages, commit behavior, or return values of set_default_mailbox beyond the required MailboxError-to-CannotSetMailbox exception class swap.",
+      "evidence": "gold.patch lines 114-129 (app/user_settings.py): the moved function preserves all original validation checks, error messages, logging, and Session.commit() behavior, only changing the exception class.",
+      "justification": "[2: Implicit Codebase Constraint] The existing callers and tests depend on set_default_mailbox validating ownership, checking verification, and committing the change with the same error messages. [3: Logical Necessity] A move refactor must preserve behavior; altering logic would break dependent code. [5: Conclusion] Therefore, ANY solution that changes the function's behavior beyond the exception class swap triggers this negative criterion."
+    }
+  }
+]

@@ -1,0 +1,254 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "458395c203cf8ab93fc4209f8ba2161b",
+    "title": "1.1: Extracts SaveProvisionedDashboard into dashboard-scene/saving/SaveProvisionedDashboard.tsx",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Creates a new SaveProvisionedDashboard component in the dashboard-scene saving directory that handles the save flow for provisioned dashboards, rather than keeping the logic inline in SaveDashboardDrawer.",
+      "evidence": "gold.patch creates public/app/features/dashboard-scene/saving/SaveProvisionedDashboard.tsx with Props interface and SaveProvisionedDashboard function component at lines 98-237.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Extract this provisioned dashboard save flow into its own dedicated component in public/app/features/dashboard-scene/saving/'. The interface specifies a SaveProvisionedDashboard function component at that path. [5: Conclusion] A separate component isolates the provisioned dashboard logic from the drawer."
+    }
+  },
+  {
+    "id": "5c3d3a0a764e1f7066489d4e0a9ee4e6",
+    "title": "1.2: Includes a repository field in SaveProvisionedDashboard",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The provisioned dashboard save component includes a read-only field displaying the source repository name so the user can see which repository the dashboard belongs to.",
+      "evidence": "gold.patch shows a Field with label 'Repository' and a read-only Input component for the repo value in SaveProvisionedDashboard.tsx at lines 182-185.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the form needs 'a real form showing the source repository'. The interface description for SaveProvisionedDashboard specifies 'Provides fields for repository (read-only), file path, branch, and commit message'. [5: Conclusion] A repository field is required for users to see which repository the dashboard is provisioned from."
+    }
+  },
+  {
+    "id": "1af472d0deb6e8551787336cbfa67af8",
+    "title": "1.3: Includes a file path field in SaveProvisionedDashboard",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The provisioned dashboard save component includes a form field for specifying the file path inside the repository where the dashboard should be saved.",
+      "evidence": "gold.patch shows a Field with label 'Path' and an Input component for the path value in SaveProvisionedDashboard.tsx at lines 186-192.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the form needs 'editable fields for the file path, branch, and a comment'. The interface description for SaveProvisionedDashboard also specifies 'Provides fields for repository (read-only), file path, branch, and commit message'. [5: Conclusion] A file path field is required for users to specify where in the repository the dashboard should be saved."
+    }
+  },
+  {
+    "id": "f4729ca6486f785b98e0a81ff5fbf598",
+    "title": "1.4: Includes a branch field in SaveProvisionedDashboard",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The provisioned dashboard save component includes a form field for specifying the branch (or ref) when saving to the repository.",
+      "evidence": "gold.patch shows a Field with label 'Branch' and an Input component for the ref value in SaveProvisionedDashboard.tsx at lines 195-201.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the form needs 'editable fields for the file path, branch, and a comment'. The interface description for SaveProvisionedDashboard also specifies 'Provides fields for repository (read-only), file path, branch, and commit message'. [5: Conclusion] A branch field enables users to target specific branches when saving dashboard changes."
+    }
+  },
+  {
+    "id": "1835ed3f3d49900a36ef70805ddb8c47",
+    "title": "1.5: Includes a comment field in SaveProvisionedDashboard",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The provisioned dashboard save component includes a form field (e.g., TextArea or Input) for entering a comment when saving changes.",
+      "evidence": "gold.patch shows a Field with label 'Comment' and a TextArea for the comment value in SaveProvisionedDashboard.tsx at lines 204-215.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the form needs 'editable fields for the file path, branch, and a comment'. The interface description for SaveProvisionedDashboard also specifies 'Provides fields for repository (read-only), file path, branch, and commit message'. [5: Conclusion] A comment field allows users to document their changes when saving to the repository."
+    }
+  },
+  {
+    "id": "c1f0cf4c88f7348a400f007fb247785f",
+    "title": "1.6: Removes inline provisioning logic from dashboard-scene/saving/SaveDashboardDrawer.tsx",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The SaveDashboardDrawer component delegates provisioned dashboard handling to the new SaveProvisionedDashboard component instead of rendering inline UI for it.",
+      "evidence": "gold.patch removes the inline div blocks showing 'Loaded from external repository' and 'Saved from external repository' with JSON.stringify in SaveDashboardDrawer.tsx at lines 58-95, replacing with a SaveProvisionedDashboard component render.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt describes the current implementation as 'rough\u2014it just displays raw JSON annotations' and asks to extract this into a dedicated component. [5: Conclusion] The drawer should delegate provisioned dashboard handling to the new component."
+    }
+  },
+  {
+    "id": "62006834260e77a3ba6de7647207d533",
+    "title": "1.7: Adds kind field to FallbackResourceLoader in pkg/registry/apis/provisioning/utils.go",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The FallbackResourceLoader function in pkg/registry/apis/provisioning/utils.go includes the 'kind' field when constructing the unstructured dashboard resource object.",
+      "evidence": "gold.patch adds '\"kind\": \"Dashboard\"' to the Object map in FallbackResourceLoader in utils.go at line 9.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The backend fallback resource loader in pkg/registry/apis/provisioning/utils.go is missing the kind field when constructing dashboard resources, which needs to be included'. [5: Conclusion] The kind field is required for the resource to be valid."
+    }
+  },
+  {
+    "id": "b6f2f3bcd8f5fc7895747de359d382b0",
+    "title": "1.8: Uses both existing annotation key constants (AnnoKeyRepoName, AnnoKeyRepoPath) from app/features/apiserver/types instead of hardcoded annotation key strings",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The implementation uses both existing annotation key constants (AnnoKeyRepoName, AnnoKeyRepoPath) from app/features/apiserver/types to detect and work with provisioned dashboards, rather than hardcoding annotation key strings.",
+      "evidence": "gold.patch imports AnnoKeyRepoName and AnnoKeyRepoPath from 'app/features/apiserver/types' and uses them in SaveProvisionedDashboard.tsx at line 109 and dashboard.ts at lines 268-297.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'you should use the existing annotation key constants from app/features/apiserver/types for detecting provisioned dashboards'. [5: Conclusion] Reusing existing constants prevents duplication and ensures consistency."
+    }
+  },
+  {
+    "id": "58bc9a14ee6b21771f37162b88ba9c2f",
+    "title": "1.9: Uses v0alpha1 API version for provisioning API calls",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The provisioned dashboard save functionality uses the v0alpha1 API version when making calls to the provisioning API endpoints.",
+      "evidence": "gold.patch shows the API URL construction using 'apis/provisioning.grafana.app/v0alpha1/namespaces/' in SaveProvisionedDashboard.tsx at line 154.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The provisioning API version is v0alpha1'. [5: Conclusion] Using the correct API version ensures compatibility with the provisioning backend."
+    }
+  },
+  {
+    "id": "aea10343c24eaa61d9eebdb629f33f96",
+    "title": "1.10: Integrates SaveProvisionedDashboard into dashboard-scene/saving/SaveDashboardDrawer.tsx",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "SaveDashboardDrawer imports and renders the new SaveProvisionedDashboard component when a dashboard is detected as provisioned from an external repository.",
+      "evidence": "gold.patch adds import of SaveProvisionedDashboard at line 29 and renders it at line 94 in SaveDashboardDrawer.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to extract the provisioned dashboard save flow into a dedicated component, which requires the drawer to use it. The interface specifies SaveProvisionedDashboard's props signature (meta, dashboard, drawer, changeInfo), defining how the drawer integrates it. [5: Conclusion] Integration connects the extracted component back to the save flow."
+    }
+  },
+  {
+    "id": "cbc6f97ac71f1e16f91c56e032bfa205",
+    "title": "1.11: Exports BASE_URL constant from provisioning/api/baseAPI.ts",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The baseAPI.ts file exports a BASE_URL constant containing the provisioning API base URL.",
+      "evidence": "gold.patch adds 'export const BASE_URL = `apis/provisioning.grafana.app/v0alpha1/namespaces/${config.namespace}`;' in baseAPI.ts at line 246.",
+      "justification": "[1: Explicit Prompt Requirement] The interface specifies an exported BASE_URL constant in public/app/features/provisioning/api/baseAPI.ts with the provisioning API base URL value. [5: Conclusion] This export is required by the public interface specification."
+    }
+  },
+  {
+    "id": "3a99750ce858b8c91663dd71b06676ae",
+    "title": "1.12: Refactors provisioning/api/baseAPI.ts to use the exported BASE_URL constant",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The baseAPI.ts file is refactored to use the exported BASE_URL constant instead of an inline URL string for its own API base query configuration.",
+      "evidence": "gold.patch changes the inline URL string to 'baseURL: BASE_URL' in baseAPI.ts at line 252.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The provisioning API base URL string is duplicated across files. Extract it into a shared constant and use it everywhere.' [5: Conclusion] The baseAPI should use its own exported constant instead of a duplicate inline string."
+    }
+  },
+  {
+    "id": "52c76b2add6c8d443b18f2b68ac32387",
+    "title": "1.13: Updates provisioning/dashboard.ts to use BASE_URL from baseAPI",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The dashboard.ts file in the provisioning feature is updated to import and use BASE_URL for constructing API URLs instead of inline URL strings.",
+      "evidence": "gold.patch adds 'import { BASE_URL } from ./api/baseAPI' and changes the URL to '${BASE_URL}/repositories/${repo}/files/${path}' in dashboard.ts at lines 267 and 277.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The provisioning API base URL string is duplicated across files. Extract it into a shared constant and use it everywhere.' [5: Conclusion] All provisioning API calls should use the same base URL constant."
+    }
+  },
+  {
+    "id": "adf5a2b4700b63fed0fa81d533b1cdc6",
+    "title": "1.14: Sets both annotation keys (AnnoKeyRepoName, AnnoKeyRepoPath) on the loaded dashboard metadata in loadDashboardFromProvisioning in provisioning/dashboard.ts",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The loadDashboardFromProvisioning function in dashboard.ts sets the repository annotation keys on the loaded dashboard metadata so that the save flow can detect it as a provisioned dashboard.",
+      "evidence": "gold.patch adds logic to ensure metadata.annotations exists and sets AnnoKeyRepoName and AnnoKeyRepoPath in dashboard.ts at lines 291-301.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'loadDashboardFromProvisioning in public/app/features/provisioning/dashboard.ts doesn't persist the repo name and path into the dashboard's k8s annotations after loading... Fix the loader so the annotations are available downstream.' [5: Conclusion] Setting these annotations enables the provisioned dashboard save flow."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "c146e40e19e792cac66a935aaf7dc101",
+    "title": "3.1: Removes unused imports (Button from @grafana/ui, getBackendSrv from @grafana/runtime) from dashboard-scene/saving/SaveDashboardDrawer.tsx after refactoring",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Removes the Button import from @grafana/ui and the getBackendSrv import from @grafana/runtime in SaveDashboardDrawer.tsx, as these are no longer needed after extracting the provisioned dashboard logic into a dedicated component.",
+      "evidence": "gold.patch removes Button from the @grafana/ui import and removes getBackendSrv import from SaveDashboardDrawer.tsx at lines 17-21.",
+      "justification": "[4: Qualitative Requirement] Removing unused imports keeps the code clean and reduces bundle size. [5: Conclusion] Clean imports improve code quality after refactoring."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "1f8d14faed178f26353ec38b1bdb52ff",
+    "title": "4.1: Removes existing SaveProvisionedDashboardForm component or its usage",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the implementation removes or breaks the existing SaveProvisionedDashboardForm component which handles legacy provisioned dashboards (those with the 'provisioned: true' meta flag). The new component should coexist with, not replace, this existing component.",
+      "evidence": "gold.patch retains import of SaveProvisionedDashboardForm and its usage for the isProvisioned case in SaveDashboardDrawer.tsx at line 30.",
+      "justification": "[1: Explicit Prompt Requirement] Backward compatibility requires preserving existing functionality. [2: Implicit Codebase Constraint] SaveProvisionedDashboardForm handles a different provisioning mechanism than the new k8s-annotation-based flow. [5: Conclusion] Removing this component would break existing provisioned dashboard handling."
+    }
+  },
+  {
+    "id": "ba5259b0a2e3f382f5dee6def2073ff2",
+    "title": "4.2: Places SaveProvisionedDashboard outside public/app/features/dashboard-scene/saving/",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the new provisioned dashboard save component is created in a directory other than public/app/features/dashboard-scene/saving/.",
+      "evidence": "gold.patch creates the new component at public/app/features/dashboard-scene/saving/SaveProvisionedDashboard.tsx at lines 98-237.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Extract this provisioned dashboard save flow into its own dedicated component in public/app/features/dashboard-scene/saving/'. The interface specifies the path as public/app/features/dashboard-scene/saving/SaveProvisionedDashboard.tsx. [5: Conclusion] Placing the component elsewhere would violate the explicit directory requirement."
+    }
+  }
+]

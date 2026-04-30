@@ -1,0 +1,182 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "beb6adedbba3f7498b30d8b01acbf057",
+    "title": "1.1: Extracts datasource-managed rule filtering into a dedicated module exporting getDatasourceFilter",
+    "annotations": {
+      "importance": "must have",
+      "description": "A dedicated module at public/app/features/alerting/unified/rule-list/hooks/datasourceFilter.ts exports a getDatasourceFilter function that accepts filterState: RulesFilter and returns { groupMatches: (group: PromRuleGroupDTO) => boolean, ruleMatches: (rule: PromRuleDTO) => boolean } closures for client-side filtering of datasource-managed rules.",
+      "evidence": "gold.patch lines 1-62 create datasourceFilter.ts with exported function getDatasourceFilter(filterState: RulesFilter) returning { groupMatches, ruleMatches }.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The filtering logic for datasource-managed rules...should be cleanly separated into their own modules.' The interface specifies getDatasourceFilter at datasourceFilter.ts with Input: filterState: RulesFilter and Output: { groupMatches, ruleMatches }. [5: Conclusion] Any correct solution must export getDatasourceFilter from a dedicated datasource filtering module.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a0d4c8e8703989e288fbbc2b407da22b",
+    "title": "1.2: Extracts Grafana-managed rule filtering into a dedicated module exporting getGrafanaFilter",
+    "annotations": {
+      "importance": "must have",
+      "description": "A dedicated module at public/app/features/alerting/unified/rule-list/hooks/grafanaFilter.ts exports a getGrafanaFilter function that accepts filterState: RulesFilter and returns { backendFilter: GrafanaPromRulesOptions, frontendFilter: { groupMatches: (group: PromRuleGroupDTO) => boolean, ruleMatches: (rule: PromRuleDTO) => boolean } }.",
+      "evidence": "gold.patch lines 385-507 create grafanaFilter.ts with exported function getGrafanaFilter(filterState: RulesFilter) returning { backendFilter, frontendFilter: { groupMatches, ruleMatches } }.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The filtering logic for...Grafana-managed rules should be cleanly separated into their own modules.' The interface specifies getGrafanaFilter at grafanaFilter.ts with Input: filterState: RulesFilter and Output: { backendFilter: GrafanaPromRulesOptions, frontendFilter: { groupMatches, ruleMatches } }. [5: Conclusion] Any correct solution must export getGrafanaFilter from a dedicated Grafana filtering module.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9f7603938b70a052542d9f03a2e5fa61",
+    "title": "1.3: Extracts all 12 shared filter predicate functions (namespaceFilter, groupNameFilter, freeFormFilter, ruleNameFilter, labelsFilter, ruleTypeFilter, ruleStateFilter, ruleHealthFilter, contactPointFilter, dashboardUidFilter, ...) into a dedicated reusable module",
+    "annotations": {
+      "importance": "must have",
+      "description": "A dedicated module at public/app/features/alerting/unified/rule-list/hooks/filterPredicates.ts exports individual filter predicate functions (such as namespaceFilter, groupNameFilter, freeFormFilter, ruleNameFilter, labelsFilter, ruleTypeFilter, ruleStateFilter, ruleHealthFilter, contactPointFilter, dashboardUidFilter, pluginsFilter, dataSourceNamesFilter) that both the datasource filter module and the Grafana filter module import.",
+      "evidence": "gold.patch lines 112-384 create filterPredicates.ts exporting 12 individual predicate functions. Both datasourceFilter.ts (lines 13-28) and grafanaFilter.ts (lines 398-412) import from this module.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The shared filter predicate functions should be extracted so both can reuse them.' The interface specifies all 12 predicate functions at filterPredicates.ts. [5: Conclusion] Any correct solution must export shared predicate functions from a dedicated module importable by both filter modules.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "2f0c89f85912bca325e8d73079fd24fc",
+    "title": "1.4: Extracts both normalization utilities (normalizeFilterState, buildTitleSearch) into a dedicated module",
+    "annotations": {
+      "importance": "must have",
+      "description": "A dedicated module at public/app/features/alerting/unified/rule-list/hooks/filterNormalization.ts exports normalization utilities (such as normalizeFilterState, buildTitleSearch) separate from filtering logic.",
+      "evidence": "gold.patch lines 63-111 create filterNormalization.ts exporting buildTitleSearch and normalizeFilterState.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The normalization utilities should also be extracted into their own module.' The interface specifies buildTitleSearch and normalizeFilterState at filterNormalization.ts. [5: Conclusion] Any correct solution must extract normalization utilities into a separate module.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "66366942005563eb1b59b9ff263eb495",
+    "title": "1.5: Defines all 4 filter configuration types (RuleFilterHandler, GroupFilterHandler, RuleFilterConfig, GroupFilterConfig) where each filter maps to a handler function or null",
+    "annotations": {
+      "importance": "must have",
+      "description": "The shared predicates module defines configuration types (such as RuleFilterConfig, GroupFilterConfig) where each filter key maps to either a predicate handler function or null. Null indicates the filter is handled elsewhere (e.g. by the backend).",
+      "evidence": "gold.patch lines 139-144 define RuleFilterConfig as Record<Exclude<keyof RulesFilter, ...>, RuleFilterHandler | null> and GroupFilterConfig as Record<..., GroupFilterHandler | null>.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'a configuration-driven approach, where each filter is either an active predicate or null to indicate it is handled elsewhere.' The interface specifies RuleFilterConfig as 'Record mapping each rule filter key...to either a RuleFilterHandler or null' and GroupFilterConfig similarly. [5: Conclusion] Any correct solution must define config types supporting the handler-or-null pattern.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "37226e7585082d01464d11df8d4a61f7",
+    "title": "1.6: Implements both orchestrator functions (groupMatches, ruleMatches) that skip null config entries when evaluating filters",
+    "annotations": {
+      "importance": "must have",
+      "description": "Orchestrator functions (such as ruleMatches accepting rule: PromRuleDTO, filterState: RulesFilter, filterConfig: RuleFilterConfig) iterate over the filter config, apply only non-null handlers with AND logic, and skip null entries entirely.",
+      "evidence": "gold.patch lines 149-210 show groupMatches and ruleMatches: for each config entry, if the handler is non-null it is called; if it returns false the function returns false; null entries are skipped.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states filters should use 'a configuration-driven approach, where each filter is either an active predicate or null to indicate it is handled elsewhere.' The interface specifies ruleMatches and groupMatches as functions that 'skip filters set to null' with 'AND logic.' [5: Conclusion] Any correct solution must implement orchestrator functions that skip null config entries.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "5e3c4a7026c90497de3e03e5c611a7d7",
+    "title": "1.7: Refactors hasClientSideFilters to derive its answer from the filter config object",
+    "annotations": {
+      "importance": "must have",
+      "description": "The hasClientSideFilters function exported from grafanaFilter.ts determines if client-side filtering is needed by checking the filter config for non-null handlers paired with active filter state values, rather than manually checking each individual filter state property.",
+      "evidence": "gold.patch lines 417-439 show hasClientSideFilters calling a config builder to get ruleFilterConfig and groupFilterConfig, then checking (config.X !== null && filterState.X has value) for each filter key.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The hasClientSideFilters function should be refactored to rely on the filter config object so it automatically stays in sync with the actual filter configuration.' The interface specifies hasClientSideFilters 'by checking the filter config for non-null handlers with active filter state values.' [5: Conclusion] Any correct solution must refactor hasClientSideFilters to use the filter config as its source of truth.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "40eb316b3ce186ecb844a3d9ffdb3813",
+    "title": "1.8: Exports normalizeFilterState that lowercases all 4 text filter fields (freeFormWords, ruleName, groupName, namespace) for case-insensitive matching",
+    "annotations": {
+      "importance": "must have",
+      "description": "The normalization module exports a normalizeFilterState function that accepts RulesFilter and returns RulesFilter with lowercased freeFormWords, ruleName, groupName, and namespace for case-insensitive matching.",
+      "evidence": "gold.patch lines 103-111 show normalizeFilterState returning { ...filterState, freeFormWords lowercased, ruleName lowercased, groupName lowercased, namespace lowercased }.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies 'Normalization utilities like lowercasing filter state fields...are also mixed in rather than being separated.' The interface specifies normalizeFilterState with Output: RulesFilter that 'Normalizes filter state for case-insensitive matching by lowercasing freeFormWords, ruleName, groupName, and namespace.' [5: Conclusion] Any correct solution must export normalizeFilterState with this lowercasing behavior.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "be949ef9910b0b0d2dc24b5d3e107084",
+    "title": "1.9: Exports buildTitleSearch that combines ruleName and freeFormWords into a single search string",
+    "annotations": {
+      "importance": "must have",
+      "description": "The normalization module exports a buildTitleSearch function that accepts RulesFilter and returns string | undefined by combining ruleName and freeFormWords into a single search string, returning undefined when no search terms exist.",
+      "evidence": "gold.patch lines 75-97 show buildTitleSearch combining trimmed ruleName and filtered freeFormWords into titleParts, returning undefined when empty.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies 'building a combined title search string' as one of the normalization utilities mixed into the monolithic file. The interface specifies buildTitleSearch with Output: string | undefined that 'Combines ruleName and freeFormWords into a single search string.' [5: Conclusion] Any correct solution must export buildTitleSearch from the normalization module.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "53a8faa04ea2f8934a01db4fe1038f98",
+    "title": "4.1: Creates any of the 4 module files (datasourceFilter.ts, filterNormalization.ts, filterPredicates.ts, grafanaFilter.ts) with only empty stubs or placeholder functions",
+    "annotations": {
+      "importance": "must have",
+      "description": "Each new module file must contain actual function implementations with real filtering logic. Creating files with only empty function bodies, TODO comments, or placeholder stubs (e.g. functions that always return true) is not a valid refactor.",
+      "evidence": "gold.patch shows each module contains full implementations: datasourceFilter.ts (56 lines of logic), filterNormalization.ts (43 lines), filterPredicates.ts (267 lines), grafanaFilter.ts (117 lines).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'cleanly separated' filtering logic in 'their own modules', which means actual working code, not stubs. [3: Logical Necessity] Stub modules would break all callers that depend on filter behavior to produce correct results. [5: Conclusion] Any correct solution must contain real filtering implementations, not empty stubs.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "b5b326a692f5984113b1e9e66914dea9",
+    "title": "4.2: Inlines predicate logic directly in any of the 2 filter modules (datasourceFilter.ts, grafanaFilter.ts) rather than delegating to the shared filterPredicates.ts module",
+    "annotations": {
+      "importance": "must have",
+      "description": "The getDatasourceFilter and getGrafanaFilter functions must delegate filtering to predicate functions imported from the shared predicates module (such as filterPredicates.ts), not inline the predicate logic locally. Copying filter matching code into each module defeats the purpose of extracting shared predicates.",
+      "evidence": "gold.patch lines 13-28 (datasourceFilter.ts) and lines 398-412 (grafanaFilter.ts) show both modules importing predicate functions from filterPredicates and using them via config objects, with zero inlined filter logic.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The shared filter predicate functions should be extracted so both can reuse them through a configuration-driven approach.' Reuse requires importing from the shared module, not duplicating. [4: Qualitative Requirement] Inlining predicates violates the DRY principle and the separation of concerns the refactor is meant to achieve. [5: Conclusion] Any correct solution must delegate to shared predicates rather than inline them.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

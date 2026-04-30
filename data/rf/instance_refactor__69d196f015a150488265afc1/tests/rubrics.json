@@ -1,0 +1,254 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "8b888267fb8046b7ae1e82cea941b7a8",
+    "title": "1.1: Removes the `dict_locked` parameter from `dict_table_close()` in `storage/innobase/include/dict0dict.h` so it accepts only `dict_table_t* table`, `THD *thd`, and `MDL_ticket *mdl`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that dict_table_close no longer accepts a dict_locked boolean parameter. The new signature takes only dict_table_t*, THD*, and MDL_ticket*.",
+      "evidence": "gold.patch L1590 (include/dict0dict.h): new signature 'inline void dict_table_close(dict_table_t* table, THD *thd, MDL_ticket *mdl)'. Prompt: 'The dict_locked parameter is no longer needed and should be removed.' Interface defines dict_table_close Input: dict_table_t* table, THD *thd, MDL_ticket *mdl.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to remove the dict_locked parameter. [2: Implicit Codebase Constraint] The parameter was only needed for stats invalidation logic which is being removed. [5: Conclusion] Removing this parameter simplifies the API for all callers across the InnoDB tree."
+    }
+  },
+  {
+    "id": "23dda115d7688e532e1ba783d9d82522",
+    "title": "1.2: Removes statistics invalidation logic from `dict_table_close()` in `storage/innobase/include/dict0dict.h` so the function body only releases the `dict_table_t` table handle and calls `mdl_release()`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that dict_table_close no longer acquires dict_sys.latch, no longer calls dict_stats_deinit, and no longer resets stat_modified_counter. It simply releases the table reference and the MDL lock.",
+      "evidence": "gold.patch L1590-1595 (include/dict0dict.h): dict_table_close body is now just 'table->release(); mdl_release(thd, mdl);'. gold.patch L95-130 (dict/dict0dict.cc): old dict_table_close with latch acquisition and stats_deinit is removed (lines prefixed with -). Prompt: 'dict_table_close() should be simplified to just release the table handle and MDL lock, with no stats invalidation and no latch acquisition.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requests removing all stats invalidation logic from dict_table_close. [3: Logical Necessity] This is the root cause fix for innodb_stats_auto_recalc being broken. [5: Conclusion] Without this change, stat_modified_counter continues to be reset on every table close, preventing auto-recalc from triggering."
+    }
+  },
+  {
+    "id": "8c254c83fe386fc16a8697f3b7e1624d",
+    "title": "1.3: Introduces `mdl_release()` function in `storage/innobase/include/dict0dict.h` accepting `THD *thd` and `MDL_ticket *mdl` and returning `void`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a standalone mdl_release function exists to release metadata locks independently from table handle release.",
+      "evidence": "gold.patch L1584 (include/dict0dict.h): declaration 'void mdl_release(THD *thd, MDL_ticket *mdl) noexcept;'. gold.patch L165 (dict/dict0dict.cc): implementation 'void mdl_release(THD *thd, MDL_ticket *mdl) noexcept'. Interface defines mdl_release at Path: storage/innobase/include/dict0dict.h, Input: THD *thd, MDL_ticket *mdl, Output: void.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for dict_table_close to release the MDL lock. [3: Logical Necessity] Separating MDL release into its own function allows dict_table_close to compose release + mdl_release, and enables callers that only need one or the other. [5: Conclusion] This function is part of the simplified dict_table_close API defined in the interface."
+    }
+  },
+  {
+    "id": "b68dda399eeac256f2d1f2274469d1ff",
+    "title": "1.4: Removes the monolithic `dict_stats_update()` function from `storage/innobase/`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the single dict_stats_update function that dispatched four different operations is removed.",
+      "evidence": "gold.patch L630-810 (dict/dict0stats.cc): the entire dict_stats_update function (~180 lines with switch on dict_stats_upd_option_t) is removed (lines prefixed with -). Prompt: 'dict_stats_update() is a monolithic function dispatching four different operations... Break it into separate focused functions for each operation.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly identifies dict_stats_update as the monolith to decompose. [4: Qualitative Requirement] A function handling four unrelated operations behind a switch is a maintainability concern. [5: Conclusion] Removing this function is the prerequisite for introducing the focused replacements."
+    }
+  },
+  {
+    "id": "13643e1db825bf18951bf07de50ecf6d",
+    "title": "1.5: Removes the `dict_stats_upd_option_t` dispatch enum from `storage/innobase/include/dict0stats.h`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the four-way dispatch enum used by the removed dict_stats_update function is also removed.",
+      "evidence": "gold.patch L1641-1660 (include/dict0stats.h): the enum dict_stats_upd_option_t with values DICT_STATS_RECALC_PERSISTENT, DICT_STATS_RECALC_TRANSIENT, DICT_STATS_EMPTY_TABLE, DICT_STATS_FETCH_ONLY_IF_NOT_IN_MEMORY is removed (lines prefixed with -). Prompt: 'remove the dispatch enum, so each caller invokes exactly the operation it needs.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to remove the dispatch enum. [3: Logical Necessity] Once dict_stats_update is removed, the enum has no consumers and becomes dead code. [5: Conclusion] Keeping a dead enum harms code clarity."
+    }
+  },
+  {
+    "id": "83403fd5fdcc714f931a666a522f65c7",
+    "title": "1.6: Introduces `dict_stats_update_transient()` in `storage/innobase/include/dict0stats.h` accepting `dict_table_t *table` and returning `dberr_t`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a dedicated function exists for calculating non-persistent (transient) table and index statistics.",
+      "evidence": "gold.patch L275 (dict/dict0stats.cc): implementation 'dberr_t dict_stats_update_transient(dict_table_t *table) noexcept'. gold.patch L1740 (include/dict0stats.h): declaration. Interface defines dict_stats_update_transient Input: dict_table_t *table, Output: dberr_t.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to break dict_stats_update into separate focused functions. [2: Implicit Codebase Constraint] The existing codebase has callers that need transient-only stats recalculation (e.g., dict0stats_bg.cc L838). [5: Conclusion] This replaces the transient recalculation path of the removed dispatcher."
+    }
+  },
+  {
+    "id": "9049e2bfa31cdac72c520e2743fe7c10",
+    "title": "1.7: Introduces `dict_stats_update_persistent()` in `storage/innobase/include/dict0stats.h` accepting `dict_table_t *table` and returning `dberr_t`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a dedicated function exists for calculating persistent table and index statistics.",
+      "evidence": "gold.patch L320 (dict/dict0stats.cc): implementation 'dberr_t dict_stats_update_persistent(dict_table_t *table) noexcept'. gold.patch L1748 (include/dict0stats.h): declaration. Interface defines dict_stats_update_persistent Input: dict_table_t *table, Output: dberr_t.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to decompose dict_stats_update into focused functions. [2: Implicit Codebase Constraint] Persistent recalculation is a distinct operation needed by ANALYZE TABLE and auto-recalc. [5: Conclusion] This replaces the persistent recalculation path of the removed dispatcher."
+    }
+  },
+  {
+    "id": "1b27b58324abc20e890766df0516a4f6",
+    "title": "1.8: Introduces `dict_stats_update_persistent_try()` in `storage/innobase/include/dict0stats.h` accepting `dict_table_t *table` and returning `dberr_t`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a convenience function exists that attempts persistent stats recalculation and save, doing nothing if persistent stats are not enabled or storage is unavailable.",
+      "evidence": "gold.patch L342 (dict/dict0stats.cc): implementation 'dberr_t dict_stats_update_persistent_try(dict_table_t *table)'. gold.patch L1754 (include/dict0stats.h): declaration. gold.patch L856 (dict0stats_bg.cc): called by background recalc. Interface defines dict_stats_update_persistent_try Input: dict_table_t *table, Output: dberr_t.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks each caller to invoke exactly the operation it needs. [3: Logical Necessity] Background auto-recalc and other callers need a safe try-and-save wrapper that gracefully does nothing when persistent stats are not applicable. [5: Conclusion] This function encapsulates the check-recalc-save pattern."
+    }
+  },
+  {
+    "id": "f9c9ec4832054186e4d040ea8f3705de",
+    "title": "1.9: Introduces `dict_stats_empty_table_and_save()` in `storage/innobase/include/dict0stats.h` accepting `dict_table_t *table` and returning `void`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a function exists to clear table statistics to empty-table values and persist them.",
+      "evidence": "gold.patch L456 (dict/dict0stats.cc): implementation 'void dict_stats_empty_table_and_save(dict_table_t *table)'. gold.patch L1775 (include/dict0stats.h): declaration. gold.patch L1005, L1108 (ha_innodb.cc): called by CREATE TABLE and TRUNCATE TABLE. Interface defines dict_stats_empty_table_and_save Input: dict_table_t *table, Output: void.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to decompose dict_stats_update into focused functions for each operation. [2: Implicit Codebase Constraint] CREATE TABLE and TRUNCATE TABLE need to clear and re-save statistics. [5: Conclusion] This replaces the empty-table-stats path of the removed dispatcher."
+    }
+  },
+  {
+    "id": "ab3bb5a89cdd93b37d33e25c0239331d",
+    "title": "1.10: Introduces `ha_innobase::statistics_init()` method in `storage/innobase/handler/ha_innodb.h` accepting `dict_table_t *table, bool recalc` and returning `dberr_t`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that statistics initialization is consolidated into the handler layer as a method on ha_innobase, where THD context is available for read-only mode and WSREP skip-locking checks.",
+      "evidence": "gold.patch L933 (handler/ha_innodb.cc): implementation 'dberr_t ha_innobase::statistics_init(dict_table_t *table, bool recalc)'. gold.patch L1374 (handler/ha_innodb.h): declaration. gold.patch L898, L1279, L1282, L1339 (ha_innodb.cc): called from reload_statistics, info_low, and other handler methods. Interface defines ha_innobase::statistics_init Input: dict_table_t *table, bool recalc, Output: dberr_t. Prompt: 'Consolidate this into the handler layer where THD is available.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to consolidate stats initialization into the handler layer. [2: Implicit Codebase Constraint] The handler layer has access to THD (m_user_thd) needed for WSREP and read-only checks. [5: Conclusion] This replaces the split logic between dict0stats.inl inline and the old dispatcher."
+    }
+  },
+  {
+    "id": "80a30e8fb25e1f05825fec63929fb7cf",
+    "title": "1.11: Changes `dict_stats_persistent_storage_check(bool dict_already_locked)` in `storage/innobase/include/dict0stats.h` to return the `dict_stats_schema_check` enum with values distinguishing tables not existing, schema valid, and schema invalid",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the function returns the dict_stats_schema_check enum type instead of a bool, and that the enum provides at least three values for the three states of persistent statistics storage.",
+      "evidence": "gold.patch L1712-1719 (include/dict0stats.h): 'enum dict_stats_schema_check { SCHEMA_NOT_EXIST= -1, SCHEMA_OK= 0, SCHEMA_INVALID }'. gold.patch L1722-1723 (include/dict0stats.h): declaration 'dict_stats_schema_check dict_stats_persistent_storage_check(bool dict_already_locked= false) noexcept'. gold.patch L212 (dict/dict0stats.cc): implementation returns SCHEMA_OK, SCHEMA_NOT_EXIST, SCHEMA_INVALID. Prompt: 'callers need to distinguish between the stats tables not existing and the stats tables having an invalid schema.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to change the return type to differentiate these cases. [3: Logical Necessity] Callers need to skip silently when tables don't exist vs. log a warning when schema is corrupt. A boolean cannot express three distinct states. [5: Conclusion] The enum return type and the schema check function change are inseparable."
+    }
+  },
+  {
+    "id": "90c5a8cb5b596a9d0498341d6688f3ca",
+    "title": "1.12: Performs persistent statistics deinitialization during the `RENAME TABLE` code path so that statistics are reloaded on the next table open after a rename",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the RENAME TABLE operation triggers stats deinitialization, ensuring persistent statistics are recalculated when the table is next opened. This is the supported mechanism for forcing a stats reload.",
+      "evidence": "gold.patch L1128 (handler/ha_innodb.cc): 'static void stats_deinit(dict_table_t *t) noexcept' defined. gold.patch L1211 (handler/ha_innodb.cc): 'stats_deinit(t)' called inside ha_innobase::rename_table() on successful rename. Prompt: 'Persistent stats deinitialization should only happen during RENAME TABLE going forward. That remains the supported way to force a stats reload.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires RENAME TABLE to trigger stats reload. [2: Implicit Codebase Constraint] Users rely on RENAME TABLE t TO tmp, tmp TO t; for stats management. [5: Conclusion] This is the only remaining mechanism for forcing a persistent stats reload after dict_table_close is simplified."
+    }
+  },
+  {
+    "id": "3e5b7b87c3d15674c278be68bbd35135",
+    "title": "1.13: Consolidates `stats_error_printed` tracking to `dict_table_t` only, removing the per-index flag from `dict_index_t`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the stats_error_printed flag is tracked at the table level only and is no longer present as a field on dict_index_t.",
+      "evidence": "gold.patch L1618-1620 (include/dict0mem.h): 'stats_error_printed' field removed from dict_index_t (lines prefixed with -). gold.patch L364-365 (dict/dict0stats.cc): references changed to 'index->table->stats_error_printed' instead of 'index->stats_error_printed'. Prompt: 'The stats_error_printed flag on dict_index_t is redundant. Consolidate error tracking to the dict_table_t level only.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to consolidate error tracking to the table level. [4: Qualitative Requirement] Tracking the same flag at both table and index level is redundant and can lead to inconsistencies. [5: Conclusion] A single flag at the table level is sufficient to prevent duplicate error messages."
+    }
+  },
+  {
+    "id": "234409bbdabc590eb47aeed68a4ed31c",
+    "title": "1.14: Makes `dict_stats_save()` in `storage/innobase/include/dict0stats.h` a public function accepting `dict_table_t* table` and `index_id_t index_id` with a default of `0` and returning `dberr_t`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that dict_stats_save is declared as a public function that can save all indexes (when index_id is 0) or a specific index, as part of the decomposed stats API.",
+      "evidence": "gold.patch L1729 (include/dict0stats.h): declaration 'dberr_t dict_stats_save(dict_table_t* table, index_id_t index_id= 0);'. gold.patch L393 (dict/dict0stats.cc): implementation 'dberr_t dict_stats_save(dict_table_t* table, index_id_t index_id)'. Previously was static. Interface defines dict_stats_save Input: dict_table_t* table, index_id_t index_id = 0, Output: dberr_t.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks each caller to invoke exactly the operation it needs. [3: Logical Necessity] The decomposed functions need to save stats after recalculation. [5: Conclusion] Exposing dict_stats_save publicly enables the focused functions to compose recalculation and saving."
+    }
+  },
+  {
+    "id": "bd1e2e25ac3d34740df23b01a9c0cc41",
+    "title": "1.15: Makes `dict_stats_fetch_from_ps()` in `storage/innobase/include/dict0stats.h` a public function accepting `dict_table_t *table` and returning `dberr_t`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the function for reading stored persistent statistics is exposed as a public API, enabling the consolidated statistics_init to call it directly.",
+      "evidence": "gold.patch L1732 (include/dict0stats.h): declaration 'dberr_t dict_stats_fetch_from_ps(dict_table_t *table);'. gold.patch L480 (dict/dict0stats.cc): implementation 'dberr_t dict_stats_fetch_from_ps(dict_table_t *table)'. Previously was static. gold.patch L963 (ha_innodb.cc): called from statistics_init. Interface defines dict_stats_fetch_from_ps Input: dict_table_t *table, Output: dberr_t.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to consolidate stats initialization into the handler layer. [3: Logical Necessity] The new statistics_init method needs to call dict_stats_fetch_from_ps to load stats from persistent storage. [5: Conclusion] Making this function public enables the handler layer to orchestrate the fetch-or-recalc logic."
+    }
+  },
+  {
+    "id": "2324c779215b101cf8ba4241ed429944",
+    "title": "1.16: Updates 49 `dict_table_close()` call sites (including dict0defrag_bg.cc, dict0stats.cc, dict0stats_bg.cc, fts0opt.cc, ha_innodb.cc, handler0alter.cc, i_s.cc, trx0purge.cc, ...) across `storage/innobase/` to remove the `dict_locked` boolean argument",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that every existing call site of dict_table_close that passed a dict_locked boolean is updated to the new 3-parameter signature (table, thd, mdl). Partial updates would leave the codebase in a non-compiling state.",
+      "evidence": "gold.patch L21-82 (dict0defrag_bg.cc): 9 call sites updated. gold.patch L401-517 (dict0stats.cc): 8 call sites updated. gold.patch L847-860 (dict0stats_bg.cc): 2 call sites updated. gold.patch L873 (fts0opt.cc): 1 call site updated. gold.patch L886-1120 (ha_innodb.cc): 14 call sites updated. gold.patch L1453-1487 (handler0alter.cc): 6 call sites updated. gold.patch L1500-1554 (i_s.cc): 7 call sites updated. gold.patch L2004-2013 (trx0purge.cc): 2 call sites updated. Prompt: 'This touches call sites across the InnoDB tree, including dictionary, handler, row operations, FTS, purge, and defragmentation.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states this refactoring touches call sites across the InnoDB tree. [3: Logical Necessity] Removing the dict_locked parameter from the declaration (1.1) requires updating every caller or the code will not compile. [5: Conclusion] Leaving any call site with the old 4-argument signature would break compilation."
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "c72f32261d8e8a7d0f788109a3e5f939",
+    "title": "3.1: Removes the `dict0stats.inl` inline file from `storage/innobase/include/`",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that the old inline file containing dict_stats_init and dict_stats_deinit is deleted after its logic is consolidated into the handler layer.",
+      "evidence": "gold.patch L1777-1778 (include/dict0stats.inl): 'deleted file mode 100644' \u2014 entire file removed. gold.patch L1763 (include/dict0stats.h): '#include dict0stats.inl' include directive removed. Prompt: 'remove the old inline file once its logic is moved.'",
+      "justification": "[4: Qualitative Requirement] Leaving an obsolete file with dead code harms maintainability. [1: Explicit Prompt Requirement] The prompt explicitly asks to remove the inline file. [5: Conclusion] Once statistics_init consolidates the logic, the inline file serves no purpose."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "4b37e1fc1201314ddc02d0f7183292d7",
+    "title": "4.1: Breaks the `RENAME TABLE` stats reload mechanism so that `RENAME TABLE t TO tmp, tmp TO t` no longer forces persistent statistics to be recalculated on the next table open",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the refactoring inadvertently removes the only remaining mechanism for forcing a persistent stats reload. RENAME TABLE must continue to trigger stats deinitialization followed by recalculation on next open.",
+      "evidence": "gold.patch L1211 (handler/ha_innodb.cc): 'stats_deinit(t)' called in rename_table on success. Prompt: 'That remains the supported way to force a stats reload (RENAME TABLE t TO tmp, tmp TO t;).' and 'Ensure RENAME TABLE still triggers a stats reload.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires RENAME TABLE to continue triggering stats reload. [2: Implicit Codebase Constraint] Users and existing tests rely on RENAME TABLE for stats management. [5: Conclusion] Removing this mechanism would break a documented and supported workflow."
+    }
+  }
+]

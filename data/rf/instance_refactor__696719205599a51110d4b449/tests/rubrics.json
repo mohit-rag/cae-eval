@@ -1,0 +1,134 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d7a06b84a3ad4951c262798ae62433e5",
+    "title": "1.1: Removes the SetMain(src, c) call from the newBundle function in js/bundle.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the two-step requirement (SetMain then RunMain) is removed. The module system should work without requiring SetMain to be called first.",
+      "evidence": "gold.patch lines 9-11 show removal of the SetMain call from bundle.go; lines 43-51 show removal of the SetMain method from ModuleResolver.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the 'two-step requirement' of calling SetMain before RunMain 'makes the module system inflexible' and should be removed. [2: Implicit Codebase Constraint] The current design requires SetMain to initialize state before RunMain works. [3: Logical Necessity] To remove the coupling, calling SetMain must no longer be necessary. [5: Conclusion] Therefore, any correct answer must eliminate the requirement to call SetMain before running modules.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a49a8ec5421e495baa6d4be90760501d",
+    "title": "1.2: Implements RunSourceData method on ModuleSystem in js/modules/resolution.go to run source data directly without requiring prior initialization",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the module system provides a RunSourceData method to run source data directly at execution time, without requiring prior setup via SetMain.",
+      "evidence": "gold.patch lines 89-104 show the RunSourceData method on ModuleSystem accepting *loader.SourceData and returning (goja.Value, error).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the goal is 'run source data directly without requiring prior initialization'. The interface specifies RunSourceData method on *ModuleSystem with input *loader.SourceData and output goja.Value, error. [2: Implicit Codebase Constraint] The existing RunMain method cannot run source directly as it relies on state set by SetMain. [3: Logical Necessity] To run source directly, a mechanism must accept source as input. [5: Conclusion] Therefore, any correct answer must implement RunSourceData.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "771b3054fbf6a0a9ec490f10352000b9",
+    "title": "1.3: Updates js/bundle.go to call RunSourceData instead of RunMain",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that bundle.go is updated to use the new RunSourceData method instead of the old RunMain method.",
+      "evidence": "gold.patch lines 19-20 show the change from modSys.RunMain() to modSys.RunSourceData(b.sourceData) in bundle.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires removing the coupling between SetMain and RunMain. The interface defines RunSourceData as the replacement. [2: Implicit Codebase Constraint] bundle.go is the consumer that calls RunMain after SetMain. [3: Logical Necessity] After replacing RunMain with RunSourceData, the caller must be updated. [5: Conclusion] Therefore, any correct answer must update bundle.go to call RunSourceData.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3b6560746c9a527da04464b1b6671ed8",
+    "title": "1.4: Implements resolveLoaded method on ModuleResolver in js/modules/resolution.go to resolve and cache modules from pre-loaded data",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a resolveLoaded helper method is implemented to resolve and cache modules from pre-loaded byte data.",
+      "evidence": "gold.patch lines 60-73 show the resolveLoaded method on ModuleResolver accepting basePWD, arg, and data parameters.",
+      "justification": "[1: Explicit Prompt Requirement] The interface specifies resolveLoaded as a method on *ModuleResolver with input (basePWD *url.URL, arg string, data []byte) and output (module, error). [2: Implicit Codebase Constraint] RunSourceData needs a way to compile and cache source data without going through the file-loading resolve path. [3: Logical Necessity] The existing resolve method loads from files; a new method is needed for pre-loaded data. [5: Conclusion] Therefore, any correct answer must implement resolveLoaded.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "6594654001d5b48007cc076094fb7cf0",
+    "title": "2.1: Adds documentation for RunSourceData explaining its behavior (doc comments covering caching semantics or parameter handling)",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that the direct source execution capability has documentation explaining its behavior.",
+      "evidence": "gold.patch lines 83-86 show doc comments explaining the direct execution behavior including caching semantics.",
+      "justification": "[3: Logical Necessity] When changing execution behavior, documentation helps users understand how to use the new capability. [4: Quality Necessity] Good documentation improves code maintainability. [5: Conclusion] Therefore, any correct answer should document the direct execution behavior.",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "d4f77af529814f65cadf5e4354f893ce",
+    "title": "3.1: Removes both internal state fields (mainpwd and mainSpecifier) used by SetMain from the ModuleResolver struct in js/modules/resolution.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies cleanup of the internal state fields that were only needed for the SetMain/RunMain coupling.",
+      "evidence": "gold.patch lines 32-35 show removal of mainpwd and mainSpecifier fields from ModuleResolver struct.",
+      "justification": "[2: Implicit Codebase Constraint] The mainpwd and mainSpecifier fields exist solely to support the SetMain/RunMain coupling. [4: Quality Necessity] After removing SetMain, these fields become dead code. [5: Conclusion] Therefore, any good answer should remove these unused fields.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "a75ac6cb4a052474cf5298a4088cac56",
+    "title": "3.2: Removes the SetMain method from ModuleResolver in js/modules/resolution.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies cleanup of the SetMain method after the coupling is removed.",
+      "evidence": "gold.patch lines 43-51 show removal of the SetMain method.",
+      "justification": "[2: Implicit Codebase Constraint] SetMain is the method that creates the coupling the prompt asks to remove. [4: Quality Necessity] After the refactoring, SetMain is dead code. [5: Conclusion] Therefore, any good answer should remove the SetMain method.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

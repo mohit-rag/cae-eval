@@ -1,0 +1,182 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+    "title": "1.1: Consolidates the duplicated base and head commit resolution logic in normalizeConfig into reusable helper functions in pkg/sources/git/git.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the nearly identical code blocks for resolving base and head commits are consolidated into shared, reusable code rather than remaining duplicated.",
+      "evidence": "gold.patch lines 56-57, 77-78: normalizeConfig() calls the shared helper for both base and head commits respectively; lines 108-145: resolveAndSetCommit and resolveHash implement the consolidated shared logic",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Extract the common logic into helper functions'. [2: Implicit Codebase Constraint] The codebase separates concerns via single-purpose helper functions throughout pkg/sources/git, making this the established pattern for shared logic. [3: Logical Necessity] Without consolidation, the two resolution paths diverge independently over time, creating a maintenance burden and risk of inconsistent behavior between base and head resolution. [4: Qualitative Requirement] Eliminating duplication improves maintainability and reduces risk of inconsistencies. [5: Conclusion] Therefore, any correct answer must consolidate the duplicated resolution logic into reusable code."
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+    "title": "1.2: Preserves branch name resolution in normalizeConfig that updates hash fields when non-hash references are provided",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that after refactoring, the function still resolves base and head references correctly, and updates the scanOptions fields when the input was a branch name that needed to be resolved to a commit hash.",
+      "evidence": "gold.patch lines 56-58: base commit resolved via helper with error returned; lines 77-80: head commit resolved the same way; lines 127-130: the helper updates the ref pointer only when the input was a non-hash reference that required resolution",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to refactor normalizeConfig, which necessarily requires preserving its existing branch resolution behavior. [2: Implicit Codebase Constraint] This is core existing behavior that must be preserved for the scanning functionality to work correctly. [3: Logical Necessity] Breaking this would cause scanning to fail on branch name inputs, since callers depend on the resolved hash being written back to scanOptions. [5: Conclusion] Therefore, any correct answer must preserve the reference resolution and update behavior."
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "title": "1.3: Preserves merge base calculation in normalizeConfig between resolved commit references",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the refactored function still calculates and sets the merge base in scanOptions when both base and head commits are available.",
+      "evidence": "gold.patch lines 82-83: Early return when either commit was not resolved ('if !(baseSet && headSet)'); lines 93-101: Calculates merge base via headCommit.MergeBase and updates scanOptions.BaseHash with the result",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to refactor normalizeConfig, which necessarily requires preserving its merge base calculation behavior. [2: Implicit Codebase Constraint] Merge base calculation is essential for differential scanning \u2014 without it, scans between commits would use the wrong base. [3: Logical Necessity] Removing this would silently break scanning for any workflow that relies on the common ancestor for determining the diff range. [5: Conclusion] Therefore, any correct answer must preserve merge base calculation when both commits are resolved."
+    }
+  },
+  {
+    "id": "d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0",
+    "title": "1.4: Formats the ScanRepo completion log message as multi-line for better readability",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the log message in ScanRepo is reformatted to use multi-line formatting instead of a single long line, improving readability.",
+      "evidence": "gold.patch lines 23-29: ctx.Logger().V(1).Info() call is formatted across multiple lines with each key-value pair on its own line",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'format this log message to be multi-line for better readability'. [3: Logical Necessity] The original single-line call spans five key-value pairs \u2014 splitting across multiple lines is logically necessary to make the log call readable without horizontal scrolling. [4: Qualitative Requirement] Multi-line formatting improves code readability and maintainability. [5: Conclusion] Therefore, any correct answer must format the log message as multi-line."
+    }
+  },
+  {
+    "id": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+    "title": "1.5: Includes the remote repository URL in the ScanRepo completion log message",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the ScanRepo completion log includes the remote repository URL to aid debugging, since the repoPath is typically a temporary directory.",
+      "evidence": "gold.patch lines 15, 18: repoURL variable is initialized and conditionally assigned from the first remote's URL; line 25: repoURL is passed as the 'repo' key in the log message",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'To make this duration logging useful, we need to log the remote as well'. [2: Implicit Codebase Constraint] The repoPath is a dynamically generated /tmp folder, making the URL the only stable identifier for correlating logs with repositories. [3: Logical Necessity] Without the remote URL, developers cannot determine which repository a log entry refers to. [5: Conclusion] Therefore, any correct answer must include the remote URL in the completion log."
+    }
+  },
+  {
+    "id": "e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1",
+    "title": "1.6: Adds nil checks for both repo and ref parameters, where ref is passed as a pointer",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the refactored code includes proper nil checks for the repo and ref parameters to prevent nil pointer dereferences and improve debuggability.",
+      "evidence": "gold.patch lines 109-111: resolveAndSetCommit checks 'if repo == nil || ref == nil' and returns a descriptive error rather than panicking",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'add proper nil checks for the repo and ref parameters'. [3: Logical Necessity] Without nil checks, a nil repo or ref pointer causes an immediate nil pointer dereference panic at the first field access, making nil checks logically necessary for safe operation. [4: Qualitative Requirement] Nil checks improve robustness and make debugging easier. [5: Conclusion] Therefore, any correct answer must add nil checks for repo and ref parameters."
+    }
+  },
+  {
+    "id": "f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2",
+    "title": "1.7: Surfaces the 2 previously silently ignored CommitObject errors (base commit, head commit resolution) in normalizeConfig",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that errors from repo.CommitObject() calls are now properly handled and returned instead of being silently ignored, improving debuggability.",
+      "evidence": "gold.patch lines 122-125: CommitObject error is checked and returned with a wrapped error message 'unable to resolve commit: %w'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'improve the error handling - right now some CommitObject errors are silently ignored which makes debugging hard'. [2: Implicit Codebase Constraint] The original code used the blank identifier to discard the CommitObject error \u2014 this was an established but defective pattern that the refactor is specifically correcting. [3: Logical Necessity] Silent errors hide failures and make debugging difficult; surfacing them is logically necessary for the improved error handling the prompt requires. [5: Conclusion] Therefore, any correct answer must surface CommitObject errors that were previously ignored."
+    }
+  },
+  {
+    "id": "a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3",
+    "title": "1.8: Separates merge base error handling in normalizeConfig into distinct error messages for actual errors vs empty results",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the merge base error handling distinguishes between an actual error from MergeBase() and an empty result (no merge base found), providing distinct error messages for each case.",
+      "evidence": "gold.patch lines 94-98: Separate checks for 'if err != nil' (returns 'unable to resolve merge base') and 'if len(mergeBase) == 0' (returns 'no merge base found')",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the merge base error handling combines two different failure cases (actual error vs empty result) into one message, split those out so we can tell what actually went wrong'. [3: Logical Necessity] A merge base error from the go-git library and a case of no common ancestor are fundamentally different root causes; a single combined message makes it impossible to distinguish them without examining the wrapped error, defeating the purpose of human-readable logs. [4: Qualitative Requirement] Distinct error messages improve debuggability. [5: Conclusion] Therefore, any correct answer must separate the two error cases with distinct messages."
+    }
+  },
+  {
+    "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
+    "title": "2.1: Adds documentation for both normalizeConfig and resolveAndSetCommit functions in pkg/sources/git/git.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "Rewards adding documentation to clarify the purpose and behavior of refactored functions or newly extracted helper functions.",
+      "evidence": "gold.patch lines 50-54: Adds multi-line doc comment to normalizeConfig() explaining its purpose and behavior; lines 106-107: Adds doc comment to resolveAndSetCommit() explaining its three-return-value contract",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests a refactoring that introduces new helper functions with non-obvious behavior. [3: Logical Necessity] New private functions with non-obvious contracts (like the three-return-value resolveAndSetCommit) require documentation for future maintainers to understand their behavior without reading the full implementation. [4: Qualitative Requirement] Refactoring often changes function structure, making documentation valuable for future maintainers. Documentation improves code clarity and maintainability. [5: Conclusion] Therefore, adding documentation to the refactored code is a quality improvement."
+    }
+  },
+  {
+    "id": "g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+    "title": "4.1: Removes error handling for base or head commit resolution in normalizeConfig in pkg/sources/git/git.go",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactoring removes error handling when resolving commits, which would hide failures from callers and make debugging harder.",
+      "evidence": "gold.patch lines 57-58, 77-80: Errors from resolveAndSetCommit are properly checked and returned in normalizeConfig; lines 118-125: ref resolution and CommitObject errors are wrapped and returned within the helper",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'improve the error handling', which means errors must be surfaced, not removed. [2: Implicit Codebase Constraint] The existing code already handles errors during commit resolution \u2014 removing them would be a regression relative to the original code. [3: Logical Necessity] Removing error handling would cause silent failures during scanning, defeating the purpose of the refactoring. [5: Conclusion] Therefore, any correct answer must NOT remove error handling during commit resolution."
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+    "title": "4.2: Removes the remote repository URL from the ScanRepo completion log message in pkg/sources/git/git.go",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactoring removes the remote repository URL from the ScanRepo completion log, which would reduce debuggability.",
+      "evidence": "gold.patch lines 15, 18: repoURL variable is initialized and conditionally assigned from the first remote's URL; line 25: repoURL is passed as the 'repo' key in the multi-line log message",
+      "justification": "[1: Explicit Prompt Requirement] The prompt emphasizes logging the remote URL for debuggability. [2: Implicit Codebase Constraint] The codebase logs remote URLs specifically because repoPath is a dynamically generated temp directory \u2014 the URL is the only stable identifier for the repository. [3: Logical Necessity] Removing the URL would defeat the purpose of the logging improvement described in the prompt. [5: Conclusion] Therefore, any correct answer must NOT remove the remote URL from the log message."
+    }
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "tests": [
+    {
+      "name": "innodb.thd_service_refactor"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+FROM 084828598639.dkr.ecr.us-west-2.amazonaws.com/caev-images/refactor:instance_charmender_v1.6_b426@sha256:0da17570f329d0904c7f878f065979a3288ebac3e37b10741c377b7b9ef3f4b6

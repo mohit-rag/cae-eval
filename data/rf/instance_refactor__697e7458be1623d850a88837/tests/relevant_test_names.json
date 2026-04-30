@@ -1,0 +1,43 @@
+{
+  "tests": [
+    {
+      "name": "tests/events/test_dead_letter_event_source.py::test_dead_letter_does_not_take_untaken_events"
+    },
+    {
+      "name": "tests/events/test_dead_letter_event_source.py::test_dead_letter_takes_untaken_events_created_older_than_threshold"
+    },
+    {
+      "name": "tests/events/test_dead_letter_event_source.py::test_dead_letter_takes_taken_events_created_older_than_threshold"
+    },
+    {
+      "name": "tests/events/test_sent_events.py::test_event_taken_updates"
+    },
+    {
+      "name": "tests/events/test_sent_events.py::test_event_mark_as_taken_does_nothing_for_taken_events"
+    },
+    {
+      "name": "tests/events/test_sent_events.py::test_event_mark_as_taken_does_nothing_for_not_before_events"
+    },
+    {
+      "name": "tests/events/test_sent_events.py::test_event_mark_as_taken_works_for_before_events"
+    },
+    {
+      "name": "tests/oneshot/test_send_plan_change_events.py::test_plan_change_event_for_user_without_subscription"
+    },
+    {
+      "name": "tests/oneshot/test_send_plan_change_events.py::test_plan_change_event_for_user_with_subscription"
+    },
+    {
+      "name": "tests/oneshot/test_send_plan_change_events.py::test_plan_change_event_for_user_with_manual_subscription"
+    },
+    {
+      "name": "tests/oneshot/test_send_plan_change_events.py::test_plan_change_dispatches_for_multiple_partner_users"
+    },
+    {
+      "name": "tests/oneshot/test_send_plan_change_events.py::test_plan_change_event_contains_correct_partner_user_info"
+    },
+    {
+      "name": "tests/oneshot/test_send_plan_change_events.py::test_plan_change_excludes_partner_subscription_from_end_time"
+    }
+  ]
+}

@@ -1,0 +1,538 @@
+diff --git a/src/go/daemon_refactor_validation/refactor_test.go b/src/go/daemon_refactor_validation/refactor_test.go
+new file mode 100644
+index 000000000..98a2d2b39
+--- /dev/null
++++ b/src/go/daemon_refactor_validation/refactor_test.go
+@@ -0,0 +1,532 @@
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++package daemon_refactor_validation
++
++import (
++	"os"
++	"path/filepath"
++	"regexp"
++	"strings"
++	"testing"
++)
++
++var repoRoot string
++
++func init() {
++	dir, err := os.Getwd()
++	if err != nil {
++		panic("cannot determine working directory: " + err.Error())
++	}
++	for {
++		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
++			repoRoot = dir
++			return
++		}
++		parent := filepath.Dir(dir)
++		if parent == dir {
++			panic("could not find repo root (.git directory)")
++		}
++		dir = parent
++	}
++}
++
++func readFile(t *testing.T, relPath string) string {
++	t.Helper()
++	data, err := os.ReadFile(filepath.Join(repoRoot, relPath))
++	if err != nil {
++		t.Fatalf("cannot read %s: %v", relPath, err)
++	}
++	return string(data)
++}
++
++func extractFunctionBody(content, funcName string) string {
++	idx := strings.Index(content, funcName)
++	if idx < 0 {
++		return ""
++	}
++	braceStart := strings.Index(content[idx:], "{")
++	if braceStart < 0 {
++		return ""
++	}
++	depth := 0
++	start := idx + braceStart
++	for i := start; i < len(content); i++ {
++		switch content[i] {
++		case '{':
++			depth++
++		case '}':
++			depth--
++			if depth == 0 {
++				return content[start : i+1]
++			}
++		}
++	}
++	return ""
++}
++
++func lineNumberOf(content, pattern string) int {
++	lines := strings.Split(content, "\n")
++	for i, line := range lines {
++		if strings.Contains(line, pattern) {
++			return i + 1
++		}
++	}
++	return -1
++}
++
++// --- exit_initiated_add tests ---
++
++func TestExitInitiatedAddDeclaredInHeader(t *testing.T) {
++	content := readFile(t, "src/libnetdata/exit/exit_initiated.h")
++	if !strings.Contains(content, "exit_initiated_add") {
++		t.Fatal("exit_initiated_add not declared in exit_initiated.h")
++	}
++}
++
++func TestExitInitiatedAddSignature(t *testing.T) {
++	content := readFile(t, "src/libnetdata/exit/exit_initiated.h")
++	re := regexp.MustCompile(`void\s+exit_initiated_add\s*\(\s*EXIT_REASON`)
++	if !re.MatchString(content) {
++		t.Fatal("exit_initiated_add signature not found in header")
++	}
++}
++
++func TestExitInitiatedAddDefinedInSource(t *testing.T) {
++	content := readFile(t, "src/libnetdata/exit/exit_initiated.c")
++	re := regexp.MustCompile(`void\s+exit_initiated_add\s*\(\s*EXIT_REASON\s+\w+\s*\)`)
++	if !re.MatchString(content) {
++		t.Fatal("exit_initiated_add not defined in exit_initiated.c")
++	}
++}
++
++func TestExitInitiatedSetUsesCentralizedFunction(t *testing.T) {
++	content := readFile(t, "src/libnetdata/exit/exit_initiated.c")
++	body := extractFunctionBody(content, "void exit_initiated_set")
++	if body == "" {
++		t.Fatal("exit_initiated_set function not found")
++	}
++	if !strings.Contains(body, "exit_initiated_add") {
++		t.Fatal("exit_initiated_set does not call exit_initiated_add")
++	}
++	if strings.Contains(body, "exit_initiated |=") {
++		t.Fatal("exit_initiated_set still uses direct |= assignment")
++	}
++}
++
++// --- Fatal callback rename tests ---
++
++func TestFatalDataCbDeclaredInHeader(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.h")
++	if !strings.Contains(content, "nd_log_register_fatal_data_cb") {
++		t.Fatal("nd_log_register_fatal_data_cb not declared in nd_log.h")
++	}
++}
++
++func TestFatalDataCbSignature(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.h")
++	re := regexp.MustCompile(`void\s+nd_log_register_fatal_data_cb\s*\(\s*log_event_t`)
++	if !re.MatchString(content) {
++		t.Fatal("nd_log_register_fatal_data_cb signature not found")
++	}
++}
++
++func TestFatalDataCbOldNameRemoved(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.h")
++	if strings.Contains(content, "nd_log_register_event_cb") {
++		t.Fatal("old nd_log_register_event_cb still present in nd_log.h")
++	}
++}
++
++func TestFatalFinalCbDeclaredInHeader(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.h")
++	if !strings.Contains(content, "nd_log_register_fatal_final_cb") {
++		t.Fatal("nd_log_register_fatal_final_cb not declared in nd_log.h")
++	}
++}
++
++func TestFatalFinalCbSignature(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.h")
++	re := regexp.MustCompile(`void\s+nd_log_register_fatal_final_cb\s*\(\s*fatal_event_t`)
++	if !re.MatchString(content) {
++		t.Fatal("nd_log_register_fatal_final_cb signature not found")
++	}
++}
++
++func TestFatalDataCbDefinedInSource(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.c")
++	re := regexp.MustCompile(`void\s+nd_log_register_fatal_data_cb\s*\(`)
++	if !re.MatchString(content) {
++		t.Fatal("nd_log_register_fatal_data_cb not defined in nd_log.c")
++	}
++}
++
++func TestFatalFinalCbDefinedInSource(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.c")
++	re := regexp.MustCompile(`void\s+nd_log_register_fatal_final_cb\s*\(`)
++	if !re.MatchString(content) {
++		t.Fatal("nd_log_register_fatal_final_cb not defined in nd_log.c")
++	}
++}
++
++func TestOldEventCbRemovedFromSource(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log.c")
++	re := regexp.MustCompile(`void\s+nd_log_register_event_cb\s*\(`)
++	if re.MatchString(content) {
++		t.Fatal("old nd_log_register_event_cb still defined in nd_log.c")
++	}
++}
++
++func TestMainUsesNewDataCbName(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	if !strings.Contains(content, "nd_log_register_fatal_data_cb") {
++		t.Fatal("main.c does not use nd_log_register_fatal_data_cb")
++	}
++	if strings.Contains(content, "nd_log_register_event_cb") {
++		t.Fatal("main.c still uses old nd_log_register_event_cb")
++	}
++}
++
++func TestMainUsesNewFinalCbName(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	if !strings.Contains(content, "nd_log_register_fatal_final_cb") {
++		t.Fatal("main.c does not use nd_log_register_fatal_final_cb")
++	}
++}
++
++func TestSpawnServerReopenNoOldFields(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log-init.c")
++	if strings.Contains(content, "log_event_cb") {
++		t.Fatal("nd_log-init.c still references old log_event_cb field")
++	}
++	if strings.Contains(content, "fatal_event_cb") {
++		t.Fatal("nd_log-init.c still references old fatal_event_cb field")
++	}
++}
++
++// --- Internal struct field rename ---
++
++func TestInternalStructOldFieldNamesRemoved(t *testing.T) {
++	content := readFile(t, "src/libnetdata/log/nd_log-internals.h")
++	if strings.Contains(content, "log_event_cb") || strings.Contains(content, "fatal_event_cb") {
++		t.Fatal("nd_log-internals.h still has old field names")
++	}
++}
++
++// --- Signal initialization order ---
++
++func TestSignalInitBeforeSSL(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	sigLine := lineNumberOf(content, "nd_initialize_signals()")
++	sslLine := lineNumberOf(content, "netdata_conf_ssl()")
++	if sigLine < 0 || sslLine < 0 {
++		t.Fatal("cannot find nd_initialize_signals or netdata_conf_ssl in main.c")
++	}
++	if sigLine >= sslLine {
++		t.Fatalf("signals init (line %d) not before ssl init (line %d)", sigLine, sslLine)
++	}
++}
++
++func TestSignalInitBeforeSpawnServer(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	sigLine := lineNumberOf(content, "nd_initialize_signals()")
++	spawnLine := lineNumberOf(content, "netdata_main_spawn_server_init(")
++	if sigLine < 0 || spawnLine < 0 {
++		t.Fatal("cannot find nd_initialize_signals or spawn server init in main.c")
++	}
++	if sigLine >= spawnLine {
++		t.Fatalf("signals init (line %d) not before spawn server (line %d)", sigLine, spawnLine)
++	}
++}
++
++// --- Startup timing granularity ---
++
++func TestNoMonolithicInitializeEnvironment(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	if strings.Contains(content, `"initialize environment"`) {
++		t.Fatal("monolithic 'initialize environment' label still present in main.c")
++	}
++}
++
++func TestSSLHasDedicatedTimingStep(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	lines := strings.Split(content, "\n")
++	sslLine := -1
++	for i, line := range lines {
++		if strings.Contains(line, "netdata_conf_ssl()") {
++			sslLine = i
++			break
++		}
++	}
++	if sslLine < 0 {
++		t.Fatal("netdata_conf_ssl() not found")
++	}
++	start := sslLine - 5
++	if start < 0 {
++		start = 0
++	}
++	window := strings.Join(lines[start:sslLine+1], "\n")
++	if !strings.Contains(window, "delta_startup_time") {
++		t.Fatal("no delta_startup_time near netdata_conf_ssl()")
++	}
++	if strings.Contains(window, "initialize environment") {
++		t.Fatal("ssl timing still under monolithic 'initialize environment'")
++	}
++}
++
++func TestSpawnServerHasOwnTimingStep(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	lines := strings.Split(content, "\n")
++	spawnLine := -1
++	for i, line := range lines {
++		if strings.Contains(line, `netdata_main_spawn_server_init("init"`) {
++			spawnLine = i
++			break
++		}
++	}
++	if spawnLine < 0 {
++		t.Fatal(`netdata_main_spawn_server_init("init"...) not found`)
++	}
++	start := spawnLine - 5
++	if start < 0 {
++		start = 0
++	}
++	window := strings.Join(lines[start:spawnLine+1], "\n")
++	if !strings.Contains(window, "delta_startup_time") {
++		t.Fatal("no dedicated delta_startup_time before spawn server init")
++	}
++}
++
++func TestExecutionPathHasDedicatedTimingStep(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	lines := strings.Split(content, "\n")
++	execLine := -1
++	for i, line := range lines {
++		if strings.Contains(line, "get_netdata_execution_path()") {
++			execLine = i
++			break
++		}
++	}
++	if execLine < 0 {
++		t.Fatal("get_netdata_execution_path() not found")
++	}
++	start := execLine - 5
++	if start < 0 {
++		start = 0
++	}
++	window := strings.Join(lines[start:execLine+1], "\n")
++	if !strings.Contains(window, "delta_startup_time") {
++		t.Fatal("no delta_startup_time near get_netdata_execution_path()")
++	}
++	if strings.Contains(window, "initialize environment") {
++		t.Fatal("execution path timing still under monolithic 'initialize environment'")
++	}
++}
++
++func TestPluginEnvHasOwnTimingStep(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	lines := strings.Split(content, "\n")
++	envLine := -1
++	for i, line := range lines {
++		if strings.Contains(line, "set_environment_for_plugins_and_scripts()") {
++			envLine = i
++			break
++		}
++	}
++	if envLine < 0 {
++		t.Fatal("set_environment_for_plugins_and_scripts() not found")
++	}
++	start := envLine - 5
++	if start < 0 {
++		start = 0
++	}
++	window := strings.Join(lines[start:envLine+1], "\n")
++	if !strings.Contains(window, "delta_startup_time") {
++		t.Fatal("no dedicated delta_startup_time for plugin env setup")
++	}
++}
++
++// --- Reordering: signals before silencers ---
++
++func TestSignalsInitBeforeSilencers(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	sigLine := lineNumberOf(content, "nd_initialize_signals()")
++	silLine := lineNumberOf(content, "health_set_silencers_filename()")
++	if sigLine < 0 || silLine < 0 {
++		t.Fatal("cannot find signals or silencers init in main.c")
++	}
++	if sigLine >= silLine {
++		t.Fatalf("signals (line %d) not before silencers (line %d)", sigLine, silLine)
++	}
++}
++
++// --- OOM / exit reason ---
++
++func TestOOMRecordsExitReason(t *testing.T) {
++	content := readFile(t, "src/libnetdata/memory/nd-mallocz.c")
++	body := extractFunctionBody(content, "static void out_of_memory(")
++	if body == "" {
++		t.Fatal("out_of_memory function not found")
++	}
++	if !strings.Contains(body, "exit_initiated_add") {
++		t.Fatal("out_of_memory does not call exit_initiated_add")
++	}
++	if !strings.Contains(body, "EXIT_REASON_OUT_OF_MEMORY") {
++		t.Fatal("out_of_memory does not use EXIT_REASON_OUT_OF_MEMORY")
++	}
++}
++
++func TestStatusFileNoDirectOrAssignment(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	if strings.Contains(content, "exit_initiated |=") {
++		t.Fatal("daemon-status-file.c still uses direct exit_initiated |=")
++	}
++}
++
++func TestExitReasonSavedUsesAdd(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	body := extractFunctionBody(content, "daemon_status_file_exit_reason_save")
++	if body == "" {
++		t.Fatal("daemon_status_file_exit_reason_save not found")
++	}
++	if !strings.Contains(body, "exit_initiated_add") {
++		t.Fatal("daemon_status_file_exit_reason_save does not call exit_initiated_add")
++	}
++}
++
++func TestStatusFileVersionBumped(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-status-file.c")
++	re := regexp.MustCompile(`#define\s+STATUS_FILE_VERSION\s+(\d+)`)
++	m := re.FindStringSubmatch(content)
++	if m == nil {
++		t.Fatal("STATUS_FILE_VERSION not found")
++	}
++	version := 0
++	for _, c := range m[1] {
++		version = version*10 + int(c-'0')
++	}
++	if version <= 6 {
++		t.Fatalf("STATUS_FILE_VERSION is %d, expected > 6", version)
++	}
++}
++
++// --- Watcher step removals ---
++
++func TestCreateShutdownFileRemovedFromHeader(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-shutdown-watcher.h")
++	if strings.Contains(content, "WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE") {
++		t.Fatal("WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE still in header")
++	}
++}
++
++func TestDbengineExitModeRemovedFromHeader(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-shutdown-watcher.h")
++	if strings.Contains(content, "WATCHER_STEP_ID_DBENGINE_EXIT_MODE") {
++		t.Fatal("WATCHER_STEP_ID_DBENGINE_EXIT_MODE still in header")
++	}
++}
++
++func TestCreateShutdownFileRemovedFromWatcher(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-shutdown-watcher.c")
++	if strings.Contains(content, "WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE") {
++		t.Fatal("WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE still in watcher source")
++	}
++}
++
++func TestDbengineExitModeRemovedFromWatcher(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-shutdown-watcher.c")
++	if strings.Contains(content, "WATCHER_STEP_ID_DBENGINE_EXIT_MODE") {
++		t.Fatal("WATCHER_STEP_ID_DBENGINE_EXIT_MODE still in watcher source")
++	}
++}
++
++func TestObsoleteStepsRemovedFromShutdown(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-shutdown.c")
++	if strings.Contains(content, "WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE") {
++		t.Fatal("WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE still in shutdown source")
++	}
++	if strings.Contains(content, "WATCHER_STEP_ID_DBENGINE_EXIT_MODE") {
++		t.Fatal("WATCHER_STEP_ID_DBENGINE_EXIT_MODE still in shutdown source")
++	}
++}
++
++// --- Systemd shutdown changes ---
++
++func TestSystemdInShutdownSignal(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-shutdown.c")
++	lines := strings.Split(content, "\n")
++	for i, line := range lines {
++		if strings.Contains(line, "service_signal_exit") {
++			end := i + 5
++			if end > len(lines) {
++				end = len(lines)
++			}
++			window := strings.Join(lines[i:end], "\n")
++			if strings.Contains(window, "SERVICE_SYSTEMD") {
++				return
++			}
++		}
++	}
++	t.Fatal("SERVICE_SYSTEMD not found in service_signal_exit call")
++}
++
++func TestSystemdInShutdownWait(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-shutdown.c")
++	lines := strings.Split(content, "\n")
++	for _, line := range lines {
++		if strings.Contains(line, "service_wait_exit") && strings.Contains(line, "SERVICE_SYSTEMD") {
++			return
++		}
++	}
++	t.Fatal("SERVICE_SYSTEMD not found in any service_wait_exit call")
++}
++
++// --- Systemd watcher improvements ---
++
++func TestBusNullCheckInLoop(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-systemd-watcher.c")
++	re1 := regexp.MustCompile(`while\s*\([^)]*service_running\s*\(\s*SERVICE_SYSTEMD\s*\)[^)]*bus[^)]*\)`)
++	re2 := regexp.MustCompile(`while\s*\([^)]*bus[^)]*service_running\s*\(\s*SERVICE_SYSTEMD\s*\)[^)]*\)`)
++	if !re1.MatchString(content) && !re2.MatchString(content) {
++		t.Fatal("bus null check not found in systemd watcher loop condition")
++	}
++}
++
++func TestEINTRHandling(t *testing.T) {
++	content := readFile(t, "src/daemon/daemon-systemd-watcher.c")
++	idx := strings.Index(content, "sd_bus_wait")
++	if idx < 0 {
++		t.Fatal("sd_bus_wait not found")
++	}
++	window := content[max(0, idx-200) : min(len(content), idx+200)]
++	if !strings.Contains(window, "EINTR") {
++		t.Fatal("EINTR handling not found near sd_bus_wait")
++	}
++}
++
++// --- Socket failure escalation ---
++
++func TestSocketFailureUsesFatal(t *testing.T) {
++	content := readFile(t, "src/daemon/main.c")
++	idx := strings.Index(content, "api_listen_sockets_setup")
++	if idx < 0 {
++		t.Fatal("api_listen_sockets_setup not found")
++	}
++	window := content[idx:min(len(content), idx+300)]
++	if !strings.Contains(window, "fatal(") {
++		t.Fatal("socket setup failure does not use fatal()")
++	}
++}
++
++func max(a, b int) int {
++	if a > b {
++		return a
++	}
++	return b
++}
++
++func min(a, b int) int {
++	if a < b {
++		return a
++	}
++	return b
++}

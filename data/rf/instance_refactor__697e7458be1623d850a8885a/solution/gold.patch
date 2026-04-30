@@ -1,0 +1,408 @@
+diff --git a/.betterer.results b/.betterer.results
+index ccbc952ec4d..2d6643a1f2a 100644
+--- a/.betterer.results
++++ b/.betterer.results
+@@ -4104,6 +4104,10 @@ exports[`better eslint`] = {
+     "public/app/features/search/service/sql.ts:5381": [
+       [0, 0, 0, "Unexpected any. Specify a different type.", "0"]
+     ],
++    "public/app/features/search/service/unified.ts:5381": [
++      [0, 0, 0, "Do not use any type assertions.", "0"],
++      [0, 0, 0, "Do not use any type assertions.", "1"]
++    ],
+     "public/app/features/search/service/utils.ts:5381": [
+       [0, 0, 0, "Do not use any type assertions.", "0"]
+     ],
+diff --git a/pkg/services/unifiedSearch/service.go b/pkg/services/unifiedSearch/service.go
+index 7db7a0bffb5..014e6a7cdf9 100644
+--- a/pkg/services/unifiedSearch/service.go
++++ b/pkg/services/unifiedSearch/service.go
+@@ -2,7 +2,10 @@ package unifiedSearch
+ 
+ import (
+ 	"context"
++	"encoding/json"
+ 	"errors"
++	"strings"
++	"time"
+ 
+ 	"github.com/grafana/grafana-plugin-sdk-go/backend"
+ 	"github.com/grafana/grafana-plugin-sdk-go/data"
+@@ -170,12 +173,77 @@ func (s *StandardSearchService) doSearchQuery(ctx context.Context, qry Query, _
+ 		return response
+ 	}
+ 
+-	// TODO: implement this correctly
+-	frame := data.NewFrame("results", data.NewField("value", nil, []string{}))
+-	frame.Meta = &data.FrameMeta{Notices: []data.Notice{{Text: "TODO"}}}
++	fScore := data.NewFieldFromFieldType(data.FieldTypeFloat64, 0)
++	fUID := data.NewFieldFromFieldType(data.FieldTypeString, 0)
++	fKind := data.NewFieldFromFieldType(data.FieldTypeString, 0)
++	fName := data.NewFieldFromFieldType(data.FieldTypeString, 0)
++	fURL := data.NewFieldFromFieldType(data.FieldTypeString, 0)
++	fLocation := data.NewFieldFromFieldType(data.FieldTypeString, 0)
++	fTags := data.NewFieldFromFieldType(data.FieldTypeNullableJSON, 0)
++
++	fScore.Name = "score"
++	fUID.Name = "uid"
++	fKind.Name = "kind"
++	fName.Name = "name"
++	fLocation.Name = "location"
++	fURL.Name = "url"
++	fURL.Config = &data.FieldConfig{
++		Links: []data.DataLink{
++			{Title: "link", URL: "${__value.text}"},
++		},
++	}
++	fTags.Name = "tags"
++
++	frame := data.NewFrame("Query results", fKind, fUID, fName, fURL, fTags, fLocation)
++
++	frame.SetMeta(&data.FrameMeta{
++		Type: "search-results",
++		Custom: &customMeta{
++			Count: uint64(len(res.Items)),
++		},
++	})
++
+ 	for _, r := range res.Items {
+-		frame.AppendRow(string(r.Value))
++		doc, err := getDoc(r.Value)
++		if err != nil {
++			s.logger.Error("Failed to parse doc", "error", err)
++			response.Error = err
++			return response
++		}
++		kind := strings.ToLower(doc.Kind)
++		frame.AppendRow(kind, doc.UID, doc.Spec.Title, "", nil, doc.FolderID)
+ 	}
+ 	response.Frames = append(response.Frames, frame)
+ 	return response
+ }
++
++type customMeta struct {
++	Count    uint64  `json:"count"`
++	MaxScore float64 `json:"max_score,omitempty"`
++	SortBy   string  `json:"sortBy,omitempty"`
++}
++
++type DashboardListDoc struct {
++	UID       string    `json:"Uid"`
++	Group     string    `json:"Group"`
++	Namespace string    `json:"Namespace"`
++	Kind      string    `json:"Kind"`
++	Name      string    `json:"Name"`
++	CreatedAt time.Time `json:"CreatedAt"`
++	CreatedBy string    `json:"CreatedBy"`
++	UpdatedAt time.Time `json:"UpdatedAt"`
++	UpdatedBy string    `json:"UpdatedBy"`
++	FolderID  string    `json:"FolderId"`
++	Spec      struct {
++		Title string `json:"title"`
++	} `json:"Spec"`
++}
++
++func getDoc(data []byte) (*DashboardListDoc, error) {
++	res := &DashboardListDoc{}
++	err := json.Unmarshal(data, res)
++	if err != nil {
++		return nil, err
++	}
++	return res, nil
++}
+diff --git a/public/app/features/search/service/searcher.ts b/public/app/features/search/service/searcher.ts
+index 354411534c9..2faed162c76 100644
+--- a/public/app/features/search/service/searcher.ts
++++ b/public/app/features/search/service/searcher.ts
+@@ -4,18 +4,22 @@ import { BlugeSearcher } from './bluge';
+ import { FrontendSearcher } from './frontend';
+ import { SQLSearcher } from './sql';
+ import { GrafanaSearcher } from './types';
++import { UnifiedSearcher } from './unified';
+ 
+ let searcher: GrafanaSearcher | undefined = undefined;
+ 
+ export function getGrafanaSearcher(): GrafanaSearcher {
+   if (!searcher) {
+     const sqlSearcher = new SQLSearcher();
++
+     const useBluge = config.featureToggles.panelTitleSearch;
+     searcher = useBluge ? new BlugeSearcher(sqlSearcher) : sqlSearcher;
+-
+     if (useBluge && location.search.includes('do-frontend-query')) {
+-      searcher = new FrontendSearcher(searcher);
++      return new FrontendSearcher(searcher);
+     }
++
++    const useUnifiedStorageSearch = config.featureToggles.unifiedStorageSearch;
++    searcher = useUnifiedStorageSearch ? new UnifiedSearcher(sqlSearcher) : sqlSearcher;
+   }
+   return searcher!;
+ }
+diff --git a/public/app/features/search/service/unified.ts b/public/app/features/search/service/unified.ts
+new file mode 100644
+index 00000000000..24211c6ea93
+--- /dev/null
++++ b/public/app/features/search/service/unified.ts
+@@ -0,0 +1,261 @@
++import {
++  DataFrame,
++  DataFrameJSON,
++  DataFrameView,
++  getDisplayProcessor,
++  SelectableValue,
++  toDataFrame,
++} from '@grafana/data';
++import { config, getBackendSrv } from '@grafana/runtime';
++import { TermCount } from 'app/core/components/TagFilter/TagFilter';
++
++import { replaceCurrentFolderQuery } from './utils';
++
++import { DashboardQueryResult, GrafanaSearcher, QueryResponse, SearchQuery, SearchResultMeta } from '.';
++
++// The backend returns an empty frame with a special name to indicate that the indexing engine is being rebuilt,
++// and that it can not serve any search requests. We are temporarily using the old SQL Search API as a fallback when that happens.
++const loadingFrameName = 'Loading';
++
++const searchURI = 'api/unified-search';
++
++type SearchAPIResponse = {
++  frames: DataFrameJSON[];
++};
++
++const folderViewSort = 'name_sort';
++
++export class UnifiedSearcher implements GrafanaSearcher {
++  constructor(private fallbackSearcher: GrafanaSearcher) {}
++
++  async search(query: SearchQuery): Promise<QueryResponse> {
++    if (query.facet?.length) {
++      throw new Error('facets not supported!');
++    }
++    return this.doSearchQuery(query);
++  }
++
++  async starred(query: SearchQuery): Promise<QueryResponse> {
++    if (query.facet?.length) {
++      throw new Error('facets not supported!');
++    }
++    // get the starred dashboards
++    const starsUIDS = await getBackendSrv().get('api/user/stars');
++    if (starsUIDS?.length) {
++      return this.doSearchQuery({
++        uid: starsUIDS,
++        query: query.query ?? '*',
++      });
++    }
++    // Nothing is starred
++    return {
++      view: new DataFrameView({ length: 0, fields: [] }),
++      totalRows: 0,
++      loadMoreItems: async (startIndex: number, stopIndex: number): Promise<void> => {
++        return;
++      },
++      isItemLoaded: (index: number): boolean => {
++        return true;
++      },
++    };
++  }
++
++  async tags(query: SearchQuery): Promise<TermCount[]> {
++    const req = {
++      ...query,
++      query: query.query ?? '*',
++      sort: undefined, // no need to sort the initial query results (not used)
++      facet: [{ field: 'tag' }],
++      limit: 1, // 0 would be better, but is ignored by the backend
++    };
++
++    const resp = await getBackendSrv().post<SearchAPIResponse>(searchURI, req);
++    const frames = resp.frames.map((f) => toDataFrame(f));
++
++    if (frames[0]?.name === loadingFrameName) {
++      return this.fallbackSearcher.tags(query);
++    }
++
++    for (const frame of frames) {
++      if (frame.fields[0].name === 'tag') {
++        return getTermCountsFrom(frame);
++      }
++    }
++
++    return [];
++  }
++
++  // TODO: Implement this correctly
++  getSortOptions(): Promise<SelectableValue[]> {
++    const opts: SelectableValue[] = [
++      { value: folderViewSort, label: 'Alphabetically (A-Z)' },
++      { value: '-name_sort', label: 'Alphabetically (Z-A)' },
++    ];
++
++    if (config.licenseInfo.enabledFeatures.analytics) {
++      for (const sf of sortFields) {
++        opts.push({ value: `-${sf.name}`, label: `${sf.display} (most)` });
++        opts.push({ value: `${sf.name}`, label: `${sf.display} (least)` });
++      }
++      for (const sf of sortTimeFields) {
++        opts.push({ value: `-${sf.name}`, label: `${sf.display} (recent)` });
++        opts.push({ value: `${sf.name}`, label: `${sf.display} (oldest)` });
++      }
++    }
++
++    return Promise.resolve(opts);
++  }
++
++  async doSearchQuery(query: SearchQuery): Promise<QueryResponse> {
++    query = await replaceCurrentFolderQuery(query);
++    const req = {
++      ...query,
++      query: query.query ?? '*',
++      limit: query.limit ?? firstPageSize,
++    };
++
++    const rsp = await getBackendSrv().post<SearchAPIResponse>(searchURI, req);
++    const frames = rsp.frames.map((f) => toDataFrame(f));
++
++    const first = frames.length ? toDataFrame(frames[0]) : { fields: [], length: 0 };
++
++    if (first.name === loadingFrameName) {
++      return this.fallbackSearcher.search(query);
++    }
++
++    for (const field of first.fields) {
++      field.display = getDisplayProcessor({ field, theme: config.theme2 });
++    }
++
++    // Make sure the object exists
++    if (!first.meta?.custom) {
++      first.meta = {
++        ...first.meta,
++        custom: {
++          count: first.length,
++          max_score: 1,
++        },
++      };
++    }
++
++    const meta = first.meta.custom as SearchResultMeta;
++    if (!meta.locationInfo) {
++      meta.locationInfo = {}; // always set it so we can append
++    }
++
++    // Set the field name to a better display name
++    if (meta.sortBy?.length) {
++      const field = first.fields.find((f) => f.name === meta.sortBy);
++      if (field) {
++        const name = getSortFieldDisplayName(field.name);
++        meta.sortBy = name;
++        field.name = name; // make it look nicer
++      }
++    }
++
++    let loadMax = 0;
++    let pending: Promise<void> | undefined = undefined;
++    const getNextPage = async () => {
++      while (loadMax > view.dataFrame.length) {
++        const from = view.dataFrame.length;
++        if (from >= meta.count) {
++          return;
++        }
++        const resp = await getBackendSrv().post<SearchAPIResponse>(searchURI, {
++          ...(req ?? {}),
++          from,
++          limit: nextPageSizes,
++        });
++        const frame = toDataFrame(resp.frames[0]);
++
++        if (!frame) {
++          console.log('no results', frame);
++          return;
++        }
++        if (frame.fields.length !== view.dataFrame.fields.length) {
++          console.log('invalid shape', frame, view.dataFrame);
++          return;
++        }
++
++        // Append the raw values to the same array buffer
++        const length = frame.length + view.dataFrame.length;
++        for (let i = 0; i < frame.fields.length; i++) {
++          const values = view.dataFrame.fields[i].values;
++          values.push(...frame.fields[i].values);
++        }
++        view.dataFrame.length = length;
++
++        // Add all the location lookup info
++        const submeta = frame.meta?.custom as SearchResultMeta;
++        if (submeta?.locationInfo && meta) {
++          for (const [key, value] of Object.entries(submeta.locationInfo)) {
++            meta.locationInfo[key] = value;
++          }
++        }
++      }
++      pending = undefined;
++    };
++
++    const view = new DataFrameView<DashboardQueryResult>(first);
++    return {
++      totalRows: meta.count ?? first.length,
++      view,
++      loadMoreItems: async (startIndex: number, stopIndex: number): Promise<void> => {
++        loadMax = Math.max(loadMax, stopIndex);
++        if (!pending) {
++          pending = getNextPage();
++        }
++        return pending;
++      },
++      isItemLoaded: (index: number): boolean => {
++        return index < view.dataFrame.length;
++      },
++    };
++  }
++
++  getFolderViewSort(): string {
++    return 'name_sort';
++  }
++}
++
++const firstPageSize = 50;
++const nextPageSizes = 100;
++
++function getTermCountsFrom(frame: DataFrame): TermCount[] {
++  const keys = frame.fields[0].values;
++  const vals = frame.fields[1].values;
++  const counts: TermCount[] = [];
++  for (let i = 0; i < frame.length; i++) {
++    counts.push({ term: keys[i], count: vals[i] });
++  }
++  return counts;
++}
++
++// Enterprise only sort field values for dashboards
++const sortFields = [
++  { name: 'views_total', display: 'Views total' },
++  { name: 'views_last_30_days', display: 'Views 30 days' },
++  { name: 'errors_total', display: 'Errors total' },
++  { name: 'errors_last_30_days', display: 'Errors 30 days' },
++];
++
++// Enterprise only time sort field values for dashboards
++const sortTimeFields = [
++  { name: 'created_at', display: 'Created time' },
++  { name: 'updated_at', display: 'Updated time' },
++];
++
++/** Given the internal field name, this gives a reasonable display name for the table colum header */
++function getSortFieldDisplayName(name: string) {
++  for (const sf of sortFields) {
++    if (sf.name === name) {
++      return sf.display;
++    }
++  }
++  for (const sf of sortTimeFields) {
++    if (sf.name === name) {
++      return sf.display;
++    }
++  }
++  return name;
++}

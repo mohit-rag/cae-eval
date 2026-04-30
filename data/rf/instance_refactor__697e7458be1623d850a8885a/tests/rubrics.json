@@ -1,0 +1,326 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d2736ad6e90c870c4eee3bd1c6f327a9",
+    "title": "1.1: Replaces the placeholder stub in the backend unified search service with actual search results containing all 6 structured fields (kind, uid, name, url, tags, location)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the backend search service returns actual usable data with structured fields instead of a placeholder.",
+      "evidence": "gold.patch lines 38-59 in pkg/services/unifiedSearch/service.go: Creates structured fields (fScore, fUID, fKind, fName, fURL, fLocation, fTags) and builds a frame named 'Query results'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The unified search service has a stub implementation that just returns a placeholder instead of actual results with structured fields (kind, uid, name, url, tags, location) matching the existing search frame pattern.' [2: Implicit Codebase Constraint] The existing BlugeSearcher in searchV2/bluge.go uses the same 6 structured fields (kind, uid, name, url, tags, location) for its search result frame. [3: Logical Necessity] To provide actual results consistent with the codebase, the stub must be replaced with these 6 structured fields. [4: Quality Necessity] Any good implementation must produce structured, typed fields so that consumers can reliably access result attributes. [5: Conclusion] Therefore, ANY correct and good answer must replace the placeholder with actual search results containing all 6 structured fields specified in the prompt.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f65eda32b416c5e3b4a9c299a10b1feb",
+    "title": "1.2: Adds error logging in the backend when document parsing fails",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that parsing failures in the backend are made visible through error logging or error response propagation.",
+      "evidence": "gold.patch lines 70-74 in pkg/services/unifiedSearch/service.go: Adds error handling with s.logger.Error('Failed to parse doc', 'error', err) and sets response.Error = err when parsing fails.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Failures are silent \u2014 there's no error logging, and debugging is frustrating' and asks to 'improve the debuggability of this search flow so that failures are visible and diagnosable.' [2: Implicit Codebase Constraint] The existing doSearchQuery method silently converts results without any error logging. Other methods in the same file use s.logger.Error() for error visibility. [3: Logical Necessity] To make failures visible and diagnosable, the backend must log parsing errors. [4: Quality Necessity] Any good implementation must log errors so that operators can diagnose failures without guessing. [5: Conclusion] Therefore, ANY correct and good answer must add error logging when document parsing fails in the backend.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "09e342bf64e874e693b9c8fbad3f19a6",
+    "title": "1.3: Adds a DashboardListDoc struct to pkg/services/unifiedSearch/service.go with 11 top-level fields (UID, Group, Namespace, Kind, Name, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, FolderID, ...) to support unified search document parsing",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a struct is created to represent dashboard documents from unified search results with fields for UID, Kind, Name, FolderID, and nested Spec with Title.",
+      "evidence": "gold.patch lines 89-103 in pkg/services/unifiedSearch/service.go: Creates DashboardListDoc struct with UID, Group, Namespace, Kind, Name, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy, FolderID fields and nested Spec struct with Title.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Fix the backend stub to return actual search results,' which requires parsing document data into a typed structure. [2: Implicit Codebase Constraint] The interface specifies a DashboardListDoc struct with specific fields including UID (json:\"Uid\"), Kind (json:\"Kind\"), Name (json:\"Name\"), FolderID (json:\"FolderId\"), and nested Spec with Title (json:\"title\"). [3: Logical Necessity] To parse JSON document data from the unified storage search results, a struct definition matching the expected JSON shape is required. [4: Quality Necessity] Any good implementation must define a typed structure for deserialization rather than using untyped maps. [5: Conclusion] Therefore, ANY correct and good answer must implement a struct for parsing dashboard document data with the fields specified in the interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "1836d093cfedb9647df46a3e125b4d85",
+    "title": "1.4: Implements a getDoc function in pkg/services/unifiedSearch/service.go that returns both outputs (*DashboardListDoc and error) by unmarshaling JSON byte data",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a function exists to parse raw JSON bytes into the DashboardListDoc struct, returning an error if parsing fails.",
+      "evidence": "gold.patch lines 105-112 in pkg/services/unifiedSearch/service.go: Creates getDoc function that unmarshals JSON into DashboardListDoc and returns error on failure.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Fix the backend stub to return actual search results' and 'improve the debuggability of this search flow so that failures are visible and diagnosable.' Parsing raw document data and surfacing errors are prerequisites. [2: Implicit Codebase Constraint] The interface specifies a getDoc function with input `data []byte` and output `*DashboardListDoc, error` that unmarshals JSON and returns an error if unmarshalling fails. [3: Logical Necessity] The search service receives raw byte data from storage; a parsing function is needed to convert it into typed structs. [4: Quality Necessity] Any good implementation must separate parsing logic into a dedicated function for testability and error propagation. [5: Conclusion] Therefore, ANY correct and good answer must implement a function that unmarshals JSON byte data into a DashboardListDoc and returns an error on failure.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "22d7f1ca5f2925dc3a0f9dcbbed82943",
+    "title": "1.5: Implements a customMeta struct in pkg/services/unifiedSearch/service.go with all 3 search result frame metadata fields (Count, MaxScore, SortBy)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a metadata struct is created for search result frames with count, max_score, and sortBy fields.",
+      "evidence": "gold.patch lines 83-87 in pkg/services/unifiedSearch/service.go: Creates customMeta struct with Count (uint64, json:\"count\"), MaxScore (float64, json:\"max_score,omitempty\"), SortBy (string, json:\"sortBy,omitempty\").",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Fix the backend stub to return actual search results,' which includes providing proper metadata for the search response. [2: Implicit Codebase Constraint] The interface specifies a customMeta struct with Count (uint64, json:\"count\"), MaxScore (float64, json:\"max_score,omitempty\"), SortBy (string, json:\"sortBy,omitempty\"). The frontend UnifiedSearcher reads this metadata to determine total result count and sorting. [3: Logical Necessity] The search response frame needs metadata to communicate result count and sorting information to the frontend. [4: Quality Necessity] Any good implementation must provide structured metadata rather than relying on implicit conventions. [5: Conclusion] Therefore, ANY correct and good answer must implement a metadata struct with Count, MaxScore, and SortBy fields for search result frames.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b9ec7887beafabb2b037da7ebdb339bc",
+    "title": "1.6: Creates a new UnifiedSearcher class in public/app/features/search/service/unified.ts that implements the GrafanaSearcher interface",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new UnifiedSearcher class is created implementing GrafanaSearcher interface to integrate with the unified search API.",
+      "evidence": "gold.patch creates new file public/app/features/search/service/unified.ts with UnifiedSearcher class (line 175) implementing GrafanaSearcher interface, using searchURI = 'api/unified-search' (line 167).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API' and 'When the unifiedStorageSearch feature toggle is enabled, there's no way to actually use unified search from the UI.' [2: Implicit Codebase Constraint] The interface specifies a UnifiedSearcher class implementing GrafanaSearcher interface. The existing codebase uses the GrafanaSearcher interface pattern for all search implementations (BlugeSearcher, SQLSearcher, FrontendSearcher). [3: Logical Necessity] To enable UI usage of unified search, a searcher class implementing the standard interface is required. [4: Quality Necessity] Any good implementation must follow the existing interface pattern to ensure compatibility with the rest of the search infrastructure. [5: Conclusion] Therefore, ANY correct and good answer must create a UnifiedSearcher class implementing GrafanaSearcher.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "43c688e001946b5e9ad16920f14a2e18",
+    "title": "1.7: Implements the search method on UnifiedSearcher in public/app/features/search/service/unified.ts that delegates queries to the unified search API",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that UnifiedSearcher has a search method that delegates search queries to the unified search API endpoint.",
+      "evidence": "gold.patch lines 178-183 in unified.ts: Implements search method that calls doSearchQuery, which posts to 'api/unified-search' (line 264).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API' and 'there's no way to actually use unified search from the UI.' [2: Implicit Codebase Constraint] The interface specifies UnifiedSearcher.search with input SearchQuery and output Promise<QueryResponse>, delegating to doSearchQuery which posts to api/unified-search. [3: Logical Necessity] The search method is the primary entry point for querying; it must delegate to the unified search backend. [4: Quality Necessity] Any good implementation must provide a search method that connects the UI to the backend API. [5: Conclusion] Therefore, ANY correct and good answer must implement a search method on UnifiedSearcher that delegates queries to the unified search API.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "abb38862db61669477bb71ef8e1a8d17",
+    "title": "1.8: Rejects facet queries in UnifiedSearcher.search by throwing an error",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that UnifiedSearcher.search throws an error when query.facet has entries, since the unified search backend does not support faceted queries.",
+      "evidence": "gold.patch lines 179-181 in unified.ts: Checks if query.facet?.length and throws new Error('facets not supported!').",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend needs to handle edge cases gracefully,' which includes rejecting unsupported query types. [2: Implicit Codebase Constraint] The interface specifies UnifiedSearcher.search 'throws an error with message \"facets not supported!\" if query.facet has entries.' [3: Logical Necessity] The unified search backend does not support faceted queries; the frontend must reject them with a clear error rather than sending an unsupported request. [4: Quality Necessity] Any good implementation must validate inputs and provide clear error messages for unsupported operations. [5: Conclusion] Therefore, ANY correct and good answer must reject facet queries in UnifiedSearcher.search by throwing an error with message 'facets not supported!'.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "57ede37b000e4fdea2556d552ca833d4",
+    "title": "1.9: Implements the starred method on UnifiedSearcher that fetches starred dashboard UIDs from api/user/stars",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that UnifiedSearcher has a starred method that fetches starred UIDs from api/user/stars and searches for those dashboards.",
+      "evidence": "gold.patch lines 185-208 in unified.ts: Implements starred method that gets starred UIDs from 'api/user/stars' (line 190) and performs search with those UIDs (lines 192-195).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API' and 'there's no way to actually use unified search from the UI.' Starred dashboards are a core UI feature. [2: Implicit Codebase Constraint] The interface specifies UnifiedSearcher.starred fetches starred UIDs from api/user/stars and searches with those UIDs. The GrafanaSearcher interface requires a starred method. [3: Logical Necessity] Users need to see their starred dashboards through unified search; this requires fetching starred UIDs and querying for them. [4: Quality Necessity] Any good implementation must support the starred dashboards workflow that users depend on. [5: Conclusion] Therefore, ANY correct and good answer must implement a starred method that fetches starred UIDs from api/user/stars.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "82293d45c5e4f34d791fe4b2daf49bb4",
+    "title": "1.10: Returns an empty response with totalRows 0 in UnifiedSearcher.starred when no starred dashboards exist",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that UnifiedSearcher.starred returns an empty response (totalRows: 0, isItemLoaded always true) when the user has no starred dashboards.",
+      "evidence": "gold.patch lines 197-207 in unified.ts: Returns empty response with DataFrameView of length 0, totalRows: 0, loadMoreItems as no-op, and isItemLoaded returning true.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend needs to handle edge cases gracefully, like when the backend can't serve requests.' The no-stars scenario is a common edge case. [2: Implicit Codebase Constraint] The interface specifies UnifiedSearcher.starred 'returns empty response (totalRows: 0, isItemLoaded always true) when no stars exist.' [3: Logical Necessity] When no dashboards are starred, the method must return a valid empty response rather than making unnecessary search API calls or returning undefined. [4: Quality Necessity] Any good implementation must handle the empty-stars edge case gracefully with a well-formed response. [5: Conclusion] Therefore, ANY correct and good answer must return an empty response with totalRows 0 when no starred dashboards exist.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f83ab1cb2dd7a34687d56357975bf683",
+    "title": "1.11: Implements the tags method on UnifiedSearcher that retrieves tag facet counts from the unified search API",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that UnifiedSearcher has a tags method that retrieves tag facets by posting to api/unified-search with a tag facet request.",
+      "evidence": "gold.patch lines 210-233 in unified.ts: Implements tags method with facet request for 'tag' field (line 215), limit 1 (line 216), posts to api/unified-search (line 219), and returns TermCount array from the tag frame.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API.' Tag retrieval is part of the search integration. [2: Implicit Codebase Constraint] The interface specifies UnifiedSearcher.tags posts to api/unified-search with facet [{field: 'tag'}] and limit 1, and returns TermCount[] from the response. [3: Logical Necessity] Tag retrieval is required for search filtering functionality in the UI. [4: Quality Necessity] Any good implementation must support tag-based filtering to provide a complete search experience. [5: Conclusion] Therefore, ANY correct and good answer must implement a tags method that retrieves tag facet counts from the unified search API.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "508ca3ced72f1e378c0aa2d6d2f0c13a",
+    "title": "1.12: Implements the getSortOptions method on UnifiedSearcher that returns both alphabetical sort options (A-Z (name_sort) and Z-A (-name_sort))",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that UnifiedSearcher has a getSortOptions method returning at minimum alphabetical A-Z and Z-A sorting options.",
+      "evidence": "gold.patch lines 236-254 in unified.ts: Implements getSortOptions returning name_sort and -name_sort options (lines 237-240).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API' and 'there's no way to actually use unified search from the UI.' Sort options are part of the search UI integration. [2: Implicit Codebase Constraint] The interface specifies getSortOptions always includes Alphabetically A-Z (name_sort) and Z-A (-name_sort). The GrafanaSearcher interface requires this method. [3: Logical Necessity] Sort options are required for search result ordering in the UI; without them, users cannot sort results. [4: Quality Necessity] Any good implementation must provide consistent sort options that match the existing search experience. [5: Conclusion] Therefore, ANY correct and good answer must implement getSortOptions with at minimum alphabetical A-Z and Z-A sort options.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "5ac124ee8976ce30e533c24619fe22ec",
+    "title": "1.13: Falls back to the fallbackSearcher in UnifiedSearcher.doSearchQuery when the backend returns a Loading frame",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that UnifiedSearcher.doSearchQuery detects a 'Loading' frame from the backend and delegates to fallbackSearcher.search instead of failing.",
+      "evidence": "gold.patch lines 165-166 define loadingFrameName = 'Loading'. Lines 269-271 in doSearchQuery check if first.name === loadingFrameName and return this.fallbackSearcher.search(query).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend needs to handle edge cases gracefully, like when the backend can't serve requests.' [2: Implicit Codebase Constraint] The interface specifies that UnifiedSearcher 'falls back to the provided fallbackSearcher when the backend returns a frame named \"Loading\" (indicating index rebuild).' The doSearchQuery interface description states 'falls back to fallbackSearcher.search when Loading frame is returned.' [3: Logical Necessity] When the backend cannot serve search requests during indexing, doSearchQuery must fall back to maintain search availability. [4: Quality Necessity] Any good implementation must ensure search remains available even during backend indexing. [5: Conclusion] Therefore, ANY correct and good answer must fall back to the fallbackSearcher in doSearchQuery when the backend returns a Loading frame.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "bfc84f463737f1f228034e9f355bc217",
+    "title": "1.14: Falls back to the fallbackSearcher in UnifiedSearcher.tags when the backend returns a Loading frame",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that UnifiedSearcher.tags detects a 'Loading' frame from the backend and delegates to fallbackSearcher.tags instead of failing.",
+      "evidence": "gold.patch lines 222-224 in tags method check if frames[0]?.name === loadingFrameName and return this.fallbackSearcher.tags(query).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend needs to handle edge cases gracefully, like when the backend can't serve requests.' [2: Implicit Codebase Constraint] The interface specifies that UnifiedSearcher.tags 'falls back to fallbackSearcher.tags when a Loading frame is returned.' [3: Logical Necessity] When the backend cannot serve tag requests during indexing, the tags method must fall back to maintain tag retrieval availability. [4: Quality Necessity] Any good implementation must ensure tag retrieval remains available even during backend indexing. [5: Conclusion] Therefore, ANY correct and good answer must fall back to the fallbackSearcher in tags when the backend returns a Loading frame.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c732060021a7bcb2062a9ff9c7fced2e",
+    "title": "1.15: Implements the doSearchQuery method on UnifiedSearcher that posts search requests to api/unified-search",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that UnifiedSearcher has a doSearchQuery method that posts search requests to the unified search API endpoint.",
+      "evidence": "gold.patch lines 256-265 in unified.ts: Implements doSearchQuery that posts to 'api/unified-search' (line 264).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API' and 'there's no way to actually use unified search from the UI.' The core search method must connect to the backend. [2: Implicit Codebase Constraint] The interface specifies doSearchQuery 'posts to api/unified-search.' The UnifiedSearcher class description states it 'queries the unified search API endpoint (api/unified-search).' [3: Logical Necessity] The core search implementation must query the backend API to produce results. [4: Quality Necessity] Any good implementation must connect to the correct API endpoint. [5: Conclusion] Therefore, ANY correct and good answer must implement doSearchQuery that posts search requests to api/unified-search.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7b69c163cb348c121fe6d922cf5f1339",
+    "title": "1.16: Defaults the search query to '*' in UnifiedSearcher.doSearchQuery",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that doSearchQuery defaults the query parameter to '*' when the caller does not provide one.",
+      "evidence": "gold.patch line 260 in unified.ts: query: query.query ?? '*'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API.' A working search integration must handle missing query parameters. [2: Implicit Codebase Constraint] The interface specifies doSearchQuery 'defaults query to \"*\".' [3: Logical Necessity] Without a default query, callers that omit the query parameter would send undefined to the backend, causing errors or empty results. [4: Quality Necessity] Any good implementation must provide a sensible default so that callers without explicit parameters still get valid results. [5: Conclusion] Therefore, ANY correct and good answer must default the search query to '*' in doSearchQuery.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "32f6b57652accc25118608761bba89bf",
+    "title": "1.17: Defaults the page size to 50 in UnifiedSearcher.doSearchQuery",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that doSearchQuery defaults the limit parameter to 50 when the caller does not provide one.",
+      "evidence": "gold.patch line 261 in unified.ts: limit: query.limit ?? firstPageSize, where firstPageSize = 50 (line 368).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API.' A working search integration must handle missing limit parameters. [2: Implicit Codebase Constraint] The interface specifies doSearchQuery 'defaults... limit to 50 (firstPageSize).' [3: Logical Necessity] Without a default page size, callers that omit the limit would either get all results at once (degrading performance) or get backend errors. [4: Quality Necessity] Any good implementation must provide a reasonable default page size for responsive initial loading. [5: Conclusion] Therefore, ANY correct and good answer must default the page size to 50 in doSearchQuery.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "00558b0b0ec1d856625f01a74eaf7763",
+    "title": "1.18: Supports pagination in UnifiedSearcher.doSearchQuery via both callbacks (loadMoreItems and isItemLoaded)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that doSearchQuery returns a QueryResponse with loadMoreItems and isItemLoaded callbacks for incremental result loading.",
+      "evidence": "gold.patch lines 305-359 in unified.ts: Implements getNextPage function fetching pages of 100 (nextPageSizes), loadMoreItems callback (lines 350-356) that triggers pagination, and isItemLoaded (lines 357-359) that checks if an index is loaded.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API.' A complete search integration requires pagination for large result sets. [2: Implicit Codebase Constraint] The interface specifies doSearchQuery 'supports pagination via loadMoreItems (fetches pages of 100) and isItemLoaded.' The QueryResponse type used by all GrafanaSearcher implementations requires these callbacks. [3: Logical Necessity] Search results may be large; without pagination, the UI would need to load all results at once, degrading performance. [4: Quality Necessity] Any good implementation must support incremental loading to provide a responsive user experience. [5: Conclusion] Therefore, ANY correct and good answer must support pagination in doSearchQuery via loadMoreItems and isItemLoaded callbacks.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "bed9be445178cfe1ee691037de847355",
+    "title": "1.19: Wires UnifiedSearcher into the getGrafanaSearcher factory in public/app/features/search/service/searcher.ts so that unified search is used when the unifiedStorageSearch feature toggle is enabled",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the getGrafanaSearcher factory function returns a UnifiedSearcher when the unifiedStorageSearch feature toggle is enabled, wrapping a SQLSearcher as fallback.",
+      "evidence": "gold.patch lines 117-141 in searcher.ts: Imports UnifiedSearcher (line 121) and uses config.featureToggles.unifiedStorageSearch to conditionally create UnifiedSearcher wrapping sqlSearcher (lines 137-138).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'When the unifiedStorageSearch feature toggle is enabled, there's no way to actually use unified search from the UI.' [2: Implicit Codebase Constraint] The interface specifies getGrafanaSearcher 'returns a UnifiedSearcher wrapping a SQLSearcher as fallback' when unifiedStorageSearch feature toggle is enabled. The existing codebase uses feature toggles to control feature availability. [3: Logical Necessity] For the feature toggle to activate unified search, the factory function must be updated to return UnifiedSearcher when the toggle is on. [4: Quality Necessity] Any good implementation must integrate new features through the existing feature toggle mechanism to ensure safe rollout. [5: Conclusion] Therefore, ANY correct and good answer must wire UnifiedSearcher into the getGrafanaSearcher factory when the unifiedStorageSearch feature toggle is enabled.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3b71b2631880089e5448c159814d56e6",
+    "title": "1.20: Implements the getFolderViewSort method on UnifiedSearcher that returns the sort field 'name_sort'",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that UnifiedSearcher has a getFolderViewSort method that returns 'name_sort' as the sort field for folder view.",
+      "evidence": "gold.patch lines 363-365 in unified.ts: Implements getFolderViewSort returning 'name_sort'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API' and 'there's no way to actually use unified search from the UI.' A complete GrafanaSearcher implementation requires getFolderViewSort. [2: Implicit Codebase Constraint] The interface specifies UnifiedSearcher.getFolderViewSort returns 'name_sort'. The GrafanaSearcher interface requires this method for folder view sorting. [3: Logical Necessity] The GrafanaSearcher interface contract requires getFolderViewSort; omitting it would break the interface implementation and cause TypeScript compilation errors. [4: Quality Necessity] Any good implementation must fulfill all interface methods to ensure the class is a valid GrafanaSearcher. [5: Conclusion] Therefore, ANY correct and good answer must implement getFolderViewSort returning 'name_sort'.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "3b919750f91f3930350a7149cf177587",
+    "title": "3.1: Removes both placeholder stub items (the TODO comment and the placeholder frame creation) from the backend search implementation in pkg/services/unifiedSearch/service.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that the old TODO placeholder code is removed when implementing proper search results.",
+      "evidence": "gold.patch lines 35-37 in pkg/services/unifiedSearch/service.go: Shows removal of '// TODO: implement this correctly' comment and placeholder frame creation with data.NewFrame('results', data.NewField('value', nil, []string{})).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Fix the backend stub to return actual search results,' implying the stub code should be replaced. [2: Implicit Codebase Constraint] The existing stub code includes a TODO comment and a placeholder frame with a 'TODO' notice that would confuse consumers if left alongside real results. [3: Logical Necessity] Once proper search results are implemented, the placeholder code becomes dead code that conflicts with the new implementation. [4: Quality Necessity] Any good implementation must remove obsolete placeholder code to avoid confusion and dead code accumulation. [5: Conclusion] Therefore, ANY correct and good answer should remove the TODO placeholder when implementing proper results.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "9fb7b79c7159f81c52be8bc1bcacb512",
+    "title": "4.1: Omits any of the 6 required GrafanaSearcher interface methods in UnifiedSearcher (search, starred, tags, getSortOptions, doSearchQuery, getFolderViewSort)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks if the UnifiedSearcher is missing any required GrafanaSearcher interface methods, which would break the interface contract.",
+      "evidence": "gold.patch implements all required methods: search (line 178), starred (line 185), tags (line 210), getSortOptions (line 236), doSearchQuery (line 256), getFolderViewSort (line 363).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The frontend also lacks integration with this search API,' which means implementing a complete searcher. [2: Implicit Codebase Constraint] The GrafanaSearcher interface defines required method signatures that consumers depend on; the interface specifies search, starred, tags, getSortOptions, doSearchQuery, and getFolderViewSort. [3: Logical Necessity] Missing interface methods would cause TypeScript compilation errors and runtime failures in code that consumes the search API. [4: Quality Necessity] Any good implementation must fulfill the complete interface contract. [5: Conclusion] Therefore, ANY correct and good answer must implement all GrafanaSearcher interface methods in UnifiedSearcher.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "d4a851673f524c0b40311c56e350516e",
+    "title": "4.2: Hardcodes search results or returns static data instead of querying the api/unified-search endpoint",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks if the solution returns hardcoded or static results instead of actually querying the unified search backend API.",
+      "evidence": "gold.patch lines 264-265 in unified.ts: Posts to searchURI ('api/unified-search') and processes the response dynamically. gold.patch lines 70-77 in service.go: Iterates over actual res.Items and parses each document.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Fix the backend stub to return actual search results' \u2014 the word 'actual' implies dynamic, real data from the search engine. [2: Implicit Codebase Constraint] The existing codebase architecture separates the search API endpoint from the frontend; the frontend must query the backend rather than fabricating results. [3: Logical Necessity] Hardcoded results would not reflect the actual state of the data and would defeat the purpose of the search feature. [4: Quality Necessity] Any good implementation must query the real API to produce meaningful, up-to-date search results. [5: Conclusion] Therefore, ANY correct and good answer must query the api/unified-search endpoint rather than returning hardcoded data.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

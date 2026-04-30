@@ -1,0 +1,233 @@
+diff --git a/src/app-layer-parser.c b/src/app-layer-parser.c
+index a25acfaa8..669e55fdd 100644
+--- a/src/app-layer-parser.c
++++ b/src/app-layer-parser.c
+@@ -1201,6 +1201,216 @@ static int AppLayerParserTest02(void)
+ }
+ 
+ 
++/**
++ * \test Test that AppLayerTransactionGetActiveDetectLog returns the minimum
++ *       of log_id and inspect_id when a logger is active.
++ */
++static int AppLayerParserTest03(void)
++{
++    AppLayerParserBackupParserTable();
++
++    int result = 0;
++    Flow f;
++    AppLayerParserState pstate;
++
++    memset(&f, 0, sizeof(f));
++    memset(&pstate, 0, sizeof(pstate));
++
++    f.proto = IPPROTO_TCP;
++    f.alproto = ALPROTO_TEST;
++    f.alparser = &pstate;
++
++    pstate.inspect_id[0] = 5;
++    pstate.inspect_id[1] = 3;
++    pstate.log_id = 4;
++
++    alp_ctx.ctxs[FlowGetProtoMapping(IPPROTO_TCP)][ALPROTO_TEST].logger = TRUE;
++
++    uint64_t tx_id = AppLayerTransactionGetActiveDetectLog(&f, STREAM_TOSERVER);
++    if (tx_id != 4) {
++        printf("TOSERVER with logger: expected 4, got %" PRIu64 ": ", tx_id);
++        goto end;
++    }
++
++    tx_id = AppLayerTransactionGetActiveDetectLog(&f, STREAM_TOCLIENT);
++    if (tx_id != 3) {
++        printf("TOCLIENT with logger: expected 3, got %" PRIu64 ": ", tx_id);
++        goto end;
++    }
++
++    result = 1;
++ end:
++    AppLayerParserRestoreParserTable();
++    return result;
++}
++
++/**
++ * \test Test that AppLayerTransactionGetActiveDetectLog returns only
++ *       the inspect_id when no logger is active.
++ */
++static int AppLayerParserTest04(void)
++{
++    AppLayerParserBackupParserTable();
++
++    int result = 0;
++    Flow f;
++    AppLayerParserState pstate;
++
++    memset(&f, 0, sizeof(f));
++    memset(&pstate, 0, sizeof(pstate));
++
++    f.proto = IPPROTO_TCP;
++    f.alproto = ALPROTO_TEST;
++    f.alparser = &pstate;
++
++    pstate.inspect_id[0] = 5;
++    pstate.inspect_id[1] = 3;
++    pstate.log_id = 2;
++
++    alp_ctx.ctxs[FlowGetProtoMapping(IPPROTO_TCP)][ALPROTO_TEST].logger = FALSE;
++
++    uint64_t tx_id = AppLayerTransactionGetActiveDetectLog(&f, STREAM_TOSERVER);
++    if (tx_id != 5) {
++        printf("TOSERVER without logger: expected 5, got %" PRIu64 ": ", tx_id);
++        goto end;
++    }
++
++    tx_id = AppLayerTransactionGetActiveDetectLog(&f, STREAM_TOCLIENT);
++    if (tx_id != 3) {
++        printf("TOCLIENT without logger: expected 3, got %" PRIu64 ": ", tx_id);
++        goto end;
++    }
++
++    result = 1;
++ end:
++    AppLayerParserRestoreParserTable();
++    return result;
++}
++
++/**
++ * \test Test that AppLayerTransactionGetActiveDetectLog handles the boundary
++ *       case where log_id equals inspect_id with a logger active.
++ */
++static int AppLayerParserTest05(void)
++{
++    AppLayerParserBackupParserTable();
++
++    int result = 0;
++    Flow f;
++    AppLayerParserState pstate;
++
++    memset(&f, 0, sizeof(f));
++    memset(&pstate, 0, sizeof(pstate));
++
++    f.proto = IPPROTO_TCP;
++    f.alproto = ALPROTO_TEST;
++    f.alparser = &pstate;
++
++    pstate.inspect_id[0] = 5;
++    pstate.inspect_id[1] = 5;
++    pstate.log_id = 5;
++
++    alp_ctx.ctxs[FlowGetProtoMapping(IPPROTO_TCP)][ALPROTO_TEST].logger = TRUE;
++
++    uint64_t tx_id = AppLayerTransactionGetActiveDetectLog(&f, STREAM_TOSERVER);
++    if (tx_id != 5) {
++        printf("TOSERVER equal ids: expected 5, got %" PRIu64 ": ", tx_id);
++        goto end;
++    }
++
++    tx_id = AppLayerTransactionGetActiveDetectLog(&f, STREAM_TOCLIENT);
++    if (tx_id != 5) {
++        printf("TOCLIENT equal ids: expected 5, got %" PRIu64 ": ", tx_id);
++        goto end;
++    }
++
++    result = 1;
++ end:
++    AppLayerParserRestoreParserTable();
++    return result;
++}
++
++/**
++ * \test Test that AppLayerTransactionGetActiveDetectLog returns the inspect_id
++ *       (not log_id) when log_id is higher than both inspect_ids and a logger
++ *       is active, verifying the min selection per direction.
++ */
++static int AppLayerParserTest06(void)
++{
++    AppLayerParserBackupParserTable();
++
++    int result = 0;
++    Flow f;
++    AppLayerParserState pstate;
++
++    memset(&f, 0, sizeof(f));
++    memset(&pstate, 0, sizeof(pstate));
++
++    f.proto = IPPROTO_TCP;
++    f.alproto = ALPROTO_TEST;
++    f.alparser = &pstate;
++
++    pstate.inspect_id[0] = 3;
++    pstate.inspect_id[1] = 7;
++    pstate.log_id = 10;
++
++    alp_ctx.ctxs[FlowGetProtoMapping(IPPROTO_TCP)][ALPROTO_TEST].logger = TRUE;
++
++    uint64_t tx_id = AppLayerTransactionGetActiveDetectLog(&f, STREAM_TOSERVER);
++    if (tx_id != 3) {
++        printf("TOSERVER: expected 3, got %" PRIu64 ": ", tx_id);
++        goto end;
++    }
++
++    tx_id = AppLayerTransactionGetActiveDetectLog(&f, STREAM_TOCLIENT);
++    if (tx_id != 7) {
++        printf("TOCLIENT: expected 7, got %" PRIu64 ": ", tx_id);
++        goto end;
++    }
++
++    result = 1;
++ end:
++    AppLayerParserRestoreParserTable();
++    return result;
++}
++
++/**
++ * \test Test that AppLayerTransactionGetActiveDetectLog returns log_id
++ *       when log_id is lower than inspect_id and logger is active.
++ */
++static int AppLayerParserTest07(void)
++{
++    AppLayerParserBackupParserTable();
++
++    int result = 0;
++    Flow f;
++    AppLayerParserState pstate;
++
++    memset(&f, 0, sizeof(f));
++    memset(&pstate, 0, sizeof(pstate));
++
++    f.proto = IPPROTO_TCP;
++    f.alproto = ALPROTO_TEST;
++    f.alparser = &pstate;
++
++    pstate.inspect_id[0] = 10;
++    pstate.inspect_id[1] = 10;
++    pstate.log_id = 2;
++
++    alp_ctx.ctxs[FlowGetProtoMapping(IPPROTO_TCP)][ALPROTO_TEST].logger = TRUE;
++
++    uint64_t tx_id = AppLayerTransactionGetActiveDetectLog(&f, STREAM_TOSERVER);
++    if (tx_id != 2) {
++        printf("expected log_id 2, got %" PRIu64 ": ", tx_id);
++        goto end;
++    }
++
++    result = 1;
++ end:
++    AppLayerParserRestoreParserTable();
++    return result;
++}
++
+ void AppLayerParserRegisterUnittests(void)
+ {
+     SCEnter();
+@@ -1220,6 +1430,11 @@ void AppLayerParserRegisterUnittests(void)
+ 
+     UtRegisterTest("AppLayerParserTest01", AppLayerParserTest01, 1);
+     UtRegisterTest("AppLayerParserTest02", AppLayerParserTest02, 1);
++    UtRegisterTest("AppLayerParserTest03", AppLayerParserTest03, 1);
++    UtRegisterTest("AppLayerParserTest04", AppLayerParserTest04, 1);
++    UtRegisterTest("AppLayerParserTest05", AppLayerParserTest05, 1);
++    UtRegisterTest("AppLayerParserTest06", AppLayerParserTest06, 1);
++    UtRegisterTest("AppLayerParserTest07", AppLayerParserTest07, 1);
+ 
+     SCReturn;
+ }

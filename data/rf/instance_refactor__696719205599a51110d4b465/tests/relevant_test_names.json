@@ -1,0 +1,31 @@
+{
+  "tests": [
+    {
+      "name": "getPanelDataSummary > deprecated backward-compatible properties > should be consistent with the generic field type methods"
+    },
+    {
+      "name": "getPanelDataSummary > deprecated backward-compatible properties > should return zero/false for deprecated fields when no data is provided"
+    },
+    {
+      "name": "getPanelDataSummary > when a frame has preferredVisualisationType in metadata > should capture the preferred visualisation type"
+    },
+    {
+      "name": "getPanelDataSummary > when called with a single dataframes > should return correct summary"
+    },
+    {
+      "name": "getPanelDataSummary > when called with an explicit empty array > should return the same result as calling with no arguments"
+    },
+    {
+      "name": "getPanelDataSummary > when called with multiple dataframes > should return correct summary"
+    },
+    {
+      "name": "getPanelDataSummary > when called with no dataframes > should return summary with zero counts"
+    },
+    {
+      "name": "getPanelDataSummary > when called with undefined input > should handle undefined gracefully like an empty array"
+    },
+    {
+      "name": "getPanelDataSummary > when preferredVisualisationType is not set > should leave preferredVisualisationType undefined"
+    }
+  ]
+}

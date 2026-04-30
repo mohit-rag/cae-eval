@@ -1,0 +1,218 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "4b9365bc0ec40e2e3566549345f5bfb3",
+    "title": "1.1: Makes incFilesProcessed() conditional on successful processing in pkg/handlers/ar.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the files processed metric in ar.go is only incremented when processing succeeds, not unconditionally.",
+      "evidence": "`gold.patch` lines 50-53 (`pkg/handlers/ar.go`): line 50 calls `processARFiles`, lines 51-53 wrap `incFilesProcessed()` inside an `if err == nil` block.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The incFilesProcessed() metric also increments unconditionally in a defer, which means files that fail to open or process are still counted as processed' and 'The incFilesProcessed() metric should only count files that are actually processed successfully.' [2: Implicit Codebase Constraint] In the existing ar.go, incFilesProcessed() is called inside a deferred closure alongside measureLatencyAndHandleErrors, meaning it always fires regardless of processing outcome. [3: Logical Necessity] Given the prompt's requirement and the current unconditional defer pattern, the only way to fix this is to move incFilesProcessed() out of the defer and gate it on a success condition. [4: Quality Necessity] Any good implementation must ensure metrics accurately reflect reality; counting failed files as processed undermines observability. [5: Conclusion] Therefore, ANY correct and good answer must make incFilesProcessed() conditional on successful processing in ar.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "518f15f0cb177bb8278bd4b5181f898d",
+    "title": "1.2: Makes incFilesProcessed() conditional on successful processing in pkg/handlers/archive.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the files processed metric in archive.go is only incremented when processing succeeds.",
+      "evidence": "`gold.patch` lines 94-96 (`pkg/handlers/archive.go`): line 94 calls `openArchive`, lines 95-96 wrap `incFilesProcessed()` inside an `if err == nil` block.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The incFilesProcessed() metric also increments unconditionally in a defer' and names archive.go as one of the affected handlers. [2: Implicit Codebase Constraint] In the existing archive.go, incFilesProcessed() is called inside a deferred closure that always fires after openArchive, regardless of whether the archive was successfully opened. [3: Logical Necessity] Given the unconditional defer and the prompt's requirement for accurate metrics, incFilesProcessed() must be moved out of the defer and gated on success. [4: Quality Necessity] Any good implementation must ensure the files-processed counter reflects only successfully processed archives. [5: Conclusion] Therefore, ANY correct and good answer must make incFilesProcessed() conditional on successful processing in archive.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "27fe224fb89ab2550ebe9631dd1bc68c",
+    "title": "1.3: Makes incFilesProcessed() conditional on successful processing in pkg/handlers/default.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the files processed metric in default.go is only incremented when processing succeeds.",
+      "evidence": "`gold.patch` lines 121-123 (`pkg/handlers/default.go`): line 121 calls `handleNonArchiveContent`, lines 122-123 wrap `incFilesProcessed()` inside an `if err == nil` block.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The incFilesProcessed() metric also increments unconditionally in a defer' and names default.go as one of the affected handlers. [2: Implicit Codebase Constraint] In the existing default.go, incFilesProcessed() is called inside a deferred closure that always fires after handleNonArchiveContent, regardless of outcome. [3: Logical Necessity] Given the unconditional defer and the prompt's requirement, incFilesProcessed() must be gated on a success condition. [4: Quality Necessity] Any good implementation must ensure metrics are accurate and do not count failed processing as successful. [5: Conclusion] Therefore, ANY correct and good answer must make incFilesProcessed() conditional on successful processing in default.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "88c1f325fd45cf9b1fe770b94747fccd",
+    "title": "1.4: Makes incFilesProcessed() conditional on successful processing in pkg/handlers/rpm.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the files processed metric in rpm.go is only incremented when processing succeeds.",
+      "evidence": "`gold.patch` lines 193-195 (`pkg/handlers/rpm.go`): line 193 calls `processRPMFiles`, lines 194-195 wrap `incFilesProcessed()` inside an `if err == nil` block.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The incFilesProcessed() metric also increments unconditionally in a defer' and names rpm.go as one of the affected handlers. [2: Implicit Codebase Constraint] In the existing rpm.go, incFilesProcessed() is called inside a deferred closure that always fires after processRPMFiles, regardless of outcome. [3: Logical Necessity] Given the unconditional defer and the prompt's requirement for accurate metrics, incFilesProcessed() must be moved out of the defer and gated on success. [4: Quality Necessity] Any good implementation must ensure the files-processed counter only reflects successfully processed RPM files. [5: Conclusion] Therefore, ANY correct and good answer must make incFilesProcessed() conditional on successful processing in rpm.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f9e3bbd0f157925a2121e10f8268ff75",
+    "title": "1.5: Decouples panic recovery from the shared err variable in pkg/handlers/ar.go by ensuring the panic handler does not reassign the outer err variable",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the panic recovery defer in ar.go no longer reassigns the outer err variable, so the recovered panic does not leak into metrics or error handling logic.",
+      "evidence": "`gold.patch` lines 25-34 (`pkg/handlers/ar.go`): line 25 introduces `var panicErr error`, lines 27-28 assign to `panicErr` instead of `err`, and line 34 logs `panicErr` instead of `err`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'the panic handler writes back to the shared err variable, coupling it to the error and metrics flow when it should be self contained' and names ar.go as an affected handler. [2: Implicit Codebase Constraint] In the existing ar.go, the panic recovery defer assigns to the outer `err` variable, which is also read by the metrics defer (measureLatencyAndHandleErrors), creating unintended coupling between panic recovery and metrics. [3: Logical Necessity] Given the shared `err` variable and the prompt's requirement for isolation, the panic recovery must use a separate variable so that a recovered panic does not affect the metrics or error handling flow. [4: Quality Necessity] Any good implementation must ensure that panic recovery is a self-contained safety net that does not have side effects on other deferred logic. [5: Conclusion] Therefore, ANY correct and good answer must decouple panic recovery from the shared err variable in ar.go, such as by using a local variable.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7ecdec7db14bb83547944e29952745d9",
+    "title": "1.6: Decouples panic recovery from the shared err variable in pkg/handlers/archive.go by ensuring the panic handler does not reassign the outer err variable",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the panic recovery defer in archive.go no longer reassigns the outer err variable, so the recovered panic does not leak into metrics or error handling logic.",
+      "evidence": "`gold.patch` lines 77-86 (`pkg/handlers/archive.go`): line 77 introduces `var panicErr error`, lines 79-80 assign to `panicErr` instead of `err`, and line 86 logs `panicErr` instead of `err`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'the panic handler writes back to the shared err variable, coupling it to the error and metrics flow when it should be self contained' and names archive.go as an affected handler. [2: Implicit Codebase Constraint] In the existing archive.go, the panic recovery defer assigns to the outer `err` variable, which is also read by the metrics defer, creating unintended coupling. [3: Logical Necessity] Given the shared `err` variable and the prompt's requirement for isolation, the panic recovery must use a separate variable to prevent side effects on metrics. [4: Quality Necessity] Any good implementation must ensure panic recovery is self-contained and does not interfere with the normal error and metrics flow. [5: Conclusion] Therefore, ANY correct and good answer must decouple panic recovery from the shared err variable in archive.go, such as by using a local variable.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "cd6a322995f085081b3a1124fb773ae4",
+    "title": "1.7: Decouples panic recovery from the shared err variable in pkg/handlers/rpm.go by ensuring the panic handler does not reassign the outer err variable",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the panic recovery defer in rpm.go no longer reassigns the outer err variable, so the recovered panic does not leak into metrics or error handling logic.",
+      "evidence": "`gold.patch` lines 159-168 (`pkg/handlers/rpm.go`): line 159 introduces `var panicErr error`, lines 161-162 assign to `panicErr` instead of `err`, and line 168 logs `panicErr` instead of `err`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'the panic handler writes back to the shared err variable, coupling it to the error and metrics flow when it should be self contained' and names rpm.go as an affected handler. [2: Implicit Codebase Constraint] In the existing rpm.go, the panic recovery defer assigns to the outer `err` variable, which is also read by the metrics defer, creating unintended coupling between panic recovery and metrics/error handling. [3: Logical Necessity] Given the shared `err` variable and the prompt's requirement for isolation, the panic recovery must use a separate variable to prevent side effects. [4: Quality Necessity] Any good implementation must ensure panic recovery is self-contained and does not corrupt the normal error flow used by metrics. [5: Conclusion] Therefore, ANY correct and good answer must decouple panic recovery from the shared err variable in rpm.go, such as by using a local variable.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "11a59ecd299aac1493db548e1490dc7b",
+    "title": "1.8: Retains a measureLatencyAndHandleErrors(start, err) call in the HandleFile goroutine of all four handler files (pkg/handlers/ar.go, pkg/handlers/archive.go, pkg/handlers/default.go, pkg/handlers/rpm.go)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that each handler's HandleFile goroutine still contains a measureLatencyAndHandleErrors(start, err) call paired with a start := time.Now() timestamp, ensuring the latency and error metric recording mechanism is preserved.",
+      "evidence": "`gold.patch` lines 40+56 (`pkg/handlers/ar.go`), 91+104 (`pkg/handlers/archive.go`), 117+131 (`pkg/handlers/default.go`), and 174+199 (`pkg/handlers/rpm.go`): each goroutine contains `start := time.Now()` followed by `measureLatencyAndHandleErrors(start, err)`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to refactor error handling while ensuring latency tracking continues to work. [2: Implicit Codebase Constraint] The existing handlers use `measureLatencyAndHandleErrors(start, err)` to record processing latency; this is a core observability mechanism relied upon by the metrics infrastructure. [3: Logical Necessity] Given the prompt's requirement to preserve latency tracking, the refactoring must retain the measureLatencyAndHandleErrors call and its associated time.Now() timestamp in each handler's goroutine. [4: Quality Necessity] Any good implementation must preserve observability infrastructure during refactoring to avoid silent regressions in monitoring. [5: Conclusion] Therefore, ANY correct and good answer must retain a measureLatencyAndHandleErrors(start, err) call in the HandleFile goroutine of all four handler files.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "b12f9c2094f356c595e348da484b1ef4",
+    "title": "3.1: Removes the unnecessary context timeout from pkg/handlers/ar.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that the unused context timeout creation is removed from the HandleFile goroutine in pkg/handlers/ar.go, reducing unnecessary complexity.",
+      "evidence": "`gold.patch` lines 9-10 (`pkg/handlers/ar.go`): line 9 removes `ctx, cancel := logContext.WithTimeout(ctx, maxTimeout)` and line 10 removes `defer cancel()` from the start of the goroutine.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Also clean up any unnecessary complexity like unused context timeouts.' [2: Implicit Codebase Constraint] In the existing ar.go, `logContext.WithTimeout(ctx, maxTimeout)` is called at the top of the HandleFile goroutine, but the created context with timeout is never used to enforce any deadline on the processing; it adds complexity without functional benefit. [3: Logical Necessity] Given the prompt's cleanup request and the fact that the timeout serves no purpose, removing it simplifies the goroutine without changing behavior. [4: Quality Necessity] Any good implementation must remove dead code and unused patterns to improve readability and reduce cognitive overhead. [5: Conclusion] Therefore, ANY correct and good answer that addresses the cleanup request should remove the unnecessary context timeout from ar.go.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "6e8a0eeff386e208f9044a8a8f489656",
+    "title": "3.2: Removes the unnecessary context timeout from pkg/handlers/rpm.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that the unused context timeout creation is removed from the HandleFile goroutine in pkg/handlers/rpm.go, reducing unnecessary complexity.",
+      "evidence": "`gold.patch` lines 143-144 (`pkg/handlers/rpm.go`): line 143 removes `ctx, cancel := logContext.WithTimeout(ctx, maxTimeout)` and line 144 removes `defer cancel()` from the start of the goroutine.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Also clean up any unnecessary complexity like unused context timeouts.' [2: Implicit Codebase Constraint] In the existing rpm.go, `logContext.WithTimeout(ctx, maxTimeout)` is called at the top of the HandleFile goroutine, but the created context with timeout is never used to enforce any deadline on RPM processing; it adds complexity without functional benefit. [3: Logical Necessity] Given the prompt's cleanup request and the fact that the timeout serves no purpose, removing it simplifies the goroutine without changing behavior. [4: Quality Necessity] Any good implementation must remove dead code and unused patterns to improve readability and reduce cognitive overhead. [5: Conclusion] Therefore, ANY correct and good answer that addresses the cleanup request should remove the unnecessary context timeout from rpm.go.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "f88c0585cc27d534c430ac8e4bb2e155",
+    "title": "4.1: Removes the panic recovery defer block from pkg/handlers/ar.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that panic recovery has not been accidentally removed from ar.go, which would cause crashes on malformed AR archives.",
+      "evidence": "`gold.patch` lines 22-36 (`pkg/handlers/ar.go`): preserves the panic recovery defer block while improving its variable isolation with a local `panicErr` variable.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Panic recovery should be isolated and not affect the metrics or error handling logic,' which asks to isolate panic recovery, not remove it. [2: Implicit Codebase Constraint] The existing ar.go handler includes panic recovery because the `deb.LoadAr` library can panic on malformed AR input; removing it would cause unrecoverable crashes in production. [3: Logical Necessity] Given that the prompt asks for isolation (not removal) and the library can panic, the panic recovery block must be preserved. [4: Quality Necessity] Any good implementation must maintain safety mechanisms that protect against third-party library panics. [5: Conclusion] Therefore, ANY correct and good answer must preserve the panic recovery mechanism in ar.go.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "6cde62ef09428bb8ae5ad580651e85be",
+    "title": "4.2: Removes the panic recovery defer block from pkg/handlers/archive.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that panic recovery has not been accidentally removed from archive.go.",
+      "evidence": "`gold.patch` lines 74-88 (`pkg/handlers/archive.go`): preserves the panic recovery defer block while improving its variable isolation with a local `panicErr` variable.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Panic recovery should be isolated and not affect the metrics or error handling logic,' which asks to isolate panic recovery, not remove it. [2: Implicit Codebase Constraint] The existing archive.go handler includes panic recovery because the 7zip library (`bodgit/sevenzip`) can panic on malformed archives; removing it would cause unrecoverable crashes. [3: Logical Necessity] Given that the prompt asks for isolation (not removal) and the library can panic, the panic recovery block must be preserved. [4: Quality Necessity] Any good implementation must maintain safety mechanisms that protect against third-party library panics. [5: Conclusion] Therefore, ANY correct and good answer must preserve the panic recovery mechanism in archive.go.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "4cad69915e0174ef8e219ad688bcc1e9",
+    "title": "4.3: Removes the panic recovery defer block from pkg/handlers/rpm.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that panic recovery has not been accidentally removed from rpm.go.",
+      "evidence": "`gold.patch` lines 156-170 (`pkg/handlers/rpm.go`): preserves the panic recovery defer block while improving its variable isolation with a local `panicErr` variable.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Panic recovery should be isolated and not affect the metrics or error handling logic,' which asks to isolate panic recovery, not remove it. [2: Implicit Codebase Constraint] The existing rpm.go handler includes panic recovery because the `rpmutils` library can panic on malformed RPM files; removing it would cause unrecoverable crashes. [3: Logical Necessity] Given that the prompt asks for isolation (not removal) and the library can panic, the panic recovery block must be preserved. [4: Quality Necessity] Any good implementation must maintain safety mechanisms that protect against third-party library panics. [5: Conclusion] Therefore, ANY correct and good answer must preserve the panic recovery mechanism in rpm.go.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "c9bb2a3d960f40de2645e58d59bc79b7",
+    "title": "4.4: Modifies test files or testing logic in any of the handler packages",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the solution does not modify, add, or remove any test files, as the prompt explicitly prohibits this.",
+      "evidence": "`gold.patch` contains zero test file changes. All modifications are in `pkg/handlers/ar.go` (lines 1-59), `pkg/handlers/archive.go` (lines 60-107), `pkg/handlers/default.go` (lines 108-134), `pkg/handlers/rpm.go` (lines 135-203).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.' [2: Implicit Codebase Constraint] The existing test files in pkg/handlers/ are already updated by the task author and are expected to pass against a correct refactoring of the source files only. [3: Logical Necessity] Given the explicit prohibition and the pre-existing test updates, any modification to test files would violate the prompt's constraint and potentially break the intended test coverage. [4: Quality Necessity] Any good implementation must respect explicit scope constraints to avoid unintended side effects. [5: Conclusion] Therefore, ANY correct and good answer must leave all test files completely untouched.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

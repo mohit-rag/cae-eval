@@ -1,0 +1,146 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "418da5142ca3c75bfbfeed256e2430c8",
+    "title": "1.1: Uses UniStore as the primary storage for all 6 IAM resources (team, teamBinding, user, serviceAccount, externalGroupMapping, resourcePermission) in UpdateAPIGroupInfo in pkg/registry/apis/iam/register.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "UniStore should be the primary storage backend used for resources regardless of running mode.",
+      "evidence": "gold.patch lines 126-130 (team UniStore), 148-152 (teamBinding UniStore), 196-200 (user UniStore), 235-239 (serviceAccount UniStore), 264-270 (externalGroupMapping UniStore), 309-313 (resourcePermissions UniStore) show UniStore created via grafanaregistry.NewRegistryStore and assigned to storage before any conditional dual-write logic.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'For storage we are now using the UniStore, for both embedded and standalone'. [2: Implicit Code Base Constraint] The UpdateAPIGroupInfo method and storage registration logic are defined exclusively in register.go. [5: Conclusion] Therefore, ANY correct answer must use UniStore as the primary storage in register.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9417be688ae61a150a696a1084cd88b2",
+    "title": "1.2: Applies dual write conditionally for all 6 IAM resources (team, teamBinding, user, serviceAccount, externalGroupMapping, resourcePermission) only when a legacy store is available in pkg/registry/apis/iam/register.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Dual write should only be configured when a legacy store has been instantiated, using conditional checks.",
+      "evidence": "gold.patch lines 133-141 (if b.legacyTeamStore != nil), 168-183 (if b.teamBindingLegacyStore != nil), 216-220 (if b.userLegacyStore != nil), 242-250 (if b.saLegacyStore != nil), 274-287 (if b.externalGroupMappingStorage != nil) show conditional dual-write via opts.DualWriteBuilder only when legacy store is non-nil.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'if a legacy store is instantiated, we use dual write'. [2: Implicit Code Base Constraint] The dual-write logic is implemented in UpdateAPIGroupInfo which is defined in register.go. [3: Logical Necessity] Conditional wrapping allows standalone mode to work without legacy stores. [5: Conclusion] Therefore, ANY correct answer must implement conditional dual-write based on legacy store availability in register.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ceb6ad579dd767c6d194793cbc7f88aa",
+    "title": "1.3: Removes noopStorage instantiation from NewAPIService in pkg/registry/apis/iam/register.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The NewAPIService function should no longer create or use noopStorage as a dummy storage backend.",
+      "evidence": "gold.patch lines 80-99 show NewAPIService no longer calls noopstorage.ProvideStorageBackend() (line 80 removes it) and no longer assigns noopStorage to externalGroupMappingStorage (line 86 removes it).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'remove the noopStorage workaround in NewAPIService since it is not needed anymore'. [2: Implicit Code Base Constraint] The NewAPIService function is defined exclusively in register.go. [5: Conclusion] Therefore, ANY correct answer must remove noopStorage instantiation from NewAPIService in register.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "8a5b8490bea8b13eff80af1549e84929",
+    "title": "1.4: Adds all 5 legacy store tracking fields (userLegacyStore, saLegacyStore, legacyTeamStore, teamBindingLegacyStore, ssoLegacyStore) to IdentityAccessManagementAPIBuilder in pkg/registry/apis/iam/models.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The IdentityAccessManagementAPIBuilder struct should be modified to track legacy store presence, enabling conditional dual-write logic.",
+      "evidence": "gold.patch lines 23-27 add five legacy store pointer fields to IdentityAccessManagementAPIBuilder: userLegacyStore (*user.LegacyStore), saLegacyStore (*serviceaccount.LegacyStore), legacyTeamStore (*team.LegacyStore), teamBindingLegacyStore (*teambinding.LegacyBindingStore), ssoLegacyStore (*sso.LegacyStore).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'each resource should be able to independently determine whether its legacy store is available' and 'requires changes to both the builder struct in models.go and the registration logic in register.go'. [2: Implicit Code Base Constraint] The IdentityAccessManagementAPIBuilder struct is defined exclusively in models.go and holds storage configuration. [3: Logical Necessity] Conditional dual-write (1.2) requires knowing whether legacy stores exist, which requires tracking capability on the struct. [5: Conclusion] Therefore, ANY correct answer must add legacy store tracking to the struct in models.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "0d1cce204e9baf07d8c40ee7a671c026",
+    "title": "1.5: Removes the enableDualWriter boolean field from IdentityAccessManagementAPIBuilder in models.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The enableDualWriter boolean field should be removed from the builder struct since dual-write is now determined by legacy store presence.",
+      "evidence": "gold.patch line 37 removes 'enableDualWriter bool' field from IdentityAccessManagementAPIBuilder in models.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'instead of using a single boolean to toggle dual write for all resources, each resource should be able to independently determine whether its legacy store is available'. [3: Logical Necessity] The new pattern uses legacy store presence instead of the boolean toggle, making the field redundant. [5: Conclusion] Therefore, ANY correct answer must remove the enableDualWriter field from the builder struct.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d31a0d75ed9820ed6075a035e0eedb5d",
+    "title": "1.6: Removes all 5 if-b.enableDualWriter conditional blocks in UpdateAPIGroupInfo (team, teamBinding, user, serviceAccount, externalGroupMapping) from register.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The 5 conditional dual-write blocks guarded by enableDualWriter should be removed since each resource now independently checks for legacy store availability.",
+      "evidence": "gold.patch lines 121, 154, 191, 229, 272 remove the 'if b.enableDualWriter' conditional blocks for team, teamBinding, user, serviceAccount, and externalGroupMapping in UpdateAPIGroupInfo.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'instead of using a single boolean to toggle dual write for all resources, each resource should be able to independently determine whether its legacy store is available'. [3: Logical Necessity] With per-resource legacy store checks, the global boolean conditionals are redundant. [5: Conclusion] Therefore, ANY correct answer must remove all 5 enableDualWriter conditional blocks from UpdateAPIGroupInfo.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "a76f240f1c90bf9cd3c708c5fdaeddde",
+    "title": "3.1: Removes the noopstorage import from pkg/registry/apis/iam/register.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "The noopstorage package import should be removed since it is no longer used after removing the noopStorage workaround.",
+      "evidence": "gold.patch line 47 shows removal of 'github.com/grafana/grafana/pkg/registry/apis/iam/noopstorage' import.",
+      "justification": "[3: Logical Necessity] Once noopStorage usage is removed from NewAPIService, the noopstorage import becomes unused. [4: Quality Necessity] Unused imports cause compilation errors in Go and should be removed. [5: Conclusion] Therefore, ANY correct answer should remove the unused noopstorage import.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "6c133cb7967e038d2682c89c029c6caa",
+    "title": "4.1: Omits storage registration for any of the 6 IAM resources (team, teamBinding, user, serviceAccount, externalGroupMapping, resourcePermission)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that all IAM resources have storage registered in the storage map. Changing the registration logic or approach is acceptable as long as each resource is still assigned to the storage map.",
+      "evidence": "gold.patch lines 130 (team), 152 (teamBinding), 200 (user), 239 (serviceAccount), 270 (externalGroupMapping), 313 (resourcePermissions) show storage map assignments for all IAM resources.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'simplify the setup code' while maintaining functionality, not to break it. [3: Logical Necessity] Missing storage registration would cause runtime failures for IAM operations. [5: Conclusion] Therefore, ANY correct answer must register storage for all existing IAM resources.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

@@ -1,0 +1,278 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b1c1400ae59894b961b91005e3705df7",
+    "title": "1.1: Creates `exit_initiated_add` function accepting `EXIT_REASON` and returning `void`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a new public function `exit_initiated_add` is introduced in `src/libnetdata/exit/exit_initiated.c` with the signature specified in the interface: takes EXIT_REASON, returns void. The function accumulates exit reasons into the global exit state.",
+      "evidence": "gold.patch lines 502-504: void exit_initiated_add(EXIT_REASON reason) { exit_initiated |= reason; }",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'this should be centralized through a dedicated function.' [2: Implicit Codebase Constraint] The interface specifies `exit_initiated_add` with input `EXIT_REASON reason` and output `void` in `src/libnetdata/exit/exit_initiated.c`. [5: Conclusion] A centralized function is required for consistent exit reason recording across all crash paths."
+    }
+  },
+  {
+    "id": "7acdebf83a2ba51c0f7a0b3fed1a6630",
+    "title": "1.2: Centralizes crash path exit reason recording through `exit_initiated_add`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that crash paths which previously wrote directly to the exit_initiated variable (such as in daemon-status-file.c) now use the centralized exit_initiated_add function instead of direct bitwise-OR assignments.",
+      "evidence": "gold.patch lines 87,99: direct |= replaced with exit_initiated_add() calls in daemon-status-file.c",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'some crash paths directly OR into the global exit_initiated variable' and 'this should be centralized through a dedicated function.' [5: Conclusion] Crash paths must use the centralized function so exit reasons are consistently recorded."
+    }
+  },
+  {
+    "id": "310a3fecf5c482c243853698a727da75",
+    "title": "1.3: Records out-of-memory exit reason in nd-mallocz.c before invoking the OOM callback",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the out-of-memory handler in `src/libnetdata/memory/nd-mallocz.c` records an EXIT_REASON_OUT_OF_MEMORY exit reason (e.g. using exit_initiated_add or exit_initiated_set) before proceeding with the OOM callback.",
+      "evidence": "gold.patch line 630: exit_initiated_add(EXIT_REASON_OUT_OF_MEMORY) added to out_of_memory()",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'other crash paths like out-of-memory do not record a reason at all.' [3: Logical Necessity] If exit reason tracking is centralized, all crash paths including OOM must participate. [5: Conclusion] Without this, OOM crashes remain undiagnosed in the status file."
+    }
+  },
+  {
+    "id": "c3cb885fb7fea1c0d883e1bcc012838f",
+    "title": "1.4: Renames `nd_log_register_event_cb` to `nd_log_register_fatal_data_cb` in nd_log.h, nd_log.c, and main.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the former `nd_log_register_event_cb` public function is renamed to `nd_log_register_fatal_data_cb` in 3 locations: declaration in nd_log.h, definition in nd_log.c, and the call site in main.c. No references to the old public function name `nd_log_register_event_cb` should remain in these files.",
+      "evidence": "gold.patch line 614 (nd_log.h declaration), lines 581-582 (nd_log.c definition), line 138 (main.c call site)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says the log subsystem has 'two fatal-related callback registration functions whose names do not convey which one captures event data and which one triggers the final cleanup. These need clearer names.' [2: Implicit Codebase Constraint] The interface specifies `nd_log_register_fatal_data_cb` with input `log_event_t cb`. [5: Conclusion] The new name clearly conveys this callback captures fatal event data, and all call sites must be updated."
+    }
+  },
+  {
+    "id": "270a2fdcaa13a3f8eab8c1d26e05ce07",
+    "title": "1.5: Renames the internal struct field `log_event_cb` in nd_log-internals.h and nd_log-init.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the internal struct field formerly named `log_event_cb` in nd_log-internals.h is renamed to match the new public API name, and that all usages in nd_log-init.c (spawn server reopen) and nd_log.c (invocation and assignment) are updated accordingly. No references to the old field name `log_event_cb` should remain.",
+      "evidence": "gold.patch line 551 (nd_log-internals.h field), lines 536,567,576,582 (nd_log-init.c and nd_log.c usages)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says these callbacks need clearer names 'with all internal fields and call sites updated.' [2: Implicit Codebase Constraint] The internal struct field must match the renamed public API to maintain code consistency. [5: Conclusion] Leaving the old internal field name creates a mismatch between the public API and its backing storage."
+    }
+  },
+  {
+    "id": "cb7851b326a221152edae51fb9148b1c",
+    "title": "1.6: Renames `nd_log_register_fatal_cb` to `nd_log_register_fatal_final_cb` in nd_log.h, nd_log.c, and main.c (2 call sites)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the former `nd_log_register_fatal_cb` public function is renamed to `nd_log_register_fatal_final_cb` in 4 locations: declaration in nd_log.h, definition in nd_log.c, and 2 call sites in main.c. No references to the old public function name `nd_log_register_fatal_cb` should remain in these files.",
+      "evidence": "gold.patch line 618 (nd_log.h declaration), lines 589-590 (nd_log.c definition), lines 139,457 (main.c call sites)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says these callbacks 'need clearer names.' [2: Implicit Codebase Constraint] The interface specifies `nd_log_register_fatal_final_cb` with input `fatal_event_t cb`. [5: Conclusion] The new name clearly conveys this callback triggers the final cleanup action, and all call sites must be updated."
+    }
+  },
+  {
+    "id": "f56d926c57a3bba9028e7c729ee83028",
+    "title": "1.7: Renames the internal struct field `fatal_event_cb` in nd_log-internals.h and nd_log-init.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the internal struct field formerly named `fatal_event_cb` in nd_log-internals.h is renamed to match the new public API name, and that all usages in nd_log-init.c (spawn server reopen) and nd_log.c (invocation and assignment) are updated accordingly. No references to the old field name `fatal_event_cb` should remain.",
+      "evidence": "gold.patch line 554 (nd_log-internals.h field), lines 537,590,598-601 (nd_log-init.c and nd_log.c usages)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says these callbacks need clearer names 'with all internal fields and call sites updated.' [2: Implicit Codebase Constraint] The internal struct field must match the renamed public API to maintain code consistency. [5: Conclusion] Leaving the old internal field name creates a mismatch between the public API and its backing storage."
+    }
+  },
+  {
+    "id": "c385ae4eb2375867d83dfab023838e27",
+    "title": "1.8: Moves `nd_initialize_signals` earlier in main.c, before SSL and environment setup",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that nd_initialize_signals() is called earlier in the startup sequence in src/daemon/main.c, before operations that can crash during early startup (such as SSL initialization, environment setup, and web server socket binding). This ensures crashes during early startup phases are caught by the signal handler.",
+      "evidence": "gold.patch lines 156-158: nd_initialize_signals() moved earlier in the startup sequence",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'the signal handler installs too late, after many operations that can themselves crash. Crashes during early steps like environment setup or web server socket binding go completely undiagnosed. Signal handling needs to be active much earlier.' [5: Conclusion] Moving signal init earlier is the core fix for undiagnosed early startup crashes."
+    }
+  },
+  {
+    "id": "1d15b345b790384b255d3b4533dc9403",
+    "title": "1.9: Splits monolithic startup timing steps into finer-grained blocks in main.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the former monolithic startup step 'initialize environment' in src/daemon/main.c is broken into multiple individual timing blocks (via delta_startup_time calls), so that each major operation (such as SSL setup, execution path, plugin environment) gets its own label for crash diagnostics.",
+      "evidence": "gold.patch lines 155-184: 'initialize environment' replaced with separate steps for signals, spawn server, ssl, execution path, environment for plugins, config dir",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'the startup timing is also too coarse, lumping multiple operations under generic labels like initialize environment. These need to be split into finer-grained steps.' [5: Conclusion] Granular timing enables precise crash location identification."
+    }
+  },
+  {
+    "id": "029db3e1a71558969441110dc23151bb",
+    "title": "1.10: Includes `SERVICE_SYSTEMD` in shutdown signaling in daemon-shutdown.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that SERVICE_SYSTEMD is included in the service_signal_exit call in the shutdown function (daemon-shutdown.c), so the systemd watcher thread receives the exit signal during shutdown.",
+      "evidence": "gold.patch line 62: SERVICE_SYSTEMD added to service_signal_exit call",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'the shutdown sequence also does not signal or wait for the systemd service to stop.' [3: Logical Necessity] Without signaling SERVICE_SYSTEMD, the systemd watcher thread never receives the shutdown signal. [5: Conclusion] Ensures the systemd watcher is notified to stop."
+    }
+  },
+  {
+    "id": "5feb71476dd00d4e2127723195d4cb8c",
+    "title": "1.11: Includes `SERVICE_SYSTEMD` in shutdown waiting in daemon-shutdown.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that SERVICE_SYSTEMD is included in a service_wait_exit call in the shutdown function (daemon-shutdown.c), so the daemon waits for the systemd watcher thread to finish before proceeding with shutdown.",
+      "evidence": "gold.patch line 66: SERVICE_SYSTEMD added to service_wait_exit call",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'the shutdown sequence also does not signal or wait for the systemd service to stop.' [3: Logical Necessity] Signaling without waiting means the systemd thread may still be running when later shutdown steps proceed, risking resource conflicts. [5: Conclusion] Ensures the systemd watcher has fully stopped before continuing shutdown."
+    }
+  },
+  {
+    "id": "2b23a8c8fa1bc01df0f0a5b5701741cf",
+    "title": "1.12: Adds NULL check for bus handle in systemd D-Bus event loop in daemon-systemd-watcher.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the main event loop in src/daemon/daemon-systemd-watcher.c checks whether the bus handle is not NULL before processing D-Bus messages. This prevents crashes when the bus becomes invalid during operation.",
+      "evidence": "gold.patch line 112: while condition changed to include bus != NULL check",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'the systemd D-Bus event listener itself can crash if the bus becomes NULL.' [5: Conclusion] A NULL guard prevents the identified crash scenario."
+    }
+  },
+  {
+    "id": "8dda2f7e95185cfb2981e08ab2c2ffb4",
+    "title": "1.13: Handles signal interruptions (EINTR) in systemd watcher wait loop in daemon-systemd-watcher.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the sd_bus_wait call in the systemd watcher handles EINTR (signal interruptions) gracefully by retrying instead of treating them as errors that break the loop.",
+      "evidence": "gold.patch lines 122-124: wait loop changed to retry on r == -EINTR",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says the watcher 'does not handle signal interruptions in the wait loop gracefully.' [2: Implicit Codebase Constraint] EINTR is a standard POSIX condition for interrupted system calls that should be retried. [5: Conclusion] Without EINTR handling, legitimate signals cause the watcher to exit its loop prematurely."
+    }
+  },
+  {
+    "id": "74ae60b8cab582d36fa8a990b4ece8ec",
+    "title": "1.14: Routes web server socket failure through the fatal path in main.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that when api_listen_sockets_setup() fails in src/daemon/main.c, the daemon calls fatal() (or equivalent fatal handler) instead of logging an error and calling exit(1) directly. This ensures the status file records the failure.",
+      "evidence": "gold.patch line 251: netdata_log_error + exit(1) replaced with fatal() call",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'when web server socket setup fails, the daemon calls exit(1) directly instead of going through the fatal path, so the failure never gets recorded in the status file.' [5: Conclusion] Using the fatal path ensures crash diagnostics capture the failure."
+    }
+  },
+  {
+    "id": "536f98088955a9a174c7ad007492e4dc",
+    "title": "1.15: Bumps the status file version to reflect exit reason changes in daemon-status-file.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that STATUS_FILE_VERSION in src/daemon/daemon-status-file.c is incremented beyond the current value of 6 to reflect the structural change in how exit reasons are recorded.",
+      "evidence": "gold.patch line 79: #define STATUS_FILE_VERSION changed from 6 to 7",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'the status file version should be bumped to reflect this change.' [3: Logical Necessity] Changing how exit reasons are recorded changes the status file format, requiring a version bump for consumers. [5: Conclusion] Version mismatch can cause misinterpretation of status file data."
+    }
+  },
+  {
+    "id": "16a0fb2d0fb616d923992e8409a71cde",
+    "title": "1.16: Removes obsolete `WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE` from the codebase in daemon-shutdown-watcher.h, daemon-shutdown-watcher.c, and daemon-shutdown.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE is removed from the enum definition in daemon-shutdown-watcher.h, from the watcher initialization and wait sequence in daemon-shutdown-watcher.c, and from the shutdown function in daemon-shutdown.c. No references to this identifier should remain.",
+      "evidence": "gold.patch lines 9,19-20,36,50: removed from daemon-shutdown-watcher.h, daemon-shutdown-watcher.c, daemon-shutdown.c",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'the shutdown watcher still references obsolete steps WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE and WATCHER_STEP_ID_DBENGINE_EXIT_MODE that should be removed.' [5: Conclusion] This step no longer serves any purpose and its presence clutters the shutdown sequence."
+    }
+  },
+  {
+    "id": "934a4188d604238e769bcf58bcc306b8",
+    "title": "1.17: Removes obsolete `WATCHER_STEP_ID_DBENGINE_EXIT_MODE` from the codebase in daemon-shutdown-watcher.h, daemon-shutdown-watcher.c, and daemon-shutdown.c",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that WATCHER_STEP_ID_DBENGINE_EXIT_MODE is removed from the enum definition in daemon-shutdown-watcher.h, from the watcher initialization and wait sequence in daemon-shutdown-watcher.c, and from the shutdown function in daemon-shutdown.c. No references to this identifier should remain.",
+      "evidence": "gold.patch lines 11,23-24,38,55: removed from daemon-shutdown-watcher.h, daemon-shutdown-watcher.c, daemon-shutdown.c",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says these steps 'are obsolete and no longer serve any purpose' and 'should be removed.' [5: Conclusion] Dead code in the shutdown sequence risks masking real issues."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b24686a341bab9f0b98c34448cc3a587",
+    "title": "4.1: Introduces compilation errors or undefined references in modified source files",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Checks whether the refactored code introduces syntax errors, missing includes, undefined function references, or type mismatches in any of the modified source files. All modified C files must remain compilable.",
+      "evidence": "gold.patch modifies 13 source files across src/daemon/ and src/libnetdata/",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for minimal changes to source files that implement the described refactor; introducing compilation errors means the refactor is not implemented. [2: Implicit Codebase Constraint] All modified C source files must compile without errors. [5: Conclusion] A refactor that does not compile is fundamentally broken."
+    }
+  },
+  {
+    "id": "b72e769657468e216f113704c2f876e4",
+    "title": "4.2: Removes active shutdown watcher steps that are still in use (such as WATCHER_STEP_ID_DESTROY_MAIN_SPAWN_SERVER or WATCHER_STEP_ID_CLOSE_WEBRTC_CONNECTIONS)",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Checks whether the agent over-aggressively removed shutdown watcher steps that are still active and required for proper shutdown. Only the two obsolete steps named in the prompt should be removed. Active steps like WATCHER_STEP_ID_DESTROY_MAIN_SPAWN_SERVER, WATCHER_STEP_ID_CLOSE_WEBRTC_CONNECTIONS, and others must be preserved.",
+      "evidence": "gold.patch lines 9-11,19-24,36-38,50-55 remove only WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE and WATCHER_STEP_ID_DBENGINE_EXIT_MODE; all other watcher steps remain in daemon-shutdown-watcher.h",
+      "justification": "[1: Explicit Prompt Requirement] The prompt names only WATCHER_STEP_ID_CREATE_SHUTDOWN_FILE and WATCHER_STEP_ID_DBENGINE_EXIT_MODE as obsolete steps to remove; removing any other steps goes beyond the prompt scope. [2: Implicit Codebase Constraint] The shutdown sequence depends on active watcher steps for orderly cleanup. [5: Conclusion] Only the two explicitly obsolete steps should be removed."
+    }
+  }
+]

@@ -1,0 +1,242 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "12420f5ae82459e73155558ab092491b",
+    "title": "1.1: Exports useIsMarketplaceRedesignEnabled from client/my-sites/plugins/hooks/use-is-marketplace-redesign-enabled.ts",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a function named useIsMarketplaceRedesignEnabled is exported from client/my-sites/plugins/hooks/use-is-marketplace-redesign-enabled.ts, taking no input, returning a boolean.",
+      "evidence": "gold.patch lines 348-389 create client/my-sites/plugins/hooks/use-is-marketplace-redesign-enabled.ts with `export function useIsMarketplaceRedesignEnabled(): boolean` at line 377. Interface specifies: Path client/my-sites/plugins/hooks/use-is-marketplace-redesign-enabled.ts, Name useIsMarketplaceRedesignEnabled, Type function, Input NA, Output boolean.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for 'a single centralized hook that captures all the visibility conditions.' [2: Implicit Codebase Constraint] The interface specifies the exact path, name, input, output. [5: Conclusion] A correct solution must export this hook from the specified path."
+    }
+  },
+  {
+    "id": "f8aa22b8a5957a2fa944a6e939263ebb",
+    "title": "1.2: Returns false from useIsMarketplaceRedesignEnabled when a site is selected",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that useIsMarketplaceRedesignEnabled returns false whenever any site is currently selected, regardless of other conditions.",
+      "evidence": "gold.patch lines 383-384: `if ( siteId ) { return false; }` in useIsMarketplaceRedesignEnabled. Interface description states: 'Returns false when a site is selected.' Prompt states the redesign 'should only apply when no site is selected.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the redesign should only apply when no site is selected. [2: Implicit Codebase Constraint] The interface description states: 'Returns false when a site is selected.' [5: Conclusion] A correct solution must return false from the hook when a site is selected."
+    }
+  },
+  {
+    "id": "407e10ea829675e46b4a8423099590df",
+    "title": "1.3: Returns true from useIsMarketplaceRedesignEnabled for logged-out users without a site selected",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that useIsMarketplaceRedesignEnabled returns true for logged-out users when no site is selected, assuming the feature flag is enabled.",
+      "evidence": "gold.patch line 388: `return isEnabled( 'marketplace-redesign' ) && ( ! isLoggedIn || hostingDashboardOptIn );` \u2014 when !isLoggedIn is true (logged out), the hook returns true. Interface description states: 'returns true only if the marketplace-redesign feature flag is enabled and the user is either logged out or has the hosting dashboard opt-in.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly includes logged-out users as a valid redesign context. [2: Implicit Codebase Constraint] The interface description states the hook 'returns true only if the marketplace-redesign feature flag is enabled and the user is either logged out or has the hosting dashboard opt-in.' [5: Conclusion] A correct solution must allow the logged-out case through the hook."
+    }
+  },
+  {
+    "id": "b5849f393aa4129629c372405a51ea4a",
+    "title": "1.4: Returns true from useIsMarketplaceRedesignEnabled for hosting dashboard opt-in users without a site selected",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that useIsMarketplaceRedesignEnabled returns true for logged-in users who have the hosting dashboard opt-in when no site is selected, assuming the feature flag is enabled.",
+      "evidence": "gold.patch line 388: `return isEnabled( 'marketplace-redesign' ) && ( ! isLoggedIn || hostingDashboardOptIn );` \u2014 when hostingDashboardOptIn is true, the hook returns true. Interface description states: 'returns true only if the marketplace-redesign feature flag is enabled and the user is either logged out or has the hosting dashboard opt-in.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly includes hosting dashboard opt-in users as a valid context. [2: Implicit Codebase Constraint] The interface description states the hook 'returns true only if the marketplace-redesign feature flag is enabled and the user is either logged out or has the hosting dashboard opt-in.' [5: Conclusion] A correct solution must allow the opt-in case through the hook."
+    }
+  },
+  {
+    "id": "851f223a19506b73a37d8489316aa8db",
+    "title": "1.5: Returns false from useIsMarketplaceRedesignEnabled when the feature flag is disabled",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that useIsMarketplaceRedesignEnabled returns false when the marketplace-redesign feature flag is disabled, even if no site is selected.",
+      "evidence": "gold.patch line 388: `return isEnabled( 'marketplace-redesign' ) && ( ! isLoggedIn || hostingDashboardOptIn );` \u2014 when the feature flag is disabled, isEnabled returns false and the entire expression is false. Interface description states: 'returns true only if the marketplace-redesign feature flag is enabled.'",
+      "justification": "[2: Implicit Codebase Constraint] The feature flag is the master rollout control; disabling it must disable the redesign entirely. [5: Conclusion] A correct solution must respect the feature flag as a prerequisite for returning true."
+    }
+  },
+  {
+    "id": "7bb8fd05852c53923ab560963be9840f",
+    "title": "1.6: Adds an enabled prop to FullWidthSection at client/components/full-width-section/index.jsx",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that FullWidthSection in client/components/full-width-section/index.jsx accepts an enabled prop of type boolean.",
+      "evidence": "gold.patch line 17: `const FullWidthSection = ( { children, className, enabled = false } ) => {` adds the enabled parameter. gold.patch line 26: `enabled: PropTypes.bool` adds the prop type. Interface specifies: Input includes enabled: PropTypes.bool.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'shared components like FullWidthSection that currently check the flag internally should be updated so the caller controls the redesign behavior.' [2: Implicit Codebase Constraint] The interface specifies enabled: PropTypes.bool as an input. [5: Conclusion] A correct solution must add the enabled prop to FullWidthSection."
+    }
+  },
+  {
+    "id": "81ac550b73828f41a22cd0f57a764a56",
+    "title": "1.7: Defaults FullWidthSection to returning children without wrapping when enabled is omitted",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that FullWidthSection returns children directly without the section wrapper when enabled is false or not provided. The default value of enabled must be false.",
+      "evidence": "gold.patch line 17: `enabled = false` defaults the parameter. gold.patch line 18: `if ( ! enabled ) { return children; }` returns children directly when enabled is false. Interface description states: 'Returns children directly without wrapping when enabled is false. Defaults enabled to false.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says shared components like FullWidthSection should be updated so the caller controls the redesign behavior. [2: Implicit Codebase Constraint] The interface specifies that enabled defaults to false, producing a passthrough. [3: Logical Necessity] Without defaulting to false, existing callers that do not pass enabled would break. [5: Conclusion] A correct solution must default FullWidthSection to passthrough behavior."
+    }
+  },
+  {
+    "id": "918f84caa0fac7892bb0bfb3673e726b",
+    "title": "1.8: Accepts an isMarketplaceRedesignEnabled parameter in getCategories at client/my-sites/plugins/categories/use-categories.tsx",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that getCategories in client/my-sites/plugins/categories/use-categories.tsx accepts an isMarketplaceRedesignEnabled boolean parameter, defaulting to false.",
+      "evidence": "gold.patch lines 158-160: `export const getCategories = ( isMarketplaceRedesignEnabled = false ): Record< string, Category > => ({` adds the boolean parameter with default false. Interface specifies: Input isMarketplaceRedesignEnabled: boolean, Output Record<string, Category>.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'utility functions like getCategories that currently check the flag internally should be updated so the caller controls the redesign behavior.' [2: Implicit Codebase Constraint] The interface specifies the parameter name, type, default. [5: Conclusion] A correct solution must add this parameter to getCategories."
+    }
+  },
+  {
+    "id": "ae671df505b2780a3a79ae1495842533",
+    "title": "1.9: Varies all 9 getCategories category fields (paid title, paid description, popular title, featured title, featured description, monetization title, monetization description, business title, business description) based on the isMarketplaceRedesignEnabled parameter",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that calling getCategories with isMarketplaceRedesignEnabled set to true produces different values for all 9 flag-dependent fields (paid title, paid description, popular title, featured title, featured description, monetization title, monetization description, business title, business description) than calling it with false.",
+      "evidence": "Interface description states: 'Uses the isMarketplaceRedesignEnabled parameter to determine alternate titles and descriptions for categories like paid, popular, featured, monetization, and business.' gold.patch lines 168-228 show all 9 isEnabled('marketplace-redesign') ternaries replaced with the parameter across these categories.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says utility functions like getCategories that currently check the flag internally should be updated so the caller controls the redesign behavior. [2: Implicit Codebase Constraint] The interface specifies that the parameter controls alternate category content. [3: Logical Necessity] If the parameter is accepted but not used, the refactor has no effect on category display. [5: Conclusion] A correct solution must vary all 9 category fields based on the parameter."
+    }
+  },
+  {
+    "id": "b3c2ac02c178b3b0f4576cc2fefdcdaf",
+    "title": "1.10: Replaces all 14 pre-existing direct isEnabled('marketplace-redesign') call sites (full-width-section/index.jsx, categories/index.tsx, use-categories.tsx, education-footer/index.tsx, plugin-details-header/index.jsx, plugin-details.jsx, plugins-browser-item/index.jsx, collection-list-view/index.tsx, plugins-browser/index.jsx, single-list-view/index.jsx, plugins-category-results-page/index.jsx, plugins-discovery-page/index.jsx, plugins-search-results-page/index.jsx, related-plugins/index.tsx) with useIsMarketplaceRedesignEnabled",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that all 14 component files that previously called isEnabled('marketplace-redesign') directly now consume useIsMarketplaceRedesignEnabled or receive the redesign state via a prop or parameter instead. Note: client/dashboard/plugins/plugins-menu/index.tsx is excluded because it is a dashboard component that did not previously contain an isEnabled('marketplace-redesign') call \u2014 the gold.patch intentionally introduces a new direct isEnabled call there (covered by rubric 1.13).",
+      "evidence": "Prompt states: 'Every component in the plugins area that currently calls isEnabled(\"marketplace-redesign\") directly should use this hook instead.' gold.patch lines show isEnabled('marketplace-redesign') replaced across full-width-section/index.jsx, categories/index.tsx, use-categories.tsx, education-footer/index.tsx, plugin-details-header/index.jsx, plugin-details.jsx, plugins-browser-item/index.jsx, collection-list-view/index.tsx, plugins-browser/index.jsx, single-list-view/index.jsx, plugins-category-results-page/index.jsx, plugins-discovery-page/index.jsx, plugins-search-results-page/index.jsx, and related-plugins/index.tsx. The dashboard plugins menu (client/dashboard/plugins/plugins-menu/index.tsx) is not one of these 14 files \u2014 it gains a new isEnabled call intentionally.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires all direct isEnabled calls in the plugins area to be replaced with the hook. [2: Implicit Codebase Constraint] The dashboard plugins menu is in client/dashboard/, outside the plugins area scope, and intentionally uses isEnabled directly. [3: Logical Necessity] Creating the hook is insufficient if existing plugins-area components bypass it. [5: Conclusion] A correct solution must migrate all 14 pre-existing direct flag checks to useIsMarketplaceRedesignEnabled across the plugins area."
+    }
+  },
+  {
+    "id": "a8e53cccfebfb39bfe1fd665b0e9ccab",
+    "title": "1.11: Converts both static module-level flag-dependent constants (COLLECTION_LIST_LENGTH in collection-list-view/index.tsx, SHORT_LIST_LENGTH in single-list-view/index.jsx) into runtime computations",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that both module-scope constants COLLECTION_LIST_LENGTH (in collection-list-view/index.tsx) and SHORT_LIST_LENGTH (in single-list-view/index.jsx) that were derived from isEnabled('marketplace-redesign') at import time are now computed inside components at render time so they respond to useIsMarketplaceRedesignEnabled.",
+      "evidence": "Prompt states: 'Static module level constants that depend on the flag should become dynamic so they respond to the hook at runtime.' gold.patch line 582 removes COLLECTION_LIST_LENGTH from module scope in collection-list-view/index.tsx; line 707 removes SHORT_LIST_LENGTH from module scope in single-list-view/index.jsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks for static flag-dependent constants to become dynamic. [2: Implicit Codebase Constraint] Module-scope constants cannot access React hook values. [5: Conclusion] A correct solution must move both COLLECTION_LIST_LENGTH and SHORT_LIST_LENGTH into the component body so they respond to useIsMarketplaceRedesignEnabled at runtime."
+    }
+  },
+  {
+    "id": "2ff3407c91e93c5d458fe96a1b4d010f",
+    "title": "1.12: Enables the marketplace-redesign feature flag in the config",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the marketplace-redesign feature flag is set to true in the relevant configuration file.",
+      "evidence": "gold.patch line 1004: `\"marketplace-redesign\": true` in config/wpcalypso.json changes the flag from false to true. Prompt states: 'Finally, enable the marketplace-redesign flag in the production config so the new conditional logic takes effect.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to enable the flag. [3: Logical Necessity] Without enabling the flag, the hook always returns false, making the refactor inert. [5: Conclusion] A correct solution must set the flag to true."
+    }
+  },
+  {
+    "id": "c376b46b3b4e88e85ef3eaf2b03c4e7f",
+    "title": "1.13: Adapts the Browse plugins link rendering in client/dashboard/plugins/plugins-menu/index.tsx based on the marketplace-redesign feature flag",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the plugins menu at client/dashboard/plugins/plugins-menu/index.tsx conditionally changes how the 'Browse plugins' link is rendered depending on whether the marketplace-redesign feature flag is enabled.",
+      "evidence": "gold.patch lines 30-76: client/dashboard/plugins/plugins-menu/index.tsx adds `isEnabled('marketplace-redesign')` and conditionally renders a Button (when enabled) vs a ResponsiveMenu.Item with target='_blank' (when disabled) for the 'Browse plugins' link.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'The plugins menu should also adapt its rendering of the Browse plugins link based on whether the feature.' [5: Conclusion] A correct solution must make the plugins menu render the Browse plugins link differently based on the feature flag state."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "4317b5697d5204934241e8289aa72cb7",
+    "title": "2.1: Documents the visibility conditions near useIsMarketplaceRedesignEnabled",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability",
+      "description": "Verifies that useIsMarketplaceRedesignEnabled in client/my-sites/plugins/hooks/use-is-marketplace-redesign-enabled.ts includes inline documentation explaining what conditions it checks (feature flag, no site selected, logged out or dashboard opt-in).",
+      "evidence": "gold.patch lines 348-389 (client/my-sites/plugins/hooks/use-is-marketplace-redesign-enabled.ts): lines 354-376 contain a JSDoc comment block documenting the visibility conditions (feature flag, no site selected, logged out or dashboard opt-in).",
+      "justification": "[2: Implicit Codebase Constraint] The hook combines three interacting conditions (feature flag, site selection, and user login/opt-in state) into a single boolean, making the logic non-obvious without documentation. [4: Quality Necessity] Complex multi-condition business rules are easier to maintain when documented inline. [5: Conclusion] A good solution documents the visibility conditions near useIsMarketplaceRedesignEnabled, though this is not mandatory."
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "381c081fa0bd7b8c929fd623a4084d8b",
+    "title": "3.1: Removes all 13 isEnabled imports from '@automattic/calypso-config' (including full-width-section/index.jsx, categories/index.tsx, use-categories.tsx, education-footer/index.tsx, plugin-details-header/index.jsx, plugin-details.jsx, plugins-browser-item/index.jsx, collection-list-view/index.tsx, ...) where isEnabled was only used for the marketplace-redesign check",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that all 13 files where isEnabled from '@automattic/calypso-config' was only used for the marketplace-redesign flag check no longer import isEnabled after the refactor.",
+      "evidence": "gold.patch lines: line 6 removes isEnabled import from full-width-section/index.jsx, line 116 from categories/index.tsx, line 147 from use-categories.tsx, line 252 from education-footer/index.tsx, line 395 from plugin-details-header/index.jsx, line 445 from plugin-details.jsx, line 507 from plugins-browser-item/index.jsx, line 569 from collection-list-view/index.tsx, line 694 from single-list-view/index.jsx, line 750 from plugins-category-results-page/index.jsx, line 783 from plugins-discovery-page/index.jsx, line 895 from plugins-search-results-page/index.jsx, line 942 from related-plugins/index.tsx.",
+      "justification": "[2: Implicit Codebase Constraint] Unused imports are flagged by the project's linter. [4: Quality Necessity] Removing superseded imports keeps the refactor clean. [5: Conclusion] A good solution cleans up all 13 isEnabled imports that are no longer needed."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "11e0704bd27f05bedb8a012ed80a57ad",
+    "title": "4.1: Adds an isMarketplaceRedesignEnabled parameter to getFirstCategoryFromTags in client/my-sites/plugins/categories/use-categories.tsx",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects whether the solution adds an isMarketplaceRedesignEnabled parameter to getFirstCategoryFromTags in client/my-sites/plugins/categories/use-categories.tsx. The interface only specifies getCategories as the function to parameterize; getFirstCategoryFromTags is a separate exported function whose signature should remain unchanged.",
+      "evidence": "gold.patch does not modify the signature of getFirstCategoryFromTags. The interface lists only three APIs to modify: useIsMarketplaceRedesignEnabled, FullWidthSection, and getCategories. Prompt states: 'Your task is to make the minimal changes to non-test source files only.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to make the minimal changes to non-test source files only. [2: Implicit Codebase Constraint] The interface specifies getCategories as the only function in use-categories.tsx to parameterize; getFirstCategoryFromTags is a separate export with its own callers. [3: Logical Necessity] Adding a parameter to getFirstCategoryFromTags forces all its callers to be updated, expanding the refactor scope beyond what was requested. [5: Conclusion] A correct solution must not add parameters to getFirstCategoryFromTags."
+    }
+  }
+]

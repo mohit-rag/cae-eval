@@ -1,0 +1,16 @@
+{
+  "files": [
+    {
+      "name": "src/libnetdata/memory/tests/test_alignment.c"
+    },
+    {
+      "name": "src/libnetdata/memory/tests/test_nd_mallocz.c"
+    },
+    {
+      "name": "src/libnetdata/memory/tests/test_nd_mmap.c"
+    },
+    {
+      "name": "src/libnetdata/os/tests/test_get_system_pagesize.c"
+    }
+  ]
+}

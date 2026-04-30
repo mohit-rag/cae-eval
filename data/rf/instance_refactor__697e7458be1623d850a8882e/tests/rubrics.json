@@ -1,0 +1,170 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+    "title": "1.1: Consolidates client creation into a single function in pkg/sources/s3/s3.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the two separate client creation functions (newClient for standard credentials, newRoleClient for role assumption) are merged into one unified function.",
+      "evidence": "Codebase: pkg/sources/s3/s3.go defines newClient (line 107) for standard credentials, newRoleClient (line 137) for STS role assumption. Both share identical AWS config setup, session creation, S3 client construction. Prompt: 'consolidate client creation into a single function'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt directly asks to consolidate client creation into a single function. [2: Implicit Codebase Constraint] The two functions share nearly identical boilerplate for AWS config, session options, client construction. [5: Conclusion] Therefore, any correct answer must merge the two client creation functions into one."
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+    "title": "1.2: Preserves handling of all 4 existing credential types (S3_SessionToken, S3_AccessKey, S3_Unauthenticated, S3_CloudEnvironment) in the consolidated function",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the consolidated function still handles all 4 credential types (S3_SessionToken, S3_AccessKey, S3_Unauthenticated, S3_CloudEnvironment).",
+      "evidence": "Codebase: pkg/sources/s3/s3.go newClient handles four credential types via a type switch (S3_SessionToken, S3_AccessKey, S3_Unauthenticated, S3_CloudEnvironment). Prompt: 'supports both standard credentials'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires the consolidated function to support standard credentials. [2: Implicit Codebase Constraint] The codebase implements four distinct credential types that existing users depend on. [3: Logical Necessity] Dropping any credential type would silently break existing configurations. [5: Conclusion] Therefore, any correct answer must preserve all four credential types in the consolidated function."
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "title": "1.3: Preserves IAM role assumption via STS in the consolidated function",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the consolidated function still supports assuming IAM roles using STS when a role is provided.",
+      "evidence": "Codebase: pkg/sources/s3/s3.go newRoleClient performs STS role assumption using stscreds.NewCredentialsWithClient. Prompt: 'supports...role based authentication'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires the consolidated function to support role based authentication. [2: Implicit Codebase Constraint] The codebase uses STS role assumption for multi-account bucket scanning. [3: Logical Necessity] Removing role assumption would break multi-account scanning workflows. [5: Conclusion] Therefore, any correct answer must preserve STS role assumption capability in the consolidated function."
+    }
+  },
+  {
+    "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+    "title": "1.4: Collapses the duplicated branching in scanBuckets for regional client creation",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that scanBuckets no longer contains a conditional that picks between newClient vs newRoleClient for creating regional S3 clients. It should use the unified function directly.",
+      "evidence": "Codebase: pkg/sources/s3/s3.go scanBuckets (line 206-211) contains 'if role != \"\" { s.newRoleClient(...) } else { s.newClient(...) }'. Prompt: 'the duplicated branching in...scanBuckets...should be collapsed'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to collapse duplicated branching in scanBuckets. [2: Implicit Codebase Constraint] scanBuckets currently chooses between two functions based on role presence, which is unnecessary after consolidation. [5: Conclusion] Therefore, any correct answer must eliminate the conditional branching for client creation in scanBuckets."
+    }
+  },
+  {
+    "id": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
+    "title": "1.5: Unifies the Chunks method into a single code path regardless of role configuration",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that Chunks no longer has two separate branches that duplicate client creation, bucket discovery, scanning for the roles-configured vs no-roles cases. It should use a single iteration path.",
+      "evidence": "Codebase: pkg/sources/s3/s3.go Chunks (line 241-271) has 'if len(s.conn.Roles) > 0 { for _, role := ... newRoleClient ... scanBuckets ... } else { newClient ... scanBuckets ... }'. Prompt: 'Chunks should be collapsed so that the roles and no roles cases are handled through a single code path'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to collapse Chunks so roles vs no roles are handled through a single code path. [2: Implicit Codebase Constraint] Chunks currently duplicates the full client-creation, bucket-listing, scanning sequence in two branches. [5: Conclusion] Therefore, any correct answer must unify Chunks into a single iteration path."
+    }
+  },
+  {
+    "id": "a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3",
+    "title": "1.6: Skips the affected bucket gracefully in scanBuckets when regional client creation fails",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that when creating a regional S3 client fails in scanBuckets, the code does not proceed with a nil client (which causes a panic) but instead skips that bucket.",
+      "evidence": "Codebase: pkg/sources/s3/s3.go scanBuckets (line 212-214) logs 'could not make regional s3 client' but does not skip the bucket, causing subsequent calls on the nil regionalClient to panic. Prompt: 'There is also a bug in scanBuckets...This should be fixed so that the affected bucket is skipped gracefully.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly describes this panic bug and requests the affected bucket be skipped gracefully. [3: Logical Necessity] Continuing with a nil S3 client causes a runtime panic. [5: Conclusion] Therefore, any correct answer must ensure that a failed regional client creation results in skipping that bucket."
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+    "title": "2.1: Removes the outdated comment describing the purpose of the separate role client creation function",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "Verifies that the comment '// Separate role assumption functionality into a different newClient function' (or similar) above newRoleClient is removed since the function no longer exists.",
+      "evidence": "Codebase: pkg/sources/s3/s3.go line 136 contains the comment '// Separate role assumption functionality into a different newClient function' above the newRoleClient function.",
+      "justification": "[4: Quality Necessity] After consolidation, the comment describing the rationale for a separate role client function becomes misleading dead documentation. Any seasoned SWE would remove it when deleting the function it describes. [5: Conclusion] Therefore, any correct answer should remove this obsolete comment."
+    }
+  },
+  {
+    "id": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4",
+    "title": "3.1: Removes the newRoleClient function that is made obsolete by the consolidation",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the old separate role-specific client creation function is deleted rather than left as dead code.",
+      "evidence": "Codebase: pkg/sources/s3/s3.go defines newRoleClient (line 137) as a standalone function that duplicates most of newClient's logic.",
+      "justification": "[4: Quality Necessity] After consolidation, newRoleClient becomes dead code that duplicates the unified function. Leaving dead code defeats the purpose of the refactoring. [5: Conclusion] Therefore, any correct answer should remove the obsolete newRoleClient function."
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+    "title": "4.1: Modifies test files in the repository",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the solution modifies any test files (such as s3_test.go, s3_integration_test.go) despite the explicit constraint.",
+      "evidence": "Prompt: 'I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly prohibits modifying test files. [3: Logical Necessity] Agents commonly modify tests to make them pass after refactoring, which violates the stated constraint. [5: Conclusion] Therefore, any correct answer must NOT modify any test files."
+    }
+  },
+  {
+    "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+    "title": "4.2: Alters exported method signatures of the Source type in pkg/sources/s3/s3.go",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the solution changes the signature of any exported method (such as Chunks, Init, Type, SourceID, JobID) which would break external callers.",
+      "evidence": "Codebase: pkg/sources/s3/s3.go implements the sources.Source interface via exported methods Chunks, Init, Type, SourceID, JobID. Changing their signatures would break the interface contract. Prompt: 'make the minimal changes to non-test source files only'",
+      "justification": "[2: Implicit Codebase Constraint] The Source type implements the sources.Source interface. Changing exported signatures would break the interface contract. [3: Logical Necessity] External callers depend on these signatures remaining stable. The prompt asks for minimal internal refactoring, not API changes. [5: Conclusion] Therefore, any correct answer must NOT alter exported method signatures."
+    }
+  }
+]

@@ -1,0 +1,110 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "7f7008839caae10ad3f6de77a4e085fc",
+    "title": "1.1: Creates a getOrAdd method on cache that handles both intermediate map levels (org-level and rule-level) internally when adding state",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the cache provides a method to add State while handling all internal storage details. This includes initializing org-level storage when an org has no existing entries, and initializing rule-level storage when a rule has no existing entries. Callers should not need to construct or manipulate nested map structures.",
+      "evidence": "gold.patch cache.go: new getOrAdd method (diff lines 14-40) that acquires mutex lock (diff lines 15-16), checks and initializes orgStates map if not present (diff lines 19-25), checks and initializes ruleStates map if not present (diff lines 34-36), and delegates to existing rs.getOrAdd logic (diff line 40)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'Refactor the cache to create a method that adds a state without knowing the internal map hierarchy'. The interface specifies the exact contract: cache.getOrAdd(state State, log log.Logger) *State. [2: Implicit Codebase Constraint] The cache uses a three-level nested map structure: org ID (int64) -> rule UID (string) -> fingerprint (data.Fingerprint) -> State. Both Warm() and getOrCreate() currently duplicate the logic for navigating and initializing this hierarchy. [3: Logical Necessity] To abstract away the internal hierarchy, the new method must handle: (a) checking/creating the org-level map, (b) checking/creating the rule-level ruleStates struct, and (c) delegating to the state storage mechanism. Without handling all three levels internally, callers would still need hierarchy knowledge. [5: Conclusion] Therefore, any correct answer must create a cache method that adds state without requiring knowledge of the internal map hierarchy."
+    }
+  },
+  {
+    "id": "b9e5bacb3d08d10d953bb9994b5b047e",
+    "title": "1.2: Refactors Warm() in manager.go to delegate state storage to the cache via getOrAdd for each alert instance loaded from the database",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the Warm() function no longer manually builds nested maps but instead delegates state insertion to the cache. This includes removing direct construction of org-level maps, removing direct construction of rule-level ruleStates structs, and using the cache method for each restored state.",
+      "evidence": "gold.patch manager.go: removes states map variable (diff line 65), removes orgStates creation (diff lines 73-74), removes rulesStates creation (diff lines 83-87), creates State struct (diff line 97), and calls cache method for each state (diff line 105)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly identifies 'the alerting state warmup in pkg/services/ngalert/state/manager.go manually builds the nested cache maps' as the source of duplication. [2: Implicit Codebase Constraint] The current Warm() constructs: (a) the top-level states map (map[int64]map[string]*ruleStates), (b) per-org orgStates maps, and (c) per-rule ruleStates structs\u2014duplicating the exact structure that cache.go's getOrCreate() also manages. [3: Logical Necessity] If Warm() continues to construct these internal structures, the duplication identified by the prompt persists, and 'changes [remain] risky' because modifications to the hierarchy would require updating both files. [5: Conclusion] Therefore, any correct answer must refactor Warm() to delegate state storage to the cache, eliminating its knowledge of the internal map hierarchy."
+    }
+  },
+  {
+    "id": "cb4de02b9ada45fd340edddf3a24404a",
+    "title": "1.3: Preserves get-or-add semantics in getOrAdd by returning the existing state when a state with the same cache identity already exists",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that when adding a state whose CacheID already exists in the cache, the existing state is returned rather than being overwritten or duplicated. This preserves accumulated state data like annotations and timestamps.",
+      "evidence": "gold.patch cache.go: new method delegates to rs.getOrAdd(state, log) (diff line 40), which checks for existing state by CacheID and returns it if found (existing ruleStates.getOrAdd method at file line 97-103)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'This duplicates the internal cache structure in two places and makes changes risky', identifying both Warm() and getOrCreate() as duplication sources. The interface explicitly defines get-or-add semantics: retrieve if exists, add if not. [2: Implicit Codebase Constraint] The cache has two code paths that build the nested map hierarchy: Warm() during startup and getOrCreate() during runtime evaluation. getOrCreate() uses get-or-add behavior to preserve existing states with matching CacheID. [3: Logical Necessity] To truly eliminate duplication (not just move it), both code paths must use the single new method. For getOrCreate() to delegate to the new method, that method must have get-or-add semantics; otherwise getOrCreate would overwrite existing states during runtime, breaking alert evaluation. A method with set-only semantics cannot be used by getOrCreate, leaving duplication intact. [5: Conclusion] Therefore, any correct answer that truly eliminates duplication must preserve get-or-add semantics."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "21605bac5e69d19dad6154318a2cdcff",
+    "title": "3.1: Removes the unused setAllStates method from the cache after refactoring",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that methods which performed bulk replacement of the entire cache state are removed if they become unused after the refactoring to incremental state insertion.",
+      "evidence": "gold.patch cache.go: removes setAllStates method (diff lines 48-52), and manager.go removes the call to st.cache.setAllStates(states) (diff line 110)",
+      "justification": "[2: Implicit Codebase Constraint] The existing setAllStates method performs atomic bulk replacement of the entire cache (c.states = newStates), which was designed for Warm() to swap in all restored states at once. [3: Logical Necessity] After Warm() is refactored to use incremental state insertion via the new method, setAllStates has no remaining callers and becomes dead code. [4: Qualitative Requirement] Retaining unused methods increases maintenance burden, potential for misuse, and code comprehension overhead. [5: Conclusion] Therefore, a good solution should remove unused bulk replacement functionality after the refactoring."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "9635864803bc06d5c03da98642f3b791",
+    "title": "4.1: Drops or omits any of the 13 alert instance fields (AlertRuleUID, OrgID, CacheID, Labels, State, StateReason, StartsAt, EndsAt, LastEvaluationTime, Annotations, ...) during warmup restoration",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactoring causes any persisted alert instance data to be lost during warmup. All fields including AlertRuleUID, OrgID, Labels, State, StartsAt, EndsAt, Annotations, and ResultFingerprint must be correctly restored to the cache.",
+      "evidence": "gold.patch manager.go: continues to construct complete State struct with all fields including AlertRuleUID, OrgID, CacheID, Labels, State, StateReason, StartsAt, EndsAt, LastEvaluationTime, Annotations, ResultFingerprint, ResolvedAt, LastSentAt (diff lines 97-103) before calling the cache method (diff line 105)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to refactor while reducing risk; data loss during warmup would be a critical regression, not a risk reduction. [2: Implicit Codebase Constraint] The warmup process (Warm function) restores persisted alert instance state from the database to ensure continuity after restart. The State struct contains critical fields: timing information (StartsAt, EndsAt, LastEvaluationTime, ResolvedAt, LastSentAt), state information (State, StateReason), and context (Labels, Annotations, ResultFingerprint). [3: Logical Necessity] Losing any field would cause: incorrect alert timing, missed or duplicate notifications, broken alert history, or corrupted state transitions. [4: Quality Necessity] State data integrity is fundamental to the alerting system's reliability. [5: Conclusion] Therefore, any correct answer must NOT lose state data during warmup restoration."
+    }
+  }
+]

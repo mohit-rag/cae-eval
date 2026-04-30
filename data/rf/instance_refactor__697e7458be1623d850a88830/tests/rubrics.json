@@ -1,0 +1,218 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "1af0bb963fcd7bf8e98ee9003336ff70",
+    "title": "1.1: Extracts both per-match concerns (result construction and webhook verification) from FromData into a dedicated helper method on customRegexWebhook",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the per-match workflow (raw-string assembly, detectors.Result construction, JSON body creation, and webhook verification loop) is extracted out of `FromData` in `pkg/custom_detectors/custom_detectors.go` into a separate helper method on the `customRegexWebhook` receiver, so that `FromData` is focused on orchestrating work and collecting results.",
+      "evidence": "The gold patch introduces a new unexported method on `customRegexWebhook` that encapsulates the per-match logic previously inlined in `FromData`'s loop body. `FromData` now delegates each match to that helper.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Extract the per-match logic for building a result and verifying it against webhook endpoints into a dedicated helper method on customRegexWebhook, keeping the main FromData method focused on orchestrating the concurrent work and collecting results.' [2: Implicit Codebase Requirement] `FromData` is the detector entry point; readability improves when it delegates detail to helpers. [3: Logical Necessity] A readability refactor of a long method must move repeated per-match implementation details into a separate function. [5: Conclusion] A correct solution must extract the per-match processing into a helper method on `customRegexWebhook`."
+    }
+  },
+  {
+    "id": "adc00070965e03df06ce7d06b62a79ce",
+    "title": "1.2: Runs per-match verification concurrently so verification HTTP requests for different permutated regex matches can overlap",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that verify-mode processing no longer performs each match's webhook verification strictly one after another, and instead launches per-match work concurrently (e.g., using errgroup, goroutines with sync.WaitGroup, or a worker pool).",
+      "evidence": "The gold patch launches one concurrent worker per permutated match and waits for all to complete before collecting results.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Refactor the match processing so that verification of different matches happens concurrently rather than one at a time.' [2: Implicit Codebase Requirement] The existing code in `FromData` processes matches in a serial `for` loop where each webhook round-trip must finish before the next starts. [3: Logical Necessity] To improve verification throughput as described, different matches must verify in parallel rather than serially. [5: Conclusion] A correct solution must make per-match verification concurrent."
+    }
+  },
+  {
+    "id": "e47f489508f5f2c72a1cc1021e0b3fb9",
+    "title": "1.3: Ensures concurrent workers exit promptly on context cancellation",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that each concurrent worker checks for context cancellation (e.g., via common.IsDone(ctx), ctx.Done(), or ctx.Err()) and exits promptly rather than blocking indefinitely when the context has been cancelled.",
+      "evidence": "The gold patch checks `common.IsDone(ctx)` at the start of each worker and uses `select` with `ctx.Done()` to avoid blocking on channel sends when the context is cancelled.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The concurrent workers should be non-blocking and respect context cancellation so they can exit cleanly when the context is done.' [2: Implicit Codebase Requirement] The original code already uses `common.IsDone(ctx)` to check context state, and HTTP requests are created with `http.NewRequestWithContext(ctx, ...)`. [3: Logical Necessity] Concurrent workers that ignore context cancellation can leak goroutines, block indefinitely, or perform unnecessary work. [5: Conclusion] A correct solution must have concurrent workers that check and respect context cancellation."
+    }
+  },
+  {
+    "id": "fcc897811bdcdef0d7a770ed4c1d7934",
+    "title": "1.4: Provides an error propagation path from concurrent workers back to FromData's error return",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the concurrent orchestration includes a mechanism (e.g., errgroup, an error channel, or a mutex-guarded error variable) for errors arising in workers to propagate back to `FromData`'s `error` return value, rather than being silently discarded.",
+      "evidence": "The gold patch uses errgroup whose Wait method returns the first non-nil error from any worker; `FromData` checks this and returns the error to the caller.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Errors from concurrent match processing should propagate back to the caller.' [2: Implicit Codebase Requirement] `FromData` already exposes an `error` return value and its HTTP requests use `context.Context`, so error propagation is part of the method contract. [3: Logical Necessity] Without an error path from workers, failures in concurrent processing are silently hidden from the caller. [5: Conclusion] A correct solution must provide a mechanism for worker errors to reach FromData's caller."
+    }
+  },
+  {
+    "id": "32a9f7bbcb4e167b799600e99bef93d6",
+    "title": "1.5: Collects all detectors.Result values from the per-match concurrent workers only after all workers have finished",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that `FromData` waits for all concurrent workers to complete (e.g., via errgroup.Wait(), sync.WaitGroup.Wait(), or equivalent) before assembling and returning the final results slice.",
+      "evidence": "The gold patch calls Wait() on the concurrency coordinator before draining the results channel and returning.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'results should be collected after all concurrent work finishes.' [2: Logical Necessity] Returning from `FromData` before all workers finish would produce incomplete results and potentially leak goroutines that continue to write to closed channels or freed memory. [3: Qualitative Requirement] Ensuring all work completes before returning is a fundamental correctness property of concurrent code. [5: Conclusion] A correct solution must wait for all concurrent work to finish before returning results."
+    }
+  },
+  {
+    "id": "7311706b7476899a26a6c66c56b52ae7",
+    "title": "1.6: Processes every element of the matches slice from permutateMatches in FromData of custom_detectors.go producing one detectors.Result per match on the non-error path",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the refactored `FromData` in `pkg/custom_detectors/custom_detectors.go` still processes every element of the `matches` slice returned by `permutateMatches` and produces one `detectors.Result` per match on the non-error path, so the concurrency refactor does not silently drop or duplicate matches during normal operation.",
+      "evidence": "The gold patch iterates `for _, match := range matches` in `FromData` and dispatches each match for concurrent processing (gold.patch:21-25). Each match produces exactly one `detectors.Result` sent to the `resultsCh` channel on the non-error path (gold.patch:56-61 for non-verify, gold.patch:149-154 after verification).",
+      "justification": "[2: Implicit Codebase Requirement] The original `FromData` in `pkg/custom_detectors/custom_detectors.go` iterates `for _, match := range matches` and appends exactly one `detectors.Result` per iteration, establishing a 1:1 match-to-result contract. [3: Logical Necessity] A refactor that drops or duplicates results relative to the `matches` slice would change the detector's output cardinality and break downstream consumers. [5: Conclusion] A correct solution must produce one `detectors.Result` per match in `FromData` during normal (non-error) operation, regardless of the concurrency strategy used."
+    }
+  },
+  {
+    "id": "f8afc9d5ff6f6e21e538b913d7553a28",
+    "title": "1.7: Preserves the non-verification fast path by emitting results directly when verify is false",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that when `verify` is false, the code still emits each per-match `detectors.Result` without performing JSON marshalling or webhook HTTP calls.",
+      "evidence": "The gold patch builds the Result and returns it immediately when `!verify`, before any JSON or HTTP code executes.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests better performance and readability, not removal of the existing non-verification mode. [2: Implicit Codebase Requirement] `FromData` supports both verification and non-verification modes via the `verify` parameter; callers depend on the fast path. [3: Logical Necessity] Performing unnecessary webhook calls when verify is false would degrade performance and change observable behavior. [5: Conclusion] A correct solution must preserve the non-verification fast path."
+    }
+  },
+  {
+    "id": "edff89910890373692c82e7e5bf6e94b",
+    "title": "1.8: Preserves raw Result construction by concatenating values[0] from each match map entry",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the refactored code builds `Result.Raw` by iterating the match map and concatenating `values[0]` (the full regex match) from each entry, preserving the existing raw-secret representation.",
+      "evidence": "The gold patch keeps `for _, values := range match { raw += values[0] }` and sets `Raw: []byte(raw)` on the Result.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for refactoring, not for changing what raw detector output contains. [2: Implicit Codebase Requirement] The detector's raw secret representation is constructed from the full regex match stored at index 0 in each submatch slice. [3: Logical Necessity] Changing how `Raw` is assembled would alter detector output and potentially break downstream expectations. [5: Conclusion] A correct solution must preserve the existing Raw construction logic."
+    }
+  },
+  {
+    "id": "1ab7626f38443a745edf0dfdadb4b4f4",
+    "title": "1.9: Preserves the verification request payload structure keyed by detector name",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that verification requests are still marshalled with the detector name as the top-level JSON key and the current match data as the value, preserving the existing webhook contract.",
+      "evidence": "The gold patch marshals `map[string]map[string][]string{ c.GetName(): match }` before creating verification requests, identical to the original.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for a performance and readability refactor, not a webhook contract change. [2: Implicit Codebase Requirement] Verification endpoints depend on the existing JSON payload schema with the detector name as top-level key. [3: Logical Necessity] Changing the body shape would break existing verification integrations that parse the payload. [5: Conclusion] A correct solution must preserve the verification payload structure."
+    }
+  },
+  {
+    "id": "908d00185a31be67e5c72432a21ea6a9",
+    "title": "1.10: Preserves endpoint-iteration semantics by trying each verification config in order until one returns HTTP 200 or all configs are exhausted",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that per-match verification still iterates through configured verification endpoints in order, marks the result as verified on the first HTTP 200 response, and leaves it unverified if all endpoints are exhausted without success.",
+      "evidence": "The gold patch retains the `for _, verifyConfig := range c.GetVerify()` loop and sets `result.Verified = true` only on `res.StatusCode == http.StatusOK`, then breaks.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt does not ask to change verification semantics, only to improve performance and readability. [2: Implicit Codebase Requirement] The detector supports multiple verification configs and the existing behavior is to try them in order until one succeeds. [3: Logical Necessity] Altering the success condition or iteration behavior would change verification outcomes. [5: Conclusion] A correct solution must preserve the existing endpoint-iteration and success semantics."
+    }
+  },
+  {
+    "id": "c5db4eb3d7e82679d8f58239cd946b9f",
+    "title": "1.11: Preserves header forwarding by both operations (parsing and trimming) on configured verification request headers",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the refactored code still splits each configured header string on the first colon to separate key and value, skips malformed entries, trims leading whitespace from the value, and adds the header to the outgoing HTTP request.",
+      "evidence": "The gold patch keeps `key, value, found := strings.Cut(header, \":\")`, skips when `!found`, and calls `req.Header.Add(key, strings.TrimLeft(value, ...))` before sending the request.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests a refactor, not a change to how verification headers are interpreted. [2: Implicit Codebase Requirement] The configured header format is part of the detector's existing verification contract. [3: Logical Necessity] Parsing or trimming headers differently would change outgoing requests and could break verification. [5: Conclusion] A correct solution must preserve the existing header parsing and forwarding behavior."
+    }
+  },
+  {
+    "id": "35d304378e76f591eb8c13e101bcf426",
+    "title": "1.12: Closes each verification HTTP response body after the request completes",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that every HTTP response body returned by verification requests is closed, so the concurrency change does not introduce leaked response bodies or exhausted connections.",
+      "evidence": "The gold patch keeps `res.Body.Close()` immediately after `httpClient.Do(req)` returns successfully and before checking `res.StatusCode`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for better performance and readability, not resource-management regressions. [2: Implicit Codebase Requirement] Each verification request returns an HTTP response body that must be closed per Go HTTP conventions. [3: Logical Necessity] Failing to close response bodies leaks connections and file descriptors, which is especially harmful under concurrent verification where many requests run simultaneously. [4: Qualitative Requirement] Safe resource cleanup is fundamental to maintainable concurrent code. [5: Conclusion] A correct solution must close each verification response body."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "4fd1dec7aaaecae4729ab2af4d8162a4",
+    "title": "4.1: Changes the function signature of any of the 4 exported functions (NewWebhookCustomRegex, FromData, Keywords, Type) in custom_detectors.go",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Fails the solution if it changes the signature of `FromData(ctx context.Context, verify bool, data []byte) ([]detectors.Result, error)` or modifies any other exported symbol (e.g., `NewWebhookCustomRegex`) in `pkg/custom_detectors/custom_detectors.go`.",
+      "evidence": "The gold patch retains `FromData(ctx context.Context, verify bool, data []byte) ([]detectors.Result, error)` unchanged (gold.patch:13) and only adds the unexported `createResults` helper method (gold.patch:40).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for minimal changes to non-test source files, not a public API redesign. [2: Implicit Codebase Requirement] `customRegexWebhook` implements the `detectors.Detector` interface; changing `FromData`'s signature would break the interface contract. [3: Logical Necessity] Changing exported symbols would break all callers and violate the detectors.Detector interface at compile time. [5: Conclusion] Any solution that modifies exported function signatures should fail."
+    }
+  },
+  {
+    "id": "ae2440ce08adb5c04df4e1a74a1b3e2d",
+    "title": "4.2: Alters any of the 2 pre-processing steps (regex matching and permutation via permutateMatches) preceding match processing in FromData",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Fails the solution if it modifies the regex compilation loop, `FindAllStringSubmatch` calls, or the `permutateMatches` invocation that precede the match processing loop in `FromData`. The prompt targets only match processing and verification, not the matching and permutation step.",
+      "evidence": "The gold patch shows `matches := permutateMatches(regexMatches)` as an unchanged context line (gold.patch:15); all modifications occur after this line.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt scopes the refactor to match processing and webhook verification, not to regex matching or permutation. [2: Implicit Codebase Requirement] The regex compilation, FindAllStringSubmatch calls, and permutateMatches function are correct and independent of the verification bottleneck. [3: Logical Necessity] Altering the upstream matching logic would change which matches are produced, introducing functional regressions unrelated to the refactor. [5: Conclusion] Any solution that modifies the regex matching or permutation logic should fail."
+    }
+  }
+]

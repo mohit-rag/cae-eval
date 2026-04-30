@@ -1,0 +1,206 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "0eda357ab9e880235890946cb82d314a",
+    "title": "1.1: Simplifies the GVR construction in the playlist HTTP handler setup in `pkg/api/playlist.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the verbose three-field GroupVersionResource struct literal in newPlaylistK8sHandler is replaced with a simpler expression that derives the same GVR from the playlist Kind helper, e.g. using a consolidated accessor.",
+      "evidence": "gold.patch lines 8-16: newPlaylistK8sHandler previously built a schema.GroupVersionResource with separate Group, Version, Plural calls; the gold patch condenses this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'trim boilerplate wherever production code builds Kubernetes GroupVersionResource values' and names 'pkg/api (playlist and short URL Kubernetes handler setup)' as a target area. [2: Implicit Codebase Constraint] newPlaylistK8sHandler stores a GVR on the handler struct that all subsequent K8s client calls use; the value must remain correct. [5: Conclusion] Any correct solution must simplify the GVR construction in this handler while preserving the same GVR value."
+    }
+  },
+  {
+    "id": "9ff7f97e0287bd695f2b2608e5c37a4d",
+    "title": "1.2: Simplifies the GVR construction in the short URL HTTP handler setup in `pkg/api/short_url.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the verbose three-field GroupVersionResource struct literal in newShortURLK8sHandler is replaced with a simpler expression that derives the same GVR from the short URL Kind helper.",
+      "evidence": "gold.patch lines 27-35: newShortURLK8sHandler previously built a schema.GroupVersionResource with separate calls; the gold patch condenses this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt names 'pkg/api (playlist and short URL Kubernetes handler setup)' as a target. [2: Implicit Codebase Constraint] The handler stores a GVR used for all short URL K8s operations; the value must remain correct. [5: Conclusion] Any correct solution must simplify the GVR construction in this handler while preserving the same GVR value."
+    }
+  },
+  {
+    "id": "5e6f0a90028dc3ec21a3da9f37a22ba7",
+    "title": "1.3: Simplifies the GroupResource derivation for playlist not-found errors in `pkg/registry/apps/playlist/legacy_storage.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the manually constructed schema.GroupResource literal used in k8serrors.NewNotFound when a playlist is missing is replaced with a simpler expression that derives the same group and resource from the playlist Kind helper.",
+      "evidence": "gold.patch lines 55-59: the Get method's not-found path previously built schema.GroupResource{Group: ..., Resource: ...}; the gold patch simplifies this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt names 'pkg/registry/apps/playlist (legacy storage ... the not-found path when the playlist is missing)' as a target. [2: Implicit Codebase Constraint] Kubernetes clients rely on the Group and Resource fields in NotFound errors to identify the resource type; these values must remain the same. [5: Conclusion] Any correct solution must simplify the GroupResource derivation in this not-found path while preserving the same error identity."
+    }
+  },
+  {
+    "id": "d1f62c2a91fc76273101dc9835cb8e09",
+    "title": "1.4: Simplifies the GVR construction used for legacy storage selection in `pkg/registry/apps/playlist/register.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the verbose three-field GroupVersionResource struct literal in GetLegacyStorage is replaced with a simpler expression that derives the same GVR from the playlist Kind helper.",
+      "evidence": "gold.patch lines 71-76: GetLegacyStorage previously built schema.GroupVersionResource with separate Group, Version, Plural calls; the gold patch condenses this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt names 'pkg/registry/apps/playlist (registration paths)' as a target. [2: Implicit Codebase Constraint] GetLegacyStorage compares the requested GVR against this value to decide whether to return playlist storage; if the value changes, storage selection breaks. [5: Conclusion] Any correct solution must simplify the GVR construction in GetLegacyStorage while preserving the same matching behavior."
+    }
+  },
+  {
+    "id": "a9f37de3ca45c97456b8d47e4c20534f",
+    "title": "1.5: Simplifies the GVR construction for plugin metadata storage registration in `pkg/registry/apps/plugins/register.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the verbose pluginMetaGVR struct literal in InstallAPIs is replaced with a simpler expression that derives the same GVR from the plugin metadata Kind helper.",
+      "evidence": "gold.patch lines 88-93: InstallAPIs previously built schema.GroupVersionResource using GroupVersion.Group, GroupVersion.Version, and PluginMetaKind().Plural(); the gold patch condenses this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt names 'pkg/registry/apps/plugins (API installation path that keys storage by plugin metadata GVR)' as a target. [2: Implicit Codebase Constraint] The GVR is used as a map key for replaced storage; if it changes, the plugin metadata storage is not registered at the correct key. [5: Conclusion] Any correct solution must simplify the GVR construction in InstallAPIs while preserving the same registration key."
+    }
+  },
+  {
+    "id": "047193d88e9733c4cded2484320cacd9",
+    "title": "1.6: Simplifies the GroupResource derivation for short URL not-found errors in the Get path of `pkg/registry/apps/shorturl/legacy_storage.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the manually constructed schema.GroupResource literal used in k8serrors.NewNotFound when a short URL is not found via Get is replaced with a simpler expression that derives the same group and resource from the short URL Kind helper.",
+      "evidence": "gold.patch lines 113-117: the Get method's not-found path previously built schema.GroupResource{Group: ..., Resource: ...}; the gold patch simplifies this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt names 'pkg/registry/apps/shorturl (legacy storage ... every flow where a missing short URL becomes a Kubernetes not found)' as a target. [2: Implicit Codebase Constraint] The Group and Resource fields in NotFound errors must remain the same for correct client behavior. [5: Conclusion] Any correct solution must simplify the GroupResource derivation in the Get not-found path while preserving the same error identity."
+    }
+  },
+  {
+    "id": "7b1a04ed2a12f6228a7e4fafbd2d904c",
+    "title": "1.7: Simplifies the GroupResource derivation for short URL not-found errors in the Update path of `pkg/registry/apps/shorturl/legacy_storage.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the manually constructed schema.GroupResource literal used in k8serrors.NewNotFound when a short URL is not found via Update is replaced with a simpler expression that derives the same group and resource from the short URL Kind helper.",
+      "evidence": "gold.patch lines 125-129: the Update method's not-found path previously built schema.GroupResource{Group: ..., Resource: ...}; the gold patch simplifies this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt names 'every flow where a missing short URL becomes a Kubernetes not found' as a target; the Update path is a second such flow distinct from Get. [2: Implicit Codebase Constraint] Same error identity requirement as in the Get path. [5: Conclusion] Any correct solution must simplify the GroupResource derivation in the Update not-found path as well."
+    }
+  },
+  {
+    "id": "ccbe301e0a19caa12139fd749a9dfa0c",
+    "title": "1.8: Simplifies the GVR construction used for legacy storage selection in `pkg/registry/apps/shorturl/register.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the verbose three-field GroupVersionResource struct literal in GetLegacyStorage is replaced with a simpler expression that derives the same GVR from the short URL Kind helper.",
+      "evidence": "gold.patch lines 141-146: GetLegacyStorage previously built schema.GroupVersionResource with separate calls; the gold patch condenses this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt names 'pkg/registry/apps/shorturl (registration paths)' as a target. [2: Implicit Codebase Constraint] GetLegacyStorage compares the requested GVR against this value; if it changes, storage selection breaks. [5: Conclusion] Any correct solution must simplify the GVR construction in GetLegacyStorage while preserving the same matching behavior."
+    }
+  },
+  {
+    "id": "3f2c49e2748c5694dd2b30f0e2a03add",
+    "title": "1.9: Simplifies the GVR construction for the short URL dynamic client in `pkg/services/cleanup/cleanup.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the verbose three-field GroupVersionResource struct literal in deleteStaleKubernetesShortURLs is replaced with a simpler expression that derives the same GVR from the short URL Kind helper.",
+      "evidence": "gold.patch lines 166-171: deleteStaleKubernetesShortURLs previously built schema.GroupVersionResource with separate calls; the gold patch condenses this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt names 'pkg/services/cleanup (logic that uses a dynamic client for short URL resources)' as a target. [2: Implicit Codebase Constraint] The dynamic client uses the GVR to target the correct K8s resource type for listing and deleting stale short URLs; if the value changes, cleanup operates on the wrong resource. [5: Conclusion] Any correct solution must simplify the GVR construction in deleteStaleKubernetesShortURLs while preserving the same GVR value."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "164fc27128a2688aea6d8411fadde922",
+    "title": "3.1: Removes the unused `k8s.io/apimachinery/pkg/runtime/schema` import from `pkg/registry/apps/playlist/legacy_storage.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the schema import is removed after the refactoring eliminates its only usage in the playlist legacy storage file.",
+      "evidence": "gold.patch line 47: removes the schema import.",
+      "justification": "[2: Implicit Codebase Constraint] Go compilation fails if an import is present but unused; after the refactor removes the only schema usage in this file, the import must be removed for the code to compile. [3: Logical Necessity] If the schema.GroupResource literal is eliminated, the schema import becomes unused. [5: Conclusion] Any correct solution that simplifies the GroupResource derivation in this file must also remove the now-unused schema import."
+    }
+  },
+  {
+    "id": "2e4c60444a7e06f12bcd52ab644733ce",
+    "title": "3.2: Removes the unused `k8s.io/apimachinery/pkg/runtime/schema` import from `pkg/registry/apps/shorturl/legacy_storage.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the schema import is removed after the refactoring eliminates its only usage in the short URL legacy storage file.",
+      "evidence": "gold.patch line 105: removes the schema import.",
+      "justification": "[2: Implicit Codebase Constraint] Go compilation fails on unused imports. [3: Logical Necessity] If both schema.GroupResource literals in this file are eliminated, the schema import becomes unused. [5: Conclusion] Any correct solution that simplifies both GroupResource derivations in this file must also remove the now-unused schema import."
+    }
+  },
+  {
+    "id": "0a7ebd1dec8e38a80576cbfdca8faf5f",
+    "title": "3.3: Removes the unused `k8s.io/apimachinery/pkg/runtime/schema` import from `pkg/services/cleanup/cleanup.go`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the schema import is removed after the refactoring eliminates its only usage in the cleanup service file.",
+      "evidence": "gold.patch line 158: removes the schema import.",
+      "justification": "[2: Implicit Codebase Constraint] Go compilation fails on unused imports. [3: Logical Necessity] If the schema.GroupVersionResource literal is eliminated, the schema import becomes unused. [5: Conclusion] Any correct solution that simplifies the GVR construction in this file must also remove the now-unused schema import."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "c0bcd07f38add2bcd15221fbe4224ddf",
+    "title": "4.1: Removes or renames existing exported functions, methods, types, or constants in any modified file",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Checks that the refactoring does not delete, rename, or change the signature of any exported symbol in the modified files. The prompt asks for an internal simplification of how GVR values are constructed, not a public API change. Exported surface (e.g. GetLegacyStorage, InstallAPIs, CleanUpService fields) must remain intact.",
+      "evidence": "The gold patch changes only local variable assignments and expressions inside existing functions; no exported symbol is added, removed, or renamed.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'preserve backward compatibility, and avoid breaking or renaming any public API or REST contract.' [2: Implicit Codebase Constraint] Other packages import and call these exported symbols; removing or renaming them breaks downstream consumers. [5: Conclusion] Any correct solution must leave all exported functions, methods, types, and constants unchanged."
+    }
+  }
+]

@@ -1,0 +1,254 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+    "title": "1.1: Adds Input struct to textinputs.go with 2 fields: Value (string), IsDefault (bool)",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that an Input struct is added with a Value field (string) for the actual input value and an IsDefault field (bool) indicating whether the value came from the placeholder default rather than user input.",
+      "evidence": "gold.patch lines 38-41: type Input struct { Value string; IsDefault bool }",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states callers need to 'distinguish between a user-provided value and a default value'. [1: Explicit Prompt Requirement] Interface specifies Input struct with Value (string) and IsDefault (bool) fields. [5: Conclusion] Therefore, any correct answer must add an Input struct with these fields."
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+    "title": "1.2: Modifies GetInputs() to return map[string]Input instead of map[string]string",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that GetInputs() method signature is changed to return map[string]Input, allowing callers to access both the value and whether it is a default.",
+      "evidence": "gold.patch lines 43-44: func (m Model) GetInputs() map[string]Input",
+      "justification": "[1: Explicit Prompt Requirement] Interface specifies GetInputs returns map[string]Input. [3: Logical Necessity] To convey default status metadata, the return type must change from simple strings. [5: Conclusion] Therefore, any correct answer must modify GetInputs() to return map[string]Input."
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "title": "1.3: Assigns the field's Placeholder string as Value with IsDefault=true when a required field is empty in GetInputs() in textinputs.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that when a required field is left empty by the user, GetInputs() uses the placeholder as the Value and sets IsDefault to true. For non-required empty fields, Value remains empty and IsDefault is false.",
+      "evidence": "gold.patch lines 48-54: if value == \"\" && m.configs[i].Required { isDefault = true; value = input.Placeholder }",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'enable required fields to fall back to their placeholder values when left empty'. [1: Explicit Prompt Requirement] Interface specifies 'For required fields with empty user input, uses the placeholder as the Value and sets IsDefault to true'. [5: Conclusion] Therefore, any correct answer must implement this fallback logic."
+    }
+  },
+  {
+    "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+    "title": "1.4: Updates SummarizeSource() to accept map[string]textinputs.Input parameter",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that SummarizeSource() function signature is updated to accept map[string]textinputs.Input instead of map[string]string, and accesses values via the .Value field.",
+      "evidence": "gold.patch lines 17-24: func SummarizeSource(keys []string, inputs map[string]textinputs.Input, labels map[string]string) and inputs[key].Value",
+      "justification": "[1: Explicit Prompt Requirement] Interface specifies SummarizeSource input as 'keys []string, inputs map[string]textinputs.Input, labels map[string]string'. [3: Logical Necessity] Changing GetInputs() return type requires updating all consumers. [5: Conclusion] Therefore, any correct answer must update SummarizeSource() signature and implementation."
+    }
+  },
+  {
+    "id": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
+    "title": "1.5: Updates all 10 TUI source files (trufflehog_configure.go, circleci.go, docker.go, filesystem.go, gcs.go, git.go, github.go, gitlab.go, s3.go, syslog.go) to access input values via .Value field",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that all TUI source files that consume GetInputs() are updated to access values via the .Value field of the Input struct (such as inputs[key].Value instead of inputs[key]).",
+      "evidence": "gold.patch updates in: trufflehog_configure.go, circleci.go, docker.go, filesystem.go, gcs.go, git.go, github.go, gitlab.go, s3.go, syslog.go - all change from inputs[key] to inputs[key].Value",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Update all TUI source files that consume GetInputs() to work with the refactored return type'. [3: Logical Necessity] Changing the return type requires updating all call sites. [5: Conclusion] Therefore, any correct answer must update all TUI source files to use .Value accessor."
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+    "title": "1.6: Sets Required: true for GitHub org and repo InputConfig fields",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that in the GitHub source, both org and repo InputConfig fields have Required set to true.",
+      "evidence": "gold.patch lines 251-252 and 260-261: org Required: true and repo Required: true (changed from false)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'For the GitHub source, make both org and repo required fields'. [5: Conclusion] Therefore, any correct answer must set Required: true for both org and repo fields."
+    }
+  },
+  {
+    "id": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
+    "title": "1.7: Adds GetSpecialInputs() method to GitHub source with OR operation handling",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that a GetSpecialInputs() method is added to the GitHub source that handles the OR operation semantics: when exactly one of org/repo is default (IsDefault differs), removes the default one from the map; when both are default or both are user-provided, returns both.",
+      "evidence": "gold.patch lines 269-282: func (m githubCmdModel) GetSpecialInputs() map[string]textinputs.Input with logic to delete the default field when IsDefault values differ",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'add special handling so that when only one field uses its default value, that field is excluded from the command'. [1: Explicit Prompt Requirement] Interface specifies GetSpecialInputs() method with this exact behavior. [5: Conclusion] Therefore, any correct answer must add GetSpecialInputs() with OR operation handling."
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+    "title": "1.8: Updates GCS source key and flag from project_id to project-id in gcs.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the GCS source uses hyphenated format: the key is changed from 'project_id' to 'project-id' and the CLI flag is changed from '--project_id=' to '--project-id='.",
+      "evidence": "gold.patch lines 189-190: Key changed from 'project_id' to 'project-id'; line 205: flag changed to '--project-id='; line 214: keys array uses 'project-id'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'For the GCS source, update the key and flag format to use hyphens (project-id instead of project_id)'. [5: Conclusion] Therefore, any correct answer must change the GCS key and flag to use hyphens."
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+    "title": "1.9: Sets concurrency placeholder to runtime.NumCPU() in trufflehog_configure.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the concurrency field placeholder in TruffleHog configuration uses the system's CPU count (such as via runtime.NumCPU()) instead of a hardcoded value.",
+      "evidence": "gold.patch lines 66 and 75: imports runtime package; Placeholder changed from '1' to strconv.Itoa(runtime.NumCPU())",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'For the TruffleHog configuration, set the concurrency placeholder to use the system's CPU count instead of a hardcoded value'. [5: Conclusion] Therefore, any correct answer must use runtime.NumCPU() or equivalent for the concurrency placeholder."
+    }
+  },
+  {
+    "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+    "title": "1.10: Adds Azure Repos to enterprise sources in source_select.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that Azure Repos is added to the list of enterprise sources in the source selection menu.",
+      "evidence": "gold.patch line 131: EnterpriseItem(\"Azure Repos\", \"Scan Microsoft Azure repositories.\")",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'add Azure Repos to the list of enterprise sources in the source selection menu'. [5: Conclusion] Therefore, any correct answer must add Azure Repos as an enterprise source."
+    }
+  },
+  {
+    "id": "f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6",
+    "title": "1.11: Updates GCS project-id placeholder from 'my-project' to 'trufflehog-testing' in gcs.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the GCS source placeholder value for project-id is changed from 'my-project' to 'trufflehog-testing' to reflect the test project.",
+      "evidence": "gold.patch line 193: Placeholder changed from 'my-project' to 'trufflehog-testing'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'update the project placeholder to \"trufflehog-testing\" to reflect the test project'. [5: Conclusion] Therefore, a good answer should update the GCS placeholder to 'trufflehog-testing'."
+    }
+  },
+  {
+    "id": "f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c7",
+    "title": "1.12: Updates S3 bucket placeholder from 'my-bucket-name' to 'truffletestbucket' in s3.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the S3 source placeholder value for buckets is changed from 'my-bucket-name' to 'truffletestbucket'.",
+      "evidence": "gold.patch line 336: Placeholder changed from 'my-bucket-name' to 'truffletestbucket'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'For the S3 source, update the bucket placeholder to \"truffletestbucket\"'. [5: Conclusion] Therefore, a good answer should update the S3 placeholder to 'truffletestbucket'."
+    }
+  },
+  {
+    "id": "f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c8",
+    "title": "1.13: Adds help hint for Git URI field about file:// protocol",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that a Help field is added to the Git URI InputConfig explaining that file:// can be used for local repos.",
+      "evidence": "gold.patch line 225: Help: 'file:// for local git repos'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'For the Git source, add a help hint for the URI field explaining that file:// can be used for local repos'. [5: Conclusion] Therefore, a good answer should add a help hint for the Git URI field."
+    }
+  },
+  {
+    "id": "f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c9",
+    "title": "1.14: Removes trailing period typo from Git placeholder URL",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the trailing period is removed from the Git URI placeholder, changing 'git@github.com:trufflesecurity/trufflehog.git.' to 'git@github.com:trufflesecurity/trufflehog.git'.",
+      "evidence": "gold.patch line 228: Placeholder changed from 'git@github.com:trufflesecurity/trufflehog.git.' to 'git@github.com:trufflesecurity/trufflehog.git'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'remove the trailing period typo from the placeholder URL'. [5: Conclusion] Therefore, a good answer should remove the trailing period from the Git placeholder URL."
+    }
+  },
+  {
+    "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
+    "title": "3.1: Removes redundant empty-value checks in all 6 source files (circleci.go, filesystem.go, gcs.go, git.go, gitlab.go, syslog.go) for required fields that now have guaranteed values",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that conditional checks for empty values are simplified or removed for required fields, since these fields now have guaranteed non-empty values via placeholder fallback.",
+      "evidence": "gold.patch: circleci.go removes if conditional (lines 143-147); filesystem.go removes if conditional (lines 173-177); gcs.go removes if conditional (lines 201-205); git.go removes if conditional (lines 236-239); gitlab.go removes if conditional (lines 320-323); syslog.go removes if conditional in loop (lines 357-362)",
+      "justification": "[3: Logical Necessity] After the refactoring, required fields have guaranteed non-empty values from placeholder fallback. [4: Qualitative Requirement] Removing redundant checks improves code clarity. [5: Conclusion] Therefore, a good answer should remove redundant empty-value checks for required fields."
+    }
+  },
+  {
+    "id": "c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+    "title": "4.1: Uses GetInputs() instead of GetSpecialInputs() in GitHub Cmd() method",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the GitHub source's Cmd() method calls GetInputs() instead of GetSpecialInputs(), which bypasses the OR operation handling for default fields and includes both org and repo even when only one is user-provided.",
+      "evidence": "gold.patch line 287: Cmd() calls m.GetSpecialInputs() instead of m.GetInputs()",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires special handling so that when only one field uses its default value, that field is excluded. [3: Logical Necessity] Calling GetInputs() instead of GetSpecialInputs() renders the OR logic dead code. [5: Conclusion] Therefore, any correct answer uses GetSpecialInputs() in Cmd()."
+    }
+  },
+  {
+    "id": "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+    "title": "4.2: Applies placeholder fallback to non-required fields in GetInputs() (textinputs.go)",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactoring incorrectly applies placeholder fallback to optional (non-required) fields. The default value fallback should only apply to required fields as specified in the prompt.",
+      "evidence": "gold.patch line 50: Only applies placeholder fallback when m.configs[i].Required is true",
+      "justification": "[1: Explicit Prompt Requirement] The prompt specifically states 'required fields to fall back to their placeholder values'. [3: Logical Necessity] Changing behavior for optional fields would be scope creep and could break existing functionality. [5: Conclusion] Therefore, any correct answer must NOT apply placeholder fallback to non-required fields."
+    }
+  }
+]

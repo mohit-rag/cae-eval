@@ -1,0 +1,206 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "98459126873bef452746e0e5893d890e",
+    "title": "1.1: Refactors Dot11Elt.dispatch_hook() to use generic registered_ies lookup with delegation to Dot11EltVendorSpecific.dispatch_hook in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the base Dot11Elt.dispatch_hook() no longer contains inline vendor-specific OUI logic and instead performs a generic registry lookup, delegating to Dot11EltVendorSpecific.dispatch_hook when the looked-up subclass defines its own.",
+      "evidence": "gold.patch lines 95-101: old dispatch_hook removed inline vendor OUI checks (lines 78-94 deleted) and replaced with generic _id lookup via cls.registered_ies.get(_id, cls), delegation check idcls.dispatch_hook != cls.dispatch_hook, and call to idcls.dispatch_hook(_pkt=_pkt, *args, **kargs).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The base Dot11Elt.dispatch_hook() should become a generic lookup that checks registered_ies for the element ID and delegates to subclass-specific dispatch hooks when they exist, rather than handling vendor logic inline.' [5: Conclusion] Any correct solution must refactor dispatch_hook into a generic lookup with delegation."
+    }
+  },
+  {
+    "id": "d705bd793827941d4e9af984a632e71b",
+    "title": "1.2: Adds Dot11EltVendorSpecific.dispatch_hook classmethod that routes Microsoft OUI (0x0050f2) elements by type in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that vendor-specific OUI routing logic now lives on Dot11EltVendorSpecific as its own dispatch_hook classmethod, handling Microsoft OUI (0x0050f2) type 0x01 routing to Dot11EltMicrosoftWPA.",
+      "evidence": "gold.patch lines 201-219: new dispatch_hook classmethod on Dot11EltVendorSpecific extracts OUI from _pkt[2:5], checks for Microsoft OUI 0x0050f2, and routes type 0x01 to Dot11EltMicrosoftWPA. Interface specifies Dot11EltVendorSpecific.dispatch_hook(cls, _pkt=None, *args, **kargs) class.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The actual vendor OUI routing (Microsoft OUI to WPA, etc.) should live on Dot11EltVendorSpecific itself.' [5: Conclusion] Any correct solution must add a dispatch_hook classmethod to Dot11EltVendorSpecific."
+    }
+  },
+  {
+    "id": "d859c66741a063c78fe227e300e03994",
+    "title": "1.3: Changes Dot11EltMicrosoftWPA to inherit from Dot11EltVendorSpecific instead of Dot11Elt in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the class hierarchy is corrected so Dot11EltMicrosoftWPA is a subclass of Dot11EltVendorSpecific.",
+      "evidence": "gold.patch line 222: class Dot11EltMicrosoftWPA(Dot11EltVendorSpecific) replaces old class Dot11EltMicrosoftWPA(Dot11Elt) at line 146. Interface specifies Dot11EltMicrosoftWPA inherits from Dot11EltVendorSpecific.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Dot11EltMicrosoftWPA should inherit from Dot11EltVendorSpecific instead of Dot11Elt.' [5: Conclusion] Any correct solution must change the parent class of Dot11EltMicrosoftWPA."
+    }
+  },
+  {
+    "id": "e29ae6e4420555ef83ea8322418ca5aa",
+    "title": "1.4: Replaces all 3 duplicated cipher suite field definitions (group_cipher_suite, nb_pairwise_cipher_suites, pairwise_cipher_suites) in Dot11EltMicrosoftWPA with shared ones in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that Dot11EltMicrosoftWPA no longer has its own standalone definitions for the 3 cipher suite fields, instead sharing them with Dot11EltRSN.",
+      "evidence": "gold.patch lines 228-231: Dot11EltMicrosoftWPA.fields_desc is composed from Dot11EltRSN.fields_desc[:2] (which includes version and group_cipher_suite) + [oui, type] + Dot11EltRSN.fields_desc[2:8] (which includes nb_pairwise_cipher_suites and pairwise_cipher_suites). Old class (lines 146-178 deleted) had standalone definitions for all 3.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states Dot11EltMicrosoftWPA should 'share the cipher/AKM field definitions with Dot11EltRSN rather than duplicating them.' [5: Conclusion] Any correct solution must eliminate the duplicated cipher suite field definitions."
+    }
+  },
+  {
+    "id": "9c9e99ca9cd6cd83f1aaf61eede113dc",
+    "title": "1.5: Replaces all 2 duplicated AKM field definitions (nb_akm_suites, akm_suites) in Dot11EltMicrosoftWPA with shared ones in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that Dot11EltMicrosoftWPA no longer has its own standalone definitions for the 2 AKM fields, instead sharing them with Dot11EltRSN.",
+      "evidence": "gold.patch lines 228-231: Dot11EltMicrosoftWPA.fields_desc includes Dot11EltRSN.fields_desc[2:8] which contains nb_akm_suites and akm_suites. Old class (lines 146-178 deleted) had standalone definitions for both.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states Dot11EltMicrosoftWPA should 'share the cipher/AKM field definitions with Dot11EltRSN rather than duplicating them.' [5: Conclusion] Any correct solution must eliminate the duplicated AKM field definitions."
+    }
+  },
+  {
+    "id": "e8471596913bd4030bf18dc0f23e22b5",
+    "title": "1.6: Guards register_variant() to skip registration when the element ID is already in registered_ies in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that register_variant() checks whether the ID is already in registered_ies before writing, preventing Dot11EltVendorSpecific from clobbering the more specific Dot11EltMicrosoftWPA registration.",
+      "evidence": "gold.patch lines 72-73: register_variant now checks 'if cls.ID.default not in cls.registered_ies' before setting cls.registered_ies[cls.ID.default] = cls. Old code (line 71) unconditionally overwrote.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The register_variant() method should be guarded so it doesn't overwrite an existing registration.' [5: Conclusion] Any correct solution must add the guard to register_variant()."
+    }
+  },
+  {
+    "id": "be2743ef136a8e7ad35f258f8fdfaa34",
+    "title": "1.7: Fixes Dot11EltRSN pmkids conditional threshold from '>= 18' to '>= 2' in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the pmkids ConditionalField threshold is corrected so that the PMKID list is parsed when at least 2 bytes remain (the nb_pmkids count field), rather than requiring 18 bytes.",
+      "evidence": "gold.patch lines 119-123: threshold changed from pkt.len - (12 + ... ) >= 18 (lines 117-118 deleted) to pkt.len - (12 + ... ) >= 2.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The RSN element has an incorrect threshold for parsing the PMKID list -- it currently requires 18 bytes remaining but the PMKID list starts with just a 2-byte count field.' [5: Conclusion] Any correct solution must fix the threshold to >= 2."
+    }
+  },
+  {
+    "id": "5495692e7c79c3829bcb2503e6fd3189",
+    "title": "1.8: Adds group_management_cipher_suite ConditionalField to Dot11EltRSN in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a new ConditionalField for the Group Management Cipher Suite is appended to Dot11EltRSN.fields_desc, conditioned on pkt.mfp_capable == 1.",
+      "evidence": "gold.patch lines 126-129: ConditionalField(PacketField('group_management_cipher_suite', RSNCipherSuite(cipher=0x6), RSNCipherSuite), lambda pkt: pkt.mfp_capable == 1) added to fields_desc. Interface specifies Dot11EltRSN.group_management_cipher_suite field.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'a group_management_cipher_suite field should be added that's present when MFP is capable.' [5: Conclusion] Any correct solution must add this ConditionalField."
+    }
+  },
+  {
+    "id": "0a55c2ea2df36b25557e8fc66b15c3c2",
+    "title": "1.9: Standardizes ID fields in all 4 element subclasses (Dot11EltRSN, Dot11EltCountry, Dot11EltRates, Dot11EltVendorSpecific) to use ByteEnumField with _dot11_info_elts_ids in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the ID field in each of the four element subclasses is changed from ByteField to ByteEnumField referencing the _dot11_info_elts_ids dictionary.",
+      "evidence": "gold.patch line 109: Dot11EltRSN ByteEnumField('ID', 48, _dot11_info_elts_ids). Line 138: Dot11EltCountry ByteEnumField('ID', 7, ...). Line 186: Dot11EltRates ByteEnumField('ID', 1, ...). Line 195: Dot11EltVendorSpecific ByteEnumField('ID', 221, ...).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'standardize the ID fields in Dot11EltRSN, Dot11EltCountry, Dot11EltRates, and Dot11EltVendorSpecific to use ByteEnumField with _dot11_info_elts_ids instead of plain ByteField.' [5: Conclusion] Any correct solution must update all four ID fields."
+    }
+  },
+  {
+    "id": "857b34a1da7daac4ad303ce3ba2a062a",
+    "title": "1.10: Fixes vendor label capitalization from \"vendor\" to \"Vendor\" in _dot11_info_elts_ids in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the dictionary entry for element ID 221 is capitalized to match other labels in the dictionary.",
+      "evidence": "gold.patch line 63: 221: 'Vendor' replaces 221: 'vendor' (line 62 deleted).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'fix the capitalization of the vendor label in that dictionary from \"vendor\" to \"Vendor\".' [5: Conclusion] Any correct solution must fix the capitalization."
+    }
+  },
+  {
+    "id": "018758908769b8b44822643df302d505",
+    "title": "1.11: Cleans up scapy.fields import block to use parenthesized multi-line style in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the scapy.fields import is reformatted from backslash-continued lines to a parenthesized multi-line import.",
+      "evidence": "gold.patch lines 16-44: old backslash-continued import (lines 9-15 deleted) replaced with from scapy.fields import ( ... ) using one import per line.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The scapy.fields import block should be cleaned up to use parenthesized multi-line style.' [5: Conclusion] Any correct solution must reformat the import block."
+    }
+  },
+  {
+    "id": "b1711ae51fa7490b79932c4630844d64",
+    "title": "1.12: Removes redundant byte-prefix fallback check for vendor IE (ID 221) in network_stats() in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the p.info.startswith(b'\\x00P\\xf2\\x01\\x01\\x00') fallback in network_stats() is removed, since the two-level dispatch now guarantees WPA elements are always typed as Dot11EltMicrosoftWPA.",
+      "evidence": "gold.patch line 54: isinstance(p, Dot11EltMicrosoftWPA) replaces isinstance(p, Dot11EltMicrosoftWPA) or p.info.startswith(b'\\x00P\\xf2\\x01\\x01\\x00') (lines 52-53 deleted).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the byte-prefix fallback check in network_stats() for ID 221 becomes redundant and can be removed.' [5: Conclusion] Any correct solution must remove the fallback check."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "dbcd9529c268e36e473359ebc2473c80",
+    "title": "4.1: Breaks existing packet parsing behavior for any of the 3 refactored Dot11 element classes (Dot11EltMicrosoftWPA, Dot11EltRSN, Dot11EltVendorSpecific) in scapy/layers/dot11.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Checks whether existing packets that parsed correctly before the refactoring still dispatch to the same classes and dissect into the same field values.",
+      "evidence": "gold.patch preserves all parsing behavior: dispatch still routes ID 221 + MS OUI type 0x01 to Dot11EltMicrosoftWPA, other vendor IEs to Dot11EltVendorSpecific, ID 48 to Dot11EltRSN. Shared RSN fields produce identical WPA dissection. ByteEnumField parses the same byte value as ByteField for the same default.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt describes a structural refactoring of the dispatch and field-sharing architecture -- it does not request any change to packet parsing behavior. [3: Logical Necessity] Breaking parsing would defeat the purpose of a structural refactoring and corrupt packet dissection. [5: Conclusion] Any correct solution must preserve identical parsing behavior."
+    }
+  }
+]

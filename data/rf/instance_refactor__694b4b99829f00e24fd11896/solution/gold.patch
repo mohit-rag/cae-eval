@@ -1,0 +1,974 @@
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index b3565a23..c1a159a5 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -112,6 +112,31 @@ parsed from a string (during a network capture or a PCAP file
+ read). Adding inefficient code here will have a disastrous effect on
+ Scapy's performances.
+ 
++### Logging
++
++Scapy has an internal logging system based on `logging`.
++
++In the past, Scapy was generally too verbose on packet dissection,
++leading many new users to disable all logs, which makes it harder for them
++to find real issues afterwards. You should comply with these guidelines to
++make sure logging in Scapy remains helpful.
++
++-  If you want the log message to only be displayed when using Scapy through
++   the interactive console, use `scapy.error.log_interactive`. You are free to
++   use any log level.
++-  Otherwise, always use `scapy.error.log_runtime`.
++   -  On **packet dissection**, of *packet layers*
++      you should remain **AT OR BELOW the `logging.INFO` level**, unless the
++      issue is critical or tied to security.
++      For instance: "DNS Decompression loop detected !" is allowed as WARNING,
++      but "Could not dissect packet" or "Invalid value detected" are not.
++   -  On **packet build** or **any command** or function that is called by the
++      user or the root program, you are **free and welcomed** to use the WARNING
++      or ERROR levels, to signal that a packet was wrongly built for instance.
++-  If you are working on Scapy's core, you may use: `scapy.error.log_loading`
++   only while Scapy is loading, to display import errors for instance.
++
++
+ ### Python 2 and 3 compatibility
+ 
+ The project aims to provide code that works both on Python 2 and Python 3. Therefore, some rules need to be applied to achieve compatibility:
+diff --git a/doc/scapy/extending.rst b/doc/scapy/extending.rst
+index 41ccb965..abb1f655 100644
+--- a/doc/scapy/extending.rst
++++ b/doc/scapy/extending.rst
+@@ -22,6 +22,25 @@ This first example takes an IP or a name as first parameter, send an ICMP echo r
+     if p:
+         p.show()
+ 
++Configuring Scapy's logger
++--------------------------
++
++Scapy configures a logger automatically using Python's ``logging`` module. This
++logger is custom to support things like colors and frequency filters. By
++default, it is set to ``WARNING`` (when not in interactive mode), but you can
++change that using for instance::
++
++    import logging
++    logging.getLogger("scapy").setLevel(logging.CRITICAL)
++
++To disable almost all logs. (Scapy simply won't work properly if a CRITICAL
++failure occurs)
++
++.. note:: On interactive mode, the default log level is ``INFO``
++
++More examples
++-------------
++
+ This is a more complex example which does an ARP ping and reports what it found with LaTeX formatting::
+ 
+     #! /usr/bin/env python
+@@ -73,7 +92,6 @@ Once you've done that, you can launch Scapy and import your file, but this is st
+     import logging
+     logger = logging.getLogger("scapy")
+     logger.setLevel(logging.INFO)
+-    logger.addHandler(logging.StreamHandler())
+     
+     from scapy.all import *
+     
+diff --git a/scapy/ansmachine.py b/scapy/ansmachine.py
+index 649f9176..9c00ef4f 100644
+--- a/scapy/ansmachine.py
++++ b/scapy/ansmachine.py
+@@ -13,9 +13,12 @@ Answering machines.
+ 
+ from __future__ import absolute_import
+ from __future__ import print_function
+-from scapy.sendrecv import send, sniff
++
++import warnings
++
+ from scapy.config import conf
+-from scapy.error import log_interactive
++from scapy.sendrecv import send, sniff
++
+ import scapy.modules.six as six
+ 
+ 
+@@ -113,7 +116,10 @@ class AnsweringMachine(six.with_metaclass(ReferenceAM, object)):
+             self.print_reply(pkt, reply)
+ 
+     def run(self, *args, **kargs):
+-        log_interactive.warning("run() method deprecated. The instance is now callable")  # noqa: E501
++        warnings.warn(
++            "run() method deprecated. The instance is now callable",
++            DeprecationWarning
++        )
+         self(*args, **kargs)
+ 
+     def __call__(self, *args, **kargs):
+diff --git a/scapy/arch/libpcap.py b/scapy/arch/libpcap.py
+index 8030309e..807cfbde 100644
+--- a/scapy/arch/libpcap.py
++++ b/scapy/arch/libpcap.py
+@@ -19,7 +19,12 @@ from scapy.compat import raw, plain_str
+ from scapy.config import conf
+ from scapy.consts import WINDOWS
+ from scapy.data import MTU, ETH_P_ALL
+-from scapy.error import Scapy_Exception, log_loading, warning
++from scapy.error import (
++    Scapy_Exception,
++    log_loading,
++    log_runtime,
++    warning,
++)
+ from scapy.interfaces import network_name, InterfaceProvider, NetworkInterface
+ from scapy.pton_ntop import inet_ntop
+ from scapy.supersocket import SuperSocket
+@@ -244,7 +249,7 @@ if conf.use_pcap:
+                 pcap_set_promisc(self.pcap, promisc)
+                 pcap_set_timeout(self.pcap, to_ms)
+                 if pcap_set_rfmon(self.pcap, 1) != 0:
+-                    warning("Could not set monitor mode")
++                    log_runtime.error("Could not set monitor mode")
+                 if pcap_activate(self.pcap) != 0:
+                     raise OSError("Could not activate the pcap handler")
+             else:
+@@ -289,7 +294,7 @@ if conf.use_pcap:
+ 
+         def fileno(self):
+             if WINDOWS:
+-                log_loading.error("Cannot get selectable PCAP fd on Windows")
++                log_runtime.error("Cannot get selectable PCAP fd on Windows")
+                 return -1
+             else:
+                 # This does not exist under Windows
+@@ -298,11 +303,11 @@ if conf.use_pcap:
+         def setfilter(self, f):
+             filter_exp = create_string_buffer(f.encode("utf8"))
+             if pcap_compile(self.pcap, byref(self.bpf_program), filter_exp, 0, -1) == -1:  # noqa: E501
+-                log_loading.error("Could not compile filter expression %s", f)
++                log_runtime.error("Could not compile filter expression %s", f)
+                 return False
+             else:
+                 if pcap_setfilter(self.pcap, byref(self.bpf_program)) == -1:
+-                    log_loading.error("Could not install filter %s", f)
++                    log_runtime.error("Could not set filter %s", f)
+                     return False
+             return True
+ 
+diff --git a/scapy/arch/linux.py b/scapy/arch/linux.py
+index 53744cdc..0b12c209 100644
+--- a/scapy/arch/linux.py
++++ b/scapy/arch/linux.py
+@@ -24,17 +24,23 @@ from scapy.compat import raw, plain_str
+ from scapy.consts import LINUX
+ import scapy.utils
+ import scapy.utils6
+-from scapy.packet import Packet, Padding
++from scapy.arch.common import get_if, compile_filter, _iff_flags
+ from scapy.config import conf
+ from scapy.data import MTU, ETH_P_ALL, SOL_PACKET, SO_ATTACH_FILTER, \
+     SO_TIMESTAMPNS
++from scapy.error import (
++    ScapyInvalidPlatformException,
++    Scapy_Exception,
++    log_loading,
++    log_runtime,
++    warning,
++)
+ from scapy.interfaces import IFACES, InterfaceProvider, NetworkInterface, \
+     network_name
+-from scapy.supersocket import SuperSocket
++from scapy.packet import Packet, Padding
+ from scapy.pton_ntop import inet_ntop
+-from scapy.error import warning, Scapy_Exception, \
+-    ScapyInvalidPlatformException, log_runtime
+-from scapy.arch.common import get_if, compile_filter, _iff_flags
++from scapy.supersocket import SuperSocket
++
+ import scapy.modules.six as six
+ from scapy.modules.six.moves import range
+ 
+@@ -116,7 +122,7 @@ def _get_if_list():
+             f.close()
+         except Exception:
+             pass
+-        warning("Can't open /proc/net/dev !")
++        log_loading.critical("Can't open /proc/net/dev !")
+         return []
+     lst = []
+     f.readline()
+@@ -204,7 +210,7 @@ def read_routes():
+     try:
+         f = open("/proc/net/route", "rb")
+     except IOError:
+-        warning("Can't open /proc/net/route !")
++        log_loading.critical("Can't open /proc/net/route !")
+         return []
+     routes = []
+     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+@@ -436,7 +442,7 @@ class L2Socket(SuperSocket):
+                 try:
+                     attach_filter(self.ins, filter, iface)
+                 except ImportError as ex:
+-                    warning("Cannot set filter: %s" % ex)
++                    log_runtime.error("Cannot set filter: %s" % ex)
+         if self.promisc:
+             set_promisc(self.ins, self.iface)
+         self.ins.bind((self.iface, type))
+diff --git a/scapy/arch/unix.py b/scapy/arch/unix.py
+index 13949126..3d289c02 100644
+--- a/scapy/arch/unix.py
++++ b/scapy/arch/unix.py
+@@ -15,7 +15,7 @@ import scapy.utils
+ from scapy.arch import get_if_addr
+ from scapy.config import conf
+ from scapy.consts import FREEBSD, NETBSD, OPENBSD, SOLARIS
+-from scapy.error import warning, log_interactive
++from scapy.error import log_runtime, warning
+ from scapy.pton_ntop import inet_pton
+ from scapy.utils6 import in6_getscope, construct_source_candidate_set
+ from scapy.utils6 import in6_isvalid, in6_ismlladdr, in6_ismnladdr
+@@ -119,7 +119,10 @@ def read_routes():
+                         ifaddr = get_if_addr(guessed_netif)
+                         routes.append((dest, netmask, gw, guessed_netif, ifaddr, metric))  # noqa: E501
+                     else:
+-                        warning("Could not guess partial interface name: %s", netif)  # noqa: E501
++                        log_runtime.info(
++                            "Could not guess partial interface name: %s",
++                            netif
++                        )
+                 else:
+                     raise
+         else:
+@@ -161,7 +164,7 @@ def _in6_getifaddr(ifname):
+     try:
+         f = os.popen("%s %s" % (conf.prog.ifconfig, ifname))
+     except OSError:
+-        log_interactive.warning("Failed to execute ifconfig.")
++        log_runtime.warning("Failed to execute ifconfig.")
+         return []
+ 
+     # Iterate over lines and extract IPv6 addresses
+@@ -207,7 +210,7 @@ def in6_getifaddr():
+         try:
+             f = os.popen(cmd % conf.prog.ifconfig)
+         except OSError:
+-            log_interactive.warning("Failed to execute ifconfig.")
++            log_runtime.warning("Failed to execute ifconfig.")
+             return []
+ 
+         # Get the list of network interfaces
+@@ -221,7 +224,7 @@ def in6_getifaddr():
+         try:
+             f = os.popen("%s -l" % conf.prog.ifconfig)
+         except OSError:
+-            log_interactive.warning("Failed to execute ifconfig.")
++            log_runtime.warning("Failed to execute ifconfig.")
+             return []
+ 
+         # Get the list of network interfaces
+diff --git a/scapy/arch/windows/__init__.py b/scapy/arch/windows/__init__.py
+index f9f73c1e..7c3399dd 100755
+--- a/scapy/arch/windows/__init__.py
++++ b/scapy/arch/windows/__init__.py
+@@ -23,7 +23,13 @@ from scapy.arch.windows.structures import _windows_title, \
+     get_service_status
+ from scapy.consts import WINDOWS, WINDOWS_XP
+ from scapy.config import conf, ConfClass
+-from scapy.error import Scapy_Exception, log_loading, log_runtime, warning
++from scapy.error import (
++    Scapy_Exception,
++    log_interactive,
++    log_loading,
++    log_runtime,
++    warning,
++)
+ from scapy.interfaces import NetworkInterface, InterfaceProvider, \
+     dev_from_index, resolve_iface, network_name
+ from scapy.pton_ntop import inet_ntop, inet_pton
+@@ -219,7 +225,10 @@ if conf.prog.tcpdump and conf.use_npcap:
+             return False
+     windump_ok = test_windump_npcap()
+     if not windump_ok:
+-        warning("The installed Windump version does not work with Npcap ! Refer to 'Winpcap/Npcap conflicts' in scapy's doc")  # noqa: E501
++        log_loading.warning(
++            "The installed Windump version does not work with Npcap! "
++            "Refer to 'Winpcap/Npcap conflicts' in scapy's installation doc"
++        )
+     del windump_ok
+ 
+ 
+@@ -535,7 +544,7 @@ class WindowsInterfacesProvider(InterfaceProvider):
+             # No action needed
+             return
+         else:
+-            warning(
++            log_interactive.warning(
+                 "Scapy has detected that your pcap service is not running !"
+             )
+             if not conf.interactive or _ask_user():
+@@ -543,11 +552,12 @@ class WindowsInterfacesProvider(InterfaceProvider):
+                 if succeed:
+                     log_loading.info("Pcap service started !")
+                     return
+-        warning("Could not start the pcap service ! "
+-                "You probably won't be able to send packets. "
+-                "Deactivating unneeded interfaces and restarting "
+-                "Scapy might help. Check your winpcap/npcap installation "
+-                "and access rights.")
++        log_loading.warning(
++            "Could not start the pcap service! "
++            "You probably won't be able to send packets. "
++            "Check your winpcap/npcap installation "
++            "and access rights."
++        )
+ 
+     def load(self, NetworkInterface_Win=NetworkInterface_Win):
+         results = {}
+@@ -681,7 +691,7 @@ if conf.use_pcap:
+         iface_network_name = iface.network_name
+         if not iface:
+             raise Scapy_Exception(
+-                "Interface is invalid (no pcap match found) !"
++                "Interface is invalid (no pcap match found)!"
+             )
+         # Only check monitor mode when manually specified.
+         # Checking/setting for monitor mode will slow down the process, and the
+@@ -784,10 +794,7 @@ def read_routes():
+         else:
+             routes = _read_routes_c(ipv6=False)
+     except Exception as e:
+-        warning("Error building scapy IPv4 routing table : %s", e)
+-    else:
+-        if not routes:
+-            warning("No default IPv4 routes found. Your Windows release may no be supported and you have to enter your routes manually")  # noqa: E501
++        log_loading.warning("Error building scapy IPv4 routing table : %s", e)
+     return routes
+ 
+ 
+@@ -835,14 +842,14 @@ def read_routes6():
+     try:
+         routes6 = _read_routes_c(ipv6=True)
+     except Exception as e:
+-        warning("Error building scapy IPv6 routing table : %s", e)
++        log_loading.warning("Error building scapy IPv6 routing table : %s", e)
+     return routes6
+ 
+ 
+ def _route_add_loopback(routes=None, ipv6=False, iflist=None):
+     """Add a route to 127.0.0.1 and ::1 to simplify unit tests on Windows"""
+     if not WINDOWS:
+-        warning("Not available")
++        warning("Calling _route_add_loopback is only valid on Windows")
+         return
+     warning("This will completely mess up the routes. Testing purpose only !")
+     # Add only if some adpaters already exist
+diff --git a/scapy/automaton.py b/scapy/automaton.py
+index 91ebed52..f48863a4 100644
+--- a/scapy/automaton.py
++++ b/scapy/automaton.py
+@@ -8,16 +8,18 @@
+ Automata with states, transitions and actions.
+ """
+ 
+-from __future__ import absolute_import
+-import types
+ import itertools
+-import time
++import logging
+ import os
+ import sys
++import threading
++import time
+ import traceback
++import types
++
+ from select import select
+ from collections import deque
+-import threading
++
+ from scapy.config import conf
+ from scapy.utils import do_graph
+ from scapy.error import log_runtime, warning
+@@ -590,6 +592,8 @@ class Automaton_metaclass(type):
+ class Automaton(six.with_metaclass(Automaton_metaclass)):
+     def parse_args(self, debug=0, store=1, **kargs):
+         self.debug_level = debug
++        if debug:
++            conf.logLevel = logging.DEBUG
+         self.socket_kargs = kargs
+         self.store_packets = store
+ 
+diff --git a/scapy/config.py b/scapy/config.py
+index 9afeddf5..ccd579bc 100755
+--- a/scapy/config.py
++++ b/scapy/config.py
+@@ -9,13 +9,14 @@ Implementation of the configuration object.
+ 
+ from __future__ import absolute_import
+ from __future__ import print_function
++import atexit
+ import functools
+ import os
+ import re
+-import time
+ import socket
+ import sys
+-import atexit
++import time
++import warnings
+ 
+ from scapy import VERSION, base_classes
+ from scapy.consts import DARWIN, WINDOWS, LINUX, BSD, SOLARIS
+@@ -713,7 +714,10 @@ class Conf(ConfClass):
+             from scapy.data import TCP_SERVICES
+             return TCP_SERVICES
+         if attr == "iface6":
+-            warning("conf.iface6 is deprecated in favor of conf.iface")
++            warnings.warn(
++                "conf.iface6 is deprecated in favor of conf.iface",
++                DeprecationWarning
++            )
+             attr = "iface"
+         return object.__getattribute__(self, attr)
+ 
+diff --git a/scapy/consts.py b/scapy/consts.py
+index 9b046e4d..ebb1e160 100644
+--- a/scapy/consts.py
++++ b/scapy/consts.py
+@@ -3,6 +3,10 @@
+ # Copyright (C) Philippe Biondi <phil@secdev.org>
+ # This program is published under a GPLv2 license
+ 
++"""
++This file contains constants
++"""
++
+ from sys import platform, maxsize
+ import platform as platform_lib
+ 
+diff --git a/scapy/error.py b/scapy/error.py
+index 63600821..43412947 100644
+--- a/scapy/error.py
++++ b/scapy/error.py
+@@ -16,6 +16,8 @@ import logging
+ import traceback
+ import time
+ 
++from scapy.consts import WINDOWS
++
+ 
+ class Scapy_Exception(Exception):
+     pass
+@@ -36,6 +38,9 @@ class ScapyFreqFilter(logging.Filter):
+ 
+     def filter(self, record):
+         from scapy.config import conf
++        # Levels below INFO are not covered
++        if record.levelno <= logging.INFO:
++            return True
+         wt = conf.warning_threshold
+         if wt > 0:
+             stk = traceback.extract_stack()
+@@ -55,12 +60,11 @@ class ScapyFreqFilter(logging.Filter):
+                     if nb == 2:
+                         record.msg = "more " + record.msg
+                 else:
+-                    return 0
++                    return False
+             self.warning_table[caller] = (tm, nb)
+-        return 1
++        return True
+ 
+ 
+-# Inspired from python-colorbg (MIT)
+ class ScapyColoredFormatter(logging.Formatter):
+     """A subclass of logging.Formatter that handles colors."""
+     levels_colored = {
+@@ -81,9 +85,29 @@ class ScapyColoredFormatter(logging.Formatter):
+         return message
+ 
+ 
++if WINDOWS:
++    # colorama is bundled within IPython, but
++    # logging.StreamHandler will be overwritten when called,
++    # so we can't wait for IPython to call it
++    try:
++        import colorama
++        colorama.init()
++    except ImportError:
++        pass
++
++# get Scapy's master logger
+ log_scapy = logging.getLogger("scapy")
+-log_scapy.setLevel(logging.WARNING)
+-log_scapy.addHandler(logging.NullHandler())
++# override the level if not already set
++if log_scapy.level == logging.NOTSET:
++    log_scapy.setLevel(logging.WARNING)
++# add a custom handler controlled by Scapy's config
++_handler = logging.StreamHandler()
++_handler.setFormatter(
++    ScapyColoredFormatter(
++        "%(levelname)s: %(message)s",
++    )
++)
++log_scapy.addHandler(_handler)
+ # logs at runtime
+ log_runtime = logging.getLogger("scapy.runtime")
+ log_runtime.addFilter(ScapyFreqFilter())
+diff --git a/scapy/fields.py b/scapy/fields.py
+index db85b695..a7ce25d9 100644
+--- a/scapy/fields.py
++++ b/scapy/fields.py
+@@ -17,10 +17,11 @@ import inspect
+ import socket
+ import struct
+ import time
++import warnings
++
+ from types import MethodType
+ from uuid import UUID
+ 
+-
+ from scapy.config import conf
+ from scapy.dadict import DADict
+ from scapy.volatile import RandBin, RandByte, RandEnumKeys, RandInt, \
+@@ -2111,7 +2112,10 @@ class FlagValue(object):
+     __bool__ = __nonzero__
+ 
+     def flagrepr(self):
+-        warning("obj.flagrepr() is obsolete. Use str(obj) instead.")
++        warnings.warn(
++            "obj.flagrepr() is obsolete. Use str(obj) instead.",
++            DeprecationWarning
++        )
+         return str(self)
+ 
+     def __str__(self):
+diff --git a/scapy/layers/dns.py b/scapy/layers/dns.py
+index fd8bd4e7..dbd08316 100755
+--- a/scapy/layers/dns.py
++++ b/scapy/layers/dns.py
+@@ -10,6 +10,7 @@ DNS: Domain Name System.
+ from __future__ import absolute_import
+ import struct
+ import time
++import warnings
+ 
+ from scapy.config import conf
+ from scapy.packet import Packet, bind_layers, NoPayload
+@@ -22,7 +23,7 @@ from scapy.ansmachine import AnsweringMachine
+ from scapy.sendrecv import sr1
+ from scapy.layers.inet import IP, DestIPField, IPField, UDP, TCP
+ from scapy.layers.inet6 import DestIP6Field, IP6Field
+-from scapy.error import warning, Scapy_Exception
++from scapy.error import log_runtime, warning, Scapy_Exception
+ import scapy.modules.six as six
+ from scapy.modules.six.moves import range
+ 
+@@ -55,8 +56,12 @@ def dns_get_str(s, pointer=0, pkt=None, _fullpacket=False):
+     bytes_left = None
+     while True:
+         if abs(pointer) >= max_length:
+-            warning("DNS RR prematured end (ofs=%i, len=%i)" % (pointer,
+-                                                                len(s)))
++            log_runtime.info(
++                "DNS RR prematured end (ofs=%i, len=%i)" % (
++                    pointer,
++                    len(s)
++                )
++            )
+             break
+         cur = orb(s[pointer])  # get pointer value
+         pointer += 1  # make pointer go forward
+@@ -66,7 +71,9 @@ def dns_get_str(s, pointer=0, pkt=None, _fullpacket=False):
+                 # as pointer will follow the jump token
+                 after_pointer = pointer + 1
+             if pointer >= max_length:
+-                warning("DNS incomplete jump token at (ofs=%i)" % pointer)
++                log_runtime.info(
++                    "DNS incomplete jump token at (ofs=%i)" % pointer
++                )
+                 break
+             # Follow the pointer
+             pointer = ((cur & ~0xc0) << 8) + orb(s[pointer]) - 12
+@@ -127,7 +134,10 @@ def dns_encode(x, check_built=False):
+ 
+ def DNSgetstr(*args, **kwargs):
+     """Legacy function. Deprecated"""
+-    warning("DNSgetstr deprecated. Use dns_get_str instead")
++    warnings.warn(
++        "DNSgetstr is deprecated. Use dns_get_str instead.",
++        DeprecationWarning
++    )
+     return dns_get_str(*args, **kwargs)
+ 
+ 
+@@ -313,7 +323,7 @@ class DNSRRField(StrField):
+         ret = None
+         c = getattr(pkt, self.countfld)
+         if c > len(s):
+-            warning("wrong value: DNS.%s=%i", self.countfld, c)
++            log_runtime.info("DNS wrong value: DNS.%s=%i", self.countfld, c)
+             return s, b""
+         while c:
+             c -= 1
+@@ -353,7 +363,10 @@ class DNSTextField(StrLenField):
+         while tmp_s:
+             tmp_len = orb(tmp_s[0]) + 1
+             if tmp_len > len(tmp_s):
+-                warning("DNS RR TXT prematured end of character-string (size=%i, remaining bytes=%i)" % (tmp_len, len(tmp_s)))  # noqa: E501
++                log_runtime.info(
++                    "DNS RR TXT prematured end of character-string "
++                    "(size=%i, remaining bytes=%i)" % (tmp_len, len(tmp_s))
++                )
+             ret_s.append(tmp_s[1:tmp_len])
+             tmp_s = tmp_s[tmp_len:]
+         return ret_s
+@@ -448,13 +461,13 @@ class DNS(Packet):
+                 dns_len = struct.unpack("!H", s[:2])[0]
+             else:
+                 message = "Malformed DNS message: too small!"
+-                warning(message)
++                log_runtime.info(message)
+                 raise Scapy_Exception(message)
+ 
+             # Check if the length is valid
+             if dns_len < 14 or len(s) < dns_len:
+                 message = "Malformed DNS message: invalid length!"
+-                warning(message)
++                log_runtime.info(message)
+                 raise Scapy_Exception(message)
+ 
+         return s
+@@ -545,7 +558,7 @@ def bitmap2RRlist(bitmap):
+     while bitmap:
+ 
+         if len(bitmap) < 2:
+-            warning("bitmap too short (%i)" % len(bitmap))
++            log_runtime.info("bitmap too short (%i)" % len(bitmap))
+             return
+ 
+         window_block = orb(bitmap[0])  # window number
+@@ -553,7 +566,7 @@ def bitmap2RRlist(bitmap):
+         bitmap_len = orb(bitmap[1])  # length of the bitmap in bytes
+ 
+         if bitmap_len <= 0 or bitmap_len > 32:
+-            warning("bitmap length is no valid (%i)" % bitmap_len)
++            log_runtime.info("bitmap length is no valid (%i)" % bitmap_len)
+             return
+ 
+         tmp_bitmap = bitmap[2:2 + bitmap_len]
+diff --git a/scapy/layers/inet.py b/scapy/layers/inet.py
+index 20f2299d..cfa1055a 100644
+--- a/scapy/layers/inet.py
++++ b/scapy/layers/inet.py
+@@ -38,7 +38,7 @@ from scapy.volatile import RandShort, RandInt, RandBin, RandNum, VolatileValue
+ from scapy.sendrecv import sr, sr1
+ from scapy.plist import PacketList, SndRcvList
+ from scapy.automaton import Automaton, ATMT
+-from scapy.error import warning
++from scapy.error import log_runtime, warning
+ from scapy.pton_ntop import inet_pton
+ 
+ import scapy.as_resolvers
+@@ -346,7 +346,9 @@ class TCPOptionsField(StrField):
+     def getfield(self, pkt, s):
+         opsz = (pkt.dataofs - 5) * 4
+         if opsz < 0:
+-            warning("bad dataofs (%i). Assuming dataofs=5" % pkt.dataofs)
++            log_runtime.info(
++                "bad dataofs (%i). Assuming dataofs=5" % pkt.dataofs
++            )
+             opsz = 0
+         return s[opsz:], self.m2i(pkt, s[:opsz])
+ 
+@@ -366,7 +368,9 @@ class TCPOptionsField(StrField):
+             except IndexError:
+                 olen = 0
+             if olen < 2:
+-                warning("Malformed TCP option (announced length is %i)" % olen)
++                log_runtime.info(
++                    "Malformed TCP option (announced length is %i)" % olen
++                )
+                 olen = 2
+             oval = x[2:olen]
+             if onum in TCPOptions[0]:
+@@ -411,7 +415,7 @@ class TCPOptionsField(StrField):
+                             oval = (oval,)
+                         oval = struct.pack(ofmt, *oval)
+                 else:
+-                    warning("option [%s] unknown. Skipped.", oname)
++                    warning("Option [%s] unknown. Skipped.", oname)
+                     continue
+             else:
+                 onum = oname
+@@ -419,7 +423,7 @@ class TCPOptionsField(StrField):
+                     warning("Invalid option number [%i]" % onum)
+                     continue
+                 if not isinstance(oval, (bytes, str)):
+-                    warning("option [%i] is not bytes." % onum)
++                    warning("Option [%i] is not bytes." % onum)
+                     continue
+             if isinstance(oval, str):
+                 oval = bytes_encode(oval)
+@@ -666,7 +670,9 @@ class TCP(Packet):
+                 ck = scapy.layers.inet6.in6_chksum(socket.IPPROTO_TCP, self.underlayer, p)  # noqa: E501
+                 p = p[:16] + struct.pack("!H", ck) + p[18:]
+             else:
+-                warning("No IP underlayer to compute checksum. Leaving null.")
++                log_runtime.info(
++                    "No IP underlayer to compute checksum. Leaving null."
++                )
+         return p
+ 
+     def hashret(self):
+@@ -742,7 +748,9 @@ class UDP(Packet):
+                     ck = 0xFFFF
+                 p = p[:6] + struct.pack("!H", ck) + p[8:]
+             else:
+-                warning("No IP underlayer to compute checksum. Leaving null.")
++                log_runtime.info(
++                    "No IP underlayer to compute checksum. Leaving null."
++                )
+         return p
+ 
+     def extract_padding(self, s):
+@@ -1408,30 +1416,41 @@ Touch screen: pinch/extend to zoom, swipe or two-finger rotate."""
+             import geoip2.database
+             import geoip2.errors
+         except ImportError:
+-            warning("Cannot import geoip2. Won't be able to plot the world.")
++            log_runtime.error(
++                "Cannot import geoip2. Won't be able to plot the world."
++            )
+             return []
+         # Check availability of database
+         if not conf.geoip_city:
+-            warning("Cannot import the geolite2 CITY database.\n"
+-                    "Download it from http://dev.maxmind.com/geoip/geoip2/geolite2/"  # noqa: E501
+-                    " then set its path to conf.geoip_city")
++            log_runtime.error(
++                "Cannot import the geolite2 CITY database.\n"
++                "Download it from http://dev.maxmind.com/geoip/geoip2/geolite2/"  # noqa: E501
++                " then set its path to conf.geoip_city"
++            )
+             return []
+         # Check availability of plotting devices
+         try:
+             import cartopy.crs as ccrs
+         except ImportError:
+-            warning("Cannot import cartopy.\n"
+-                    "More infos on http://scitools.org.uk/cartopy/docs/latest/installing.html")  # noqa: E501
++            log_runtime.error(
++                "Cannot import cartopy.\n"
++                "More infos on http://scitools.org.uk/cartopy/docs/latest/installing.html"  # noqa: E501
++            )
+             return []
+         if not MATPLOTLIB:
+-            warning("Matplotlib is not installed. Won't be able to plot the world.")  # noqa: E501
++            log_runtime.error(
++                "Matplotlib is not installed. Won't be able to plot the world."
++            )
+             return []
+ 
+         # Open & read the GeoListIP2 database
+         try:
+             db = geoip2.database.Reader(conf.geoip_city)
+         except Exception:
+-            warning("Cannot open geoip2 database at %s", conf.geoip_city)
++            log_runtime.error(
++                "Cannot open geoip2 database at %s",
++                conf.geoip_city
++            )
+             return []
+ 
+         # Regroup results per trace
+diff --git a/scapy/layers/inet6.py b/scapy/layers/inet6.py
+index b4279b8e..cc68b62e 100644
+--- a/scapy/layers/inet6.py
++++ b/scapy/layers/inet6.py
+@@ -39,7 +39,7 @@ from scapy.compat import chb, orb, raw, plain_str, bytes_encode
+ from scapy.config import conf
+ from scapy.data import DLT_IPV6, DLT_RAW, DLT_RAW_ALT, ETHER_ANY, ETH_P_IPV6, \
+     MTU
+-from scapy.error import warning
++from scapy.error import log_runtime, warning
+ from scapy.fields import BitEnumField, BitField, ByteEnumField, ByteField, \
+     DestIP6Field, FieldLenField, FlagsField, IntField, IP6Field, \
+     LongField, MACField, PacketLenField, PacketListField, ShortEnumField, \
+@@ -317,7 +317,7 @@ class IPv6(_IPv6GuessPayload, Packet, IPTools):
+                 idx += 1
+ 
+             if jumbo_len is None:
+-                warning("Scapy did not find a Jumbo option")
++                log_runtime.info("Scapy did not find a Jumbo option")
+                 jumbo_len = 0
+ 
+             tmp_len = hbh_len + jumbo_len
+diff --git a/scapy/main.py b/scapy/main.py
+index 0cc1b1ef..6b0bd27e 100644
+--- a/scapy/main.py
++++ b/scapy/main.py
+@@ -25,8 +25,11 @@ from random import choice
+ 
+ # Never add any global import, in main.py, that would trigger a
+ # warning message before the console handlers gets added in interact()
+-from scapy.error import log_interactive, log_loading, log_scapy, \
+-    Scapy_Exception, ScapyColoredFormatter
++from scapy.error import (
++    log_interactive,
++    log_loading,
++    Scapy_Exception,
++)
+ import scapy.modules.six as six
+ from scapy.themes import DefaultTheme, BlackAndWhite, apply_ipython_style
+ from scapy.consts import WINDOWS
+@@ -482,34 +485,13 @@ to be used in the fancy prompt.
+ 
+ def interact(mydict=None, argv=None, mybanner=None, loglevel=logging.INFO):
+     # type: (Optional[Any], Optional[Any], Optional[Any], int) -> None
+-    """Starts Scapy's console."""
+-    try:
+-        if WINDOWS:
+-            # colorama is bundled within IPython.
+-            # logging.StreamHandler will be overwritten when called,
+-            # We can't wait for IPython to call it
+-            import colorama
+-            colorama.init()
+-        # Success
+-        console_handler = logging.StreamHandler()
+-        console_handler.setFormatter(
+-            ScapyColoredFormatter(
+-                "%(levelname)s: %(message)s",
+-            )
+-        )
+-    except ImportError:
+-        # Failure: ignore colors in the logger
+-        console_handler = logging.StreamHandler()
+-        console_handler.setFormatter(
+-            logging.Formatter(
+-                "%(levelname)s: %(message)s",
+-            )
+-        )
+-    log_scapy.addHandler(console_handler)
+-
++    """
++    Starts Scapy's console.
++    """
+     # We're in interactive mode, let's throw the DeprecationWarnings
+     warnings.simplefilter("always")
+ 
++    # Set interactive mode, load the color scheme
+     from scapy.config import conf
+     conf.interactive = True
+     conf.color_theme = DefaultTheme()
+diff --git a/scapy/pipetool.py b/scapy/pipetool.py
+index 401667b3..29a29674 100644
+--- a/scapy/pipetool.py
++++ b/scapy/pipetool.py
+@@ -13,7 +13,7 @@ from threading import Lock, Thread
+ 
+ from scapy.automaton import Message, select_objects, SelectableObject
+ from scapy.consts import WINDOWS
+-from scapy.error import log_interactive, warning
++from scapy.error import log_runtime, warning
+ from scapy.config import conf
+ from scapy.utils import get_temp_file, do_graph
+ 
+@@ -108,7 +108,7 @@ class PipeEngine(SelectableObject):
+         return pl
+ 
+     def run(self):
+-        log_interactive.info("Pipe engine thread started.")
++        log_runtime.debug("Pipe engine thread started.")
+         try:
+             for p in self.active_pipes:
+                 p.start()
+@@ -136,7 +136,7 @@ class PipeEngine(SelectableObject):
+                         try:
+                             fd.deliver()
+                         except Exception as e:
+-                            log_interactive.exception("piping from %s failed: %s" % (fd.name, e))  # noqa: E501
++                            log_runtime.exception("piping from %s failed: %s" % (fd.name, e))  # noqa: E501
+                         else:
+                             if fd.exhausted():
+                                 exhausted.add(fd)
+@@ -149,7 +149,7 @@ class PipeEngine(SelectableObject):
+                     p.stop()
+             finally:
+                 self.thread_lock.release()
+-                log_interactive.info("Pipe engine thread stopped.")
++                log_runtime.debug("Pipe engine thread stopped.")
+ 
+     def start(self):
+         if self.thread_lock.acquire(0):
+@@ -158,7 +158,7 @@ class PipeEngine(SelectableObject):
+             _t.start()
+             self.thread = _t
+         else:
+-            warning("Pipe engine already running")
++            log_runtime.debug("Pipe engine already running")
+ 
+     def wait_and_stop(self):
+         self.stop(_cmd="B")
+@@ -174,7 +174,7 @@ class PipeEngine(SelectableObject):
+                     except Exception:
+                         pass
+                 else:
+-                    warning("Pipe engine thread not running")
++                    log_runtime.debug("Pipe engine thread not running")
+         except KeyboardInterrupt:
+             print("Interrupted by user.")
+ 
+diff --git a/scapy/plist.py b/scapy/plist.py
+index d50d3f6b..445f4f72 100644
+--- a/scapy/plist.py
++++ b/scapy/plist.py
+@@ -182,10 +182,6 @@ class PacketList(BasePacketList, _CanvasDumpExtended):
+             else:
+                 print(prn(*res))
+ 
+-    def display(self):  # Deprecated. Use show()
+-        """deprecated. is show()"""
+-        self.show()
+-
+     def show(self, *args, **kargs):
+         # type: (Any, Any) -> None
+         """Best way to display the packet list. Defaults to nsummary() method"""  # noqa: E501
+diff --git a/scapy/route.py b/scapy/route.py
+index 3e8031f7..4b6b98ff 100644
+--- a/scapy/route.py
++++ b/scapy/route.py
+@@ -82,7 +82,7 @@ class Route:
+             i = self.routes.index(route)
+             del(self.routes[i])
+         except ValueError:
+-            warning("no matching route found")
++            raise ValueError("No matching route found!")
+ 
+     def ifchange(self, iff, addr):
+         self.invalidate_cache()
+diff --git a/scapy/utils.py b/scapy/utils.py
+index 5b792347..a9bef03f 100644
+--- a/scapy/utils.py
++++ b/scapy/utils.py
+@@ -24,6 +24,7 @@ import array
+ import subprocess
+ import tempfile
+ import threading
++import warnings
+ 
+ import scapy.modules.six as six
+ from scapy.modules.six.moves import range, input, zip_longest
+@@ -693,7 +694,10 @@ def do_graph(graph, prog=None, format=None, target=None, type=None,
+     if string:
+         return graph
+     if type is not None:
+-        warning("type is deprecated, and was renamed format")
++        warnings.warn(
++            "type is deprecated, and was renamed format",
++            DeprecationWarning
++        )
+         format = type
+     if prog is None:
+         prog = conf.prog.dot

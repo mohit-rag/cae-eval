@@ -1,0 +1,326 @@
+[
+  {
+    "id": "a0000000000000000000000000000001",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Code Maintainability",
+      "description": "Evaluates all important refactors that isolate struct rrdhost_system_info behind an opaque API and consolidate scattered logic into a self-contained module.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000101",
+    "title": "1.1: Creates rrdhost-system-info.h header under src/database/ with an opaque struct type",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A new header file src/database/rrdhost-system-info.h exists that declares the system info public API. External translation units see only a forward declaration of struct rrdhost_system_info, not the full field layout.",
+      "evidence": "gold.patch creates src/database/rrdhost-system-info.h (new file, +99 lines) with the struct guarded behind #ifdef RRDHOST_SYSTEM_INFO_INTERNALS, exposing only a forward declaration to external consumers.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to isolate struct rrdhost_system_info into its own self-contained module under src/database/ with a proper opaque API, hidden from external code. [2: Implicit Code Base Constraint] The existing struct definition in rrd.h is visible to all consumers, preventing encapsulation. [5: Conclusion] A dedicated header with an opaque type is the essential deliverable."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000102",
+    "title": "1.2: Implements rrdhost_system_info_create() for allocating a new system info struct",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_create(void) exists that returns a struct rrdhost_system_info *, replacing scattered manual allocation calls at each creation site.",
+      "evidence": "gold.patch adds rrdhost_system_info_create(void) in rrdhost-system-info.c. Callers in main.c, sqlite_aclk.c, stream-receiver-connection.c, and buildinfo.c are updated from callocz(1, sizeof(struct rrdhost_system_info)) to rrdhost_system_info_create().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to consolidate lifecycle management into the new module. [2: Implicit Code Base Constraint] The codebase currently allocates this struct manually with callocz at multiple call sites, each duplicating the same allocation pattern. [5: Conclusion] A centralized allocation function ensures consistent initialization and tracks statistics in one place."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000103",
+    "title": "1.3: Provides rrdhost_system_info_hops() getter returning int16_t",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_hops(struct rrdhost_system_info *si) exists that returns the streaming hops value as int16_t, replacing direct reads of host->system_info->hops.",
+      "evidence": "gold.patch adds rrdhost_system_info_hops() in rrdhost-system-info.c and updates call sites in aclk.c (4 sites), aclk_rx_msgs.c (1), rrdfunctions.c (1), rrdhost-status.c (1), stream-connector.c (1), sqlite_metadata.c (1), api_v1_info.c (1).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks that every direct field access go through accessor functions. [2: Implicit Code Base Constraint] The hops field is read from aclk, streaming, sqlite, rrdfunctions, rrdhost-status, and the web API, making it the most widely accessed field. [5: Conclusion] A getter for hops is essential because it is the field accessed from the most external call sites."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000104",
+    "title": "1.4: Provides rrdhost_system_info_hops_set() setter accepting int16_t",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_hops_set(struct rrdhost_system_info *si, int16_t hops) exists that sets the streaming hops value, replacing direct assignments to system_info->hops.",
+      "evidence": "gold.patch adds rrdhost_system_info_hops_set() in rrdhost-system-info.c. Call sites in sqlite_aclk.c and stream-receiver-connection.c are updated from system_info->hops = X to rrdhost_system_info_hops_set(system_info, X).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks that every direct field access go through accessor functions. [3: Logical Necessity] If the struct is opaque, external code cannot write to the hops field without a setter. The codebase currently assigns hops in stream-receiver-connection.c and sqlite_aclk.c. [5: Conclusion] A setter completes the accessor pair for the most commonly mutated field."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000105",
+    "title": "1.5: Implements rrdhost_system_info_set_by_name() for environment variable field parsing",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_set_by_name(struct rrdhost_system_info *system_info, char *name, char *value) exists that maps NETDATA_ environment variable names to struct fields. Returns 0 on success or 1 for unrecognized names.",
+      "evidence": "gold.patch adds rrdhost_system_info_set_by_name() in rrdhost-system-info.c (+135 lines of name mapping logic) and removes rrdhost_set_system_info_variable() from rrdhost.c. Callers in stream-receiver-connection.c and sqlite_metadata.c are updated.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies environment variable parsing in rrdhost.c as scattered logic to consolidate. [2: Implicit Code Base Constraint] stream-receiver-connection.c and the system detection routine both parse key=value pairs into struct fields using this pattern. [5: Conclusion] A name-based setter centralizes all field mutation logic for environment variable sourced data."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000150",
+    "title": "1.6: Provides rrdhost_system_info_install_type() and rrdhost_system_info_prebuilt_dist() read accessors",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Functions rrdhost_system_info_install_type(struct rrdhost_system_info *si) returning const char * and rrdhost_system_info_prebuilt_dist(struct rrdhost_system_info *si) returning const char * exist, replacing direct reads of the install_type and prebuilt_dist fields.",
+      "evidence": "gold.patch adds these getters in rrdhost-system-info.c. analytics.c is updated to call rrdhost_system_info_install_type() and rrdhost_system_info_prebuilt_dist() instead of accessing system_info->install_type and system_info->prebuilt_dist directly.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks that every direct field access go through accessor functions. [2: Implicit Code Base Constraint] analytics.c reads install_type and prebuilt_dist for telemetry reporting. With an opaque struct these reads require getters. [5: Conclusion] Read accessors for install_type and prebuilt_dist complete the analytics accessor migration."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000151",
+    "title": "1.7: Provides rrdhost_system_info_ml_capable_set(), rrdhost_system_info_ml_enabled_set(), and rrdhost_system_info_mc_version_set() setters",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Setter functions exist for ml_capable (bool), ml_enabled (bool), and mc_version (int) fields, replacing direct assignments like system_info->ml_capable = X in rrdhost.c and stream-receiver-connection.c.",
+      "evidence": "gold.patch adds rrdhost_system_info_ml_capable_set(), rrdhost_system_info_ml_enabled_set(), and rrdhost_system_info_mc_version_set() in rrdhost-system-info.c. rrdhost.c and stream-receiver-connection.c are updated to use these setters.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks that every direct field access go through accessor functions. [3: Logical Necessity] rrdhost.c sets ml_capable, ml_enabled, and mc_version during host creation. stream-receiver-connection.c sets them during streaming handshake parsing. With an opaque struct these writes require setters. [5: Conclusion] These setters complete the accessor migration for the ML and metric correlation fields."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000106",
+    "title": "1.8: Consolidates v1 info endpoint JSON output into rrdhost_system_info_to_json_v1()",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_to_json_v1(BUFFER *wb, struct rrdhost_system_info *system_info) exists that writes all system info fields as flat JSON members into a buffer for the v1 info endpoint.",
+      "evidence": "gold.patch adds rrdhost_system_info_to_json_v1() in rrdhost-system-info.c and replaces ~30 lines of inline buffer_json_member_add_string calls in api_v1_info.c with a single call to rrdhost_system_info_to_json_v1().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies api_v1_info.c manually writing every field to JSON as scattered logic to consolidate. [3: Logical Necessity] With an opaque struct, the v1 endpoint cannot read fields directly for serialization. [5: Conclusion] A dedicated JSON function eliminates the inline serialization and enforces encapsulation."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000107",
+    "title": "1.9: Consolidates v2 contexts endpoint JSON output into rrdhost_system_info_to_json_v2()",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_to_json_v2(BUFFER *wb, struct rrdhost_system_info *system_info) exists that writes system info as nested JSON with hw and os groupings for the v2 contexts endpoint.",
+      "evidence": "gold.patch adds rrdhost_system_info_to_json_v2() in rrdhost-system-info.c and replaces ~25 lines of inline buffer_json_member_add calls in api_v2_contexts.c with a single call to rrdhost_system_info_to_json_v2().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies api_v2_contexts.c doing the same inline JSON serialization for its v2 format. [4: Qualitative Requirement] Both v1 and v2 endpoints manually enumerate system info fields. Consolidating each into its own function reduces duplication. [5: Conclusion] A dedicated v2 JSON function encapsulates the nested hw/os structure within the module."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000108",
+    "title": "1.10: Consolidates streaming handshake encoding into rrdhost_system_info_to_url_encode_stream()",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_to_url_encode_stream(BUFFER *wb, struct rrdhost_system_info *system_info) exists that appends all system info fields as URL encoded key/value pairs to the buffer for the streaming handshake.",
+      "evidence": "gold.patch adds rrdhost_system_info_to_url_encode_stream() in rrdhost-system-info.c and replaces ~30 lines of inline buffer_key_value_urlencode/buffer_sprintf calls in stream-connector.c with a single call.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies stream-connector.c manually URL encoding every field for the streaming handshake. [3: Logical Necessity] With an opaque struct, the streaming connector cannot enumerate fields for encoding. [5: Conclusion] A dedicated stream encoding function centralizes the handshake serialization within the module."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000109",
+    "title": "1.11: Consolidates system info to label export into rrdhost_system_info_to_rrdlabels()",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_to_rrdlabels(struct rrdhost_system_info *system_info, RRDLABELS *labels) exists that exports system info fields to host rrdlabels using standard label key names (such as _os_name, _architecture).",
+      "evidence": "gold.patch adds rrdhost_system_info_to_rrdlabels() in rrdhost-system-info.c and replaces ~20 lines of inline rrdlabels_add calls in rrdhost_load_auto_labels() in rrdhost.c with a single call.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies label conversion in rrdhost.c as scattered logic to consolidate. [3: Logical Necessity] With an opaque struct, code outside the module cannot iterate over fields to build labels. [5: Conclusion] A dedicated label export function centralizes the mapping from system info fields to rrdlabel keys."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000110",
+    "title": "1.12: Implements rrdhost_system_info_from_host_labels() for creating system info from labels",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_from_host_labels(RRDLABELS *labels) exists that creates and returns a populated system info struct from host rrdlabels.",
+      "evidence": "gold.patch adds rrdhost_system_info_from_host_labels() in rrdhost-system-info.c and removes rrdhost_labels_to_system_info() from rrdhost.c. pluginsd_parser.c is updated to call the new function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies label conversion as scattered logic. [2: Implicit Code Base Constraint] pluginsd_parser.c creates system info from host labels when defining virtual hosts. This is the reverse direction of rrdhost_system_info_to_rrdlabels and must also live in the module. [5: Conclusion] A dedicated label import function completes the bidirectional label conversion within the module."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000111",
+    "title": "1.13: Consolidates sqlite key/value persistence into rrdhost_system_info_foreach()",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_foreach(struct rrdhost_system_info *system_info, add_host_sysinfo_key_value_t cb, nd_uuid_t *uuid) exists that iterates over all system info key/value pairs via a callback, returning the sum of callback return values.",
+      "evidence": "gold.patch adds rrdhost_system_info_foreach() in rrdhost-system-info.c and replaces ~24 lines of inline add_host_sysinfo_key_value calls in store_host_systeminfo() in sqlite_metadata.c with a single foreach call.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies sqlite_metadata.c manually iterating over every field for storage. [3: Logical Necessity] With an opaque struct, sqlite cannot enumerate fields directly. A callback iterator pattern allows persistence without exposing internals. [5: Conclusion] A foreach function encapsulates the field enumeration within the module."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000112",
+    "title": "1.14: Consolidates ACLK node info population into rrdhost_system_info_to_node_info()",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_to_node_info(struct rrdhost_system_info *system_info, struct update_node_info *node_info) exists that populates node info data fields (such as os, kernel, architecture, cpus, memory, disk space, virtualization, container, and ML info) from system info.",
+      "evidence": "gold.patch adds rrdhost_system_info_to_node_info() in rrdhost-system-info.c and replaces ~14 lines of inline node_info.data.* assignments in build_node_info() in sqlite_aclk_node.c with a single call.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies sqlite_aclk_node.c manually copying fields into a node info struct. [3: Logical Necessity] With an opaque struct, the ACLK module cannot read system info fields to populate node info. [5: Conclusion] A dedicated mapping function keeps the ACLK serialization within the system info module."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000113",
+    "title": "1.15: Moves system detection logic into rrdhost_system_info_detect()",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A function rrdhost_system_info_detect(struct rrdhost_system_info *system_info) exists that populates the system info struct by detecting the current system's properties.",
+      "evidence": "gold.patch adds rrdhost_system_info_detect() in rrdhost-system-info.c (+43 lines) and removes get_system_info() (~50 lines) from main.c. main.c is updated to call rrdhost_system_info_detect() instead.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies the system detection routine that runs system-info.sh as living in main.c, away from the struct it populates. [4: Qualitative Requirement] Detection logic belongs in the module that owns the struct, not in the main daemon entry point. [5: Conclusion] Moving detection into the module makes the system info lifecycle fully self-contained."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000114",
+    "title": "1.16: Simplifies get_install_type() to accept struct rrdhost_system_info * directly",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The get_install_type() function in buildinfo.h accepts a struct rrdhost_system_info * parameter instead of three separate char ** output pointers.",
+      "evidence": "gold.patch changes the declaration in buildinfo.h from get_install_type(char **, char **, char **) to get_install_type(struct rrdhost_system_info *). The old signature is renamed to get_install_type_internal() and wrapped by the new function in buildinfo.c.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies get_install_type in buildinfo.c as having an awkward signature that forces callers to pass individual field pointers. [3: Logical Necessity] With an opaque struct, callers cannot extract individual field pointers to pass. The function must accept the struct itself. [5: Conclusion] Simplifying the signature is a direct consequence of the opacity requirement."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000115",
+    "title": "1.17: Promotes buffer_key_value_urlencode() to a shared header",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The buffer_key_value_urlencode(BUFFER *wb, const char *key, const char *value) function is available from a shared header (such as buffer.h), so the streaming code and the new system info module can each use it without duplication.",
+      "evidence": "gold.patch adds buffer_key_value_urlencode() as a static inline in src/libnetdata/buffer/buffer.h (+12 lines) and removes the static copy from stream-connector.c (-11 lines).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to promote static utility helpers that the new module needs from other files, specifically naming the URL encoding helper currently private to the stream connector. [3: Logical Necessity] The new system info URL stream encoding function needs this helper, but a static function in another translation unit is not accessible. [5: Conclusion] Promoting the helper to a shared header avoids code duplication."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000116",
+    "title": "1.18: Replaces all 24 direct struct field accesses in external consumers with accessor function calls, including rrdhost_system_info_hops() in aclk.c (6 sites), aclk_rx_msgs.c (1 site), rrdfunctions.c (1 site), rrdhost-status.c (1 site), stream-connector.c (1 site), sqlite_metadata.c (2 sites), api_v1_info.c (1 site), rrdhost_system_info_hops_set() in sqlite_aclk.c (1 site) and stream-receiver-connection.c (2 sites), rrdhost_system_info_ml_capable_set/ml_enabled_set/mc_version_set in rrdhost.c (3 sites) and stream-receiver-connection.c (3 sites), rrdhost_system_info_install_type/prebuilt_dist in analytics.c (2 sites) ...",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "All 24 individual direct field access call sites outside the system info module are updated to use the public accessor functions. The 24 replacements span 11 files: rrdhost_system_info_hops() in aclk.c (6), aclk_rx_msgs.c (1), rrdfunctions.c (1), rrdhost-status.c (1), stream-connector.c (1), sqlite_metadata.c (2), api_v1_info.c (1); rrdhost_system_info_hops_set() in sqlite_aclk.c (1) and stream-receiver-connection.c (2); rrdhost_system_info_ml_capable_set/ml_enabled_set/mc_version_set in rrdhost.c (3) and stream-receiver-connection.c (3); rrdhost_system_info_install_type/prebuilt_dist in analytics.c (2). Code inside the module implementation itself is permitted to access fields directly.",
+      "evidence": "Gold patch updates all 24 external direct field accesses across aclk.c, aclk_rx_msgs.c, analytics.c, rrdfunctions.c, rrdhost.c, rrdhost-status.c, stream-connector.c, stream-receiver-connection.c, sqlite_aclk.c, sqlite_metadata.c, and api_v1_info.c to use accessor functions. Internal code in rrdhost-system-info.c and buildinfo.c (which defines RRDHOST_SYSTEM_INFO_INTERNALS) retains direct field access by design.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks that every direct field access across the codebase go through accessor functions. [2: Implicit Code Base Constraint] The opaque struct pattern requires that only the module implementation accesses fields directly, while all external consumers use the public API. [5: Conclusion] Updating all 24 external call sites completes the encapsulation. Internal direct access within the module is expected and correct."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000117",
+    "title": "1.19: Updates CMakeLists.txt to include new system info module files in the build",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "CMakeLists.txt is updated to register the new system info source and header files so they are compiled as part of the netdata build.",
+      "evidence": "gold.patch adds src/database/rrdhost-system-info.c and src/database/rrdhost-system-info.h to the RRD_PLUGIN_FILES set in CMakeLists.txt.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to update CMakeLists.txt for the new files. [3: Logical Necessity] Without adding the files to the build system, the new module would not be compiled and linking would fail. [5: Conclusion] Build registration is necessary for the refactoring to produce a working binary."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000002",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "Documentation Maintainability",
+      "description": "Evaluates important documentation updates for code base alignment after the refactoring.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000003",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "Artifact Cleanup",
+      "description": "Evaluates removal of obsolete code that is superseded by the new system info module.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000301",
+    "title": "3.1: Removes the full struct rrdhost_system_info definition from rrd.h",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "The full struct definition with all field declarations is removed from src/database/rrd.h, since the struct now lives in the dedicated system info header.",
+      "evidence": "gold.patch removes the ~41 line struct rrdhost_system_info definition and related declarations (rrdhost_labels_to_system_info, rrdhost_set_system_info_variable, rrdhost_system_info_free) from rrd.h.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks that the struct definition be hidden from external code. [3: Logical Necessity] If the full definition remains in rrd.h (which is widely included), any translation unit could still access fields directly, defeating the opaque API. [5: Conclusion] Removing the definition from rrd.h enforces the opacity contract."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000004",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Negative Rubrics",
+      "description": "Captures harmful practices introduced during refactoring, including regressions and constraint violations.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000401",
+    "title": "4.1: Introduces circular header dependency between rrdhost-system-info.h and rrd.h",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "The new rrdhost-system-info.h header includes rrd.h (or a header that includes rrd.h) while rrd.h also includes rrdhost-system-info.h, creating a circular include dependency that causes compilation failures or requires fragile include ordering.",
+      "evidence": "gold.patch has rrdhost-system-info.h include libnetdata/libnetdata.h and rrdlabels.h (which itself is changed to include libnetdata.h instead of rrd.h). rrd.h includes the new header. This avoids any circular path.",
+      "justification": "[2: Implicit Code Base Constraint] rrd.h is the central database header included by most netdata subsystems. If the new system info header and rrd.h include each other, the build will fail with incomplete type errors depending on include order. [5: Conclusion] Circular header dependencies are a common agent mistake when extracting a new module from a large header, especially when the new module needs types (such as RRDLABELS) that were previously available through rrd.h."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000402",
+    "title": "4.2: Removes rrdhost_system_info_free() from the public API without replacement",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "The rrdhost_system_info_free() function is dropped or not declared in the new header, leaving callers unable to free system info structs and causing memory leaks.",
+      "evidence": "gold.patch moves rrdhost_system_info_free() from rrdhost.c to the new module and declares it in rrdhost-system-info.h. The function existed in the old API and must remain available.",
+      "justification": "[2: Implicit Code Base Constraint] rrdhost_system_info_free() is called from rrdhost_free___while_having_rrd_wrlock() and rrdhost_find_or_create() to clean up system info when hosts are destroyed. Removing it without replacement causes memory leaks for every host lifecycle. [5: Conclusion] Dropping an existing destructor function during a refactoring is a realistic agent mistake that introduces resource leaks without compilation errors."
+    }
+  },
+  {
+    "id": "a0000000000000000000000000000403",
+    "title": "4.3: Changes the key names in the URL encoded streaming handshake parameters",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "The consolidated streaming URL encoding function produces different key names (such as renaming NETDATA_SYSTEM_OS_NAME or ml_capable) compared to the original inline encoding in stream-connector.c, breaking the streaming protocol.",
+      "evidence": "gold.patch preserves the exact key names from stream-connector.c in rrdhost_system_info_to_url_encode_stream(), including ml_capable, ml_enabled, mc_version, and all NETDATA_ prefixed keys.",
+      "justification": "[2: Implicit Code Base Constraint] The streaming handshake URL parameters are parsed by remote netdata nodes using exact key name matching. Renaming keys during consolidation (such as changing NETDATA_SYSTEM_OS_NAME to NETDATA_HOST_OS_NAME) would break parent-child node communication. [5: Conclusion] Key name changes during serialization consolidation are a realistic agent mistake that introduces silent protocol incompatibility."
+    }
+  }
+]

@@ -1,0 +1,165 @@
+diff --git a/apps/dashboard/pkg/apis/dashboard/v0alpha1/types_removal_test.go b/apps/dashboard/pkg/apis/dashboard/v0alpha1/types_removal_test.go
+new file mode 100644
+index 0000000..1234567
+--- /dev/null
++++ b/apps/dashboard/pkg/apis/dashboard/v0alpha1/types_removal_test.go
+@@ -0,0 +1,159 @@
++package v0alpha1
++
++import (
++	"reflect"
++	"testing"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++	"k8s.io/apimachinery/pkg/runtime"
++	"k8s.io/apimachinery/pkg/runtime/schema"
++	"k8s.io/kube-openapi/pkg/validation/spec"
++)
++
++func TestRemovedTypesNotInScheme(t *testing.T) {
++	scheme := runtime.NewScheme()
++	err := AddToScheme(scheme)
++	require.NoError(t, err, "AddToScheme should not return an error")
++
++	gvk := schema.GroupVersionKind{
++		Group:   GROUP,
++		Version: VERSION,
++	}
++
++	t.Run("DashboardVersionList should not be registered", func(t *testing.T) {
++		gvk.Kind = "DashboardVersionList"
++		_, err := scheme.New(gvk)
++		require.Error(t, err, "DashboardVersionList should not be registered in scheme")
++		assert.Contains(t, err.Error(), "no kind", "Error should indicate kind is not registered")
++	})
++
++	t.Run("DashboardVersionInfo should not be a registered type", func(t *testing.T) {
++		allTypes := scheme.AllKnownTypes()
++		for gvk := range allTypes {
++			assert.NotEqual(t, "DashboardVersionInfo", gvk.Kind,
++				"DashboardVersionInfo should not be registered in scheme")
++		}
++	})
++
++	t.Run("VersionsQueryOptions should not be registered", func(t *testing.T) {
++		gvk.Kind = "VersionsQueryOptions"
++		_, err := scheme.New(gvk)
++		require.Error(t, err, "VersionsQueryOptions should not be registered in scheme")
++		assert.Contains(t, err.Error(), "no kind", "Error should indicate kind is not registered")
++	})
++}
++
++func TestExpectedTypesStillRegistered(t *testing.T) {
++	scheme := runtime.NewScheme()
++	err := AddToScheme(scheme)
++	require.NoError(t, err, "AddToScheme should not return an error")
++
++	gvk := schema.GroupVersionKind{
++		Group:   GROUP,
++		Version: VERSION,
++	}
++
++	expectedTypes := []string{
++		"Dashboard",
++		"DashboardList",
++		"DashboardWithAccessInfo",
++		"LibraryPanel",
++		"LibraryPanelList",
++		"SearchResults",
++		"SortableFields",
++	}
++
++	for _, kind := range expectedTypes {
++		t.Run(kind+" should still be registered", func(t *testing.T) {
++			gvk.Kind = kind
++			obj, err := scheme.New(gvk)
++			assert.NoError(t, err, "%s should be registered in scheme", kind)
++			assert.NotNil(t, obj, "%s object should not be nil", kind)
++		})
++	}
++}
++
++func TestOpenAPIDefinitionsExcludeRemovedTypes(t *testing.T) {
++	defs := GetOpenAPIDefinitions(func(path string) spec.Ref { return spec.Ref{} })
++
++	removedTypes := []string{
++		"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.DashboardVersionInfo",
++		"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.DashboardVersionList",
++		"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.VersionsQueryOptions",
++	}
++
++	for _, typeName := range removedTypes {
++		t.Run("OpenAPI should not contain "+typeName, func(t *testing.T) {
++			_, exists := defs[typeName]
++			assert.False(t, exists, "OpenAPI definitions should not contain %s", typeName)
++		})
++	}
++}
++
++func TestOpenAPIDefinitionsContainExpectedTypes(t *testing.T) {
++	defs := GetOpenAPIDefinitions(func(path string) spec.Ref { return spec.Ref{} })
++
++	expectedTypes := []string{
++		"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.Dashboard",
++		"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.DashboardList",
++		"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.DashboardWithAccessInfo",
++		"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.LibraryPanel",
++		"github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.LibraryPanelList",
++	}
++
++	for _, typeName := range expectedTypes {
++		t.Run("OpenAPI should contain "+typeName, func(t *testing.T) {
++			_, exists := defs[typeName]
++			assert.True(t, exists, "OpenAPI definitions should contain %s", typeName)
++		})
++	}
++}
++
++func TestRemovedTypesNotExported(t *testing.T) {
++	pkg := reflect.TypeOf(Dashboard{}).PkgPath()
++
++	t.Run("Package path should be correct", func(t *testing.T) {
++		assert.Contains(t, pkg, "dashboard/v0alpha1",
++			"Package path should contain dashboard/v0alpha1")
++	})
++
++	t.Run("Dashboard type should exist", func(t *testing.T) {
++		dashType := reflect.TypeOf(Dashboard{})
++		assert.NotNil(t, dashType, "Dashboard type should exist")
++		assert.Equal(t, "Dashboard", dashType.Name())
++	})
++
++	t.Run("LibraryPanel type should exist", func(t *testing.T) {
++		lpType := reflect.TypeOf(LibraryPanel{})
++		assert.NotNil(t, lpType, "LibraryPanel type should exist")
++		assert.Equal(t, "LibraryPanel", lpType.Name())
++	})
++}
++
++func TestSchemeRegistrationCount(t *testing.T) {
++	scheme := runtime.NewScheme()
++	err := AddToScheme(scheme)
++	require.NoError(t, err)
++
++	allTypes := scheme.AllKnownTypes()
++	v0alpha1Types := make(map[schema.GroupVersionKind]reflect.Type)
++
++	for gvk, typ := range allTypes {
++		if gvk.Group == GROUP && gvk.Version == VERSION {
++			v0alpha1Types[gvk] = typ
++		}
++	}
++
++	t.Run("Should have expected number of registered types", func(t *testing.T) {
++		assert.GreaterOrEqual(t, len(v0alpha1Types), 7,
++			"Should have at least 7 types registered (Dashboard, DashboardList, DashboardWithAccessInfo, LibraryPanel, LibraryPanelList, SearchResults, SortableFields)")
++	})
++
++	t.Run("Should not have removed types", func(t *testing.T) {
++		for gvk := range v0alpha1Types {
++			assert.NotEqual(t, "DashboardVersionList", gvk.Kind)
++			assert.NotEqual(t, "VersionsQueryOptions", gvk.Kind)
++		}
++	})
++}

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "2604f2ed44316f89fad0e02732139cc0",
+    "title": "1.1: Adds Zod `.transform()` calls in `schema.ts` that convert raw PEP 508 dependency strings into `PackageDependency` objects during schema validation, replacing the removed `DependencyListSchema` and `DependencyRecordSchema`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The PyProjectSchema in schema.ts must transform raw PEP 508 dependency strings into PackageDependency objects during schema validation, so that the parsed PyProject contains resolved dependency objects instead of raw string arrays.",
+      "evidence": "gold.patch lines 345-514 show schema.ts replacing DependencyListSchema and DependencyRecordSchema with Zod transforms that call pep508ToPackageDependency to produce PackageDependency objects during parsing.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'move dependency parsing into the Zod schema layer' and 'the schema should handle PEP 508 parsing during validation so that consumers of the parsed PyProject receive resolved dependency objects directly.' [5: Conclusion] Therefore, any correct answer must integrate PEP 508 parsing into the Zod schema definitions.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "eeaf4543d8d2c25b792acef6509b7aa2",
+    "title": "1.2: Exports `parsePyProject()` function from `extract.ts` with signature `(content: string, packageFile?: string) => PyProject | null`",
+    "annotations": {
+      "importance": "must have",
+      "description": "An exported function named parsePyProject must exist in lib/modules/manager/pep621/extract.ts that accepts content as a required first parameter and packageFile as an optional second parameter, and returns PyProject | null.",
+      "evidence": "gold.patch lines 47-61 show the new exported parsePyProject function in extract.ts with the signature (content: string, packageFile?: string): PyProject | null.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'relocate parsePyProject from utils.ts to extract.ts.' The interface specifies the exact signature: Input: content: string, packageFile?: string, Output: PyProject | null. [5: Conclusion] Therefore, any correct answer must export parsePyProject from extract.ts with this signature.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "cd8fa8c101d9b074db15a3d0df4a46fb",
+    "title": "1.3: Removes all calls to and the import of `parseDependencyList` from both processors that use it (hatch.ts and uv.ts)",
+    "annotations": {
+      "importance": "must have",
+      "description": "hatch.ts and uv.ts must no longer call parseDependencyList, instead consuming already-parsed PackageDependency arrays from the schema output.",
+      "evidence": "gold.patch lines 155-196 show hatch.ts reading pyproject.tool?.hatch?.deps directly instead of calling parseDependencyList. Lines 284-340 show uv.ts reading uv['dev-dependencies'] directly instead of calling parseDependencyList.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Simplify the processors ... to work with the already-parsed data from the schema.' [5: Conclusion] Therefore, hatch.ts and uv.ts must no longer call parseDependencyList.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "30322813ad60a1751bc37ad04f1f092a",
+    "title": "1.4: Removes all calls to and the import of `parseDependencyGroupRecord` from `pdm.ts`",
+    "annotations": {
+      "importance": "must have",
+      "description": "pdm.ts must no longer call parseDependencyGroupRecord, instead consuming already-parsed PackageDependency arrays from the schema output.",
+      "evidence": "gold.patch lines 197-283 show pdm.ts reading pdm['dev-dependencies'] directly instead of calling parseDependencyGroupRecord.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Simplify the processors ... to work with the already-parsed data from the schema.' [5: Conclusion] Therefore, pdm.ts must no longer call parseDependencyGroupRecord.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "0c3dff4828e6a1d20e15796ad2f5744c",
+    "title": "1.5: Replaces the `is.nullOrUndefined(def)` check with an idiomatic nullish check in `extract.ts`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The single is.nullOrUndefined(def) call in extract.ts must be replaced with an idiomatic nullish check (e.g., !def or def == null).",
+      "evidence": "gold.patch line 74 in extract.ts replaces is.nullOrUndefined(def) with !def.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Replace is.nullOrUndefined(...) checks with idiomatic nullish checks throughout the affected files.' [5: Conclusion] Therefore, the is.nullOrUndefined(def) call in extract.ts must be replaced.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "60fc9e31c5f24bd6ec21efcf78ae6412",
+    "title": "1.6: Replaces all 7 `is.nullOrUndefined(...)` checks with idiomatic nullish checks only in `pdm.ts` (pdm, pdmSource, project.tool?.pdm, existingLockFileContent, dep.managerData?.depGroup twice, packagesByCMD[commandPrefix])",
+    "annotations": {
+      "importance": "must have",
+      "description": "All 7 is.nullOrUndefined(...) calls in pdm.ts must be replaced with idiomatic nullish checks (e.g., !value or == null).",
+      "evidence": "gold.patch lines 220 (pdm), 235 (pdmSource), 244 (project.tool?.pdm), 253 (existingLockFileContent), 262 (dep.managerData?.depGroup), 271 (dep.managerData?.depGroup), 280 (packagesByCMD[commandPrefix]) in pdm.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Replace is.nullOrUndefined(...) checks with idiomatic nullish checks throughout the affected files.' [5: Conclusion] Therefore, all 7 is.nullOrUndefined calls in pdm.ts must be replaced.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "524626370f4daa081f8b21f990f2d359",
+    "title": "1.7: Replaces all 3 `is.nullOrUndefined(...)` checks with idiomatic nullish checks in `uv.ts` (uv, existingLockFileContent, uv_indexes)",
+    "annotations": {
+      "importance": "must have",
+      "description": "All 3 is.nullOrUndefined(...) calls in uv.ts must be replaced with idiomatic nullish checks (e.g., !value or == null).",
+      "evidence": "gold.patch lines 302 (uv), 328 (existingLockFileContent), 337 (uv_indexes) in uv.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Replace is.nullOrUndefined(...) checks with idiomatic nullish checks throughout the affected files.' [5: Conclusion] Therefore, all 3 is.nullOrUndefined calls in uv.ts must be replaced.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "102c0d23c061fecad513de8683d8e991",
+    "title": "1.8: Adds `.catch()` to all 16 schema fields in `schema.ts` for graceful error recovery (project, build-system, dependency-groups, tool, requires-python, dependencies, optional-dependencies, pixi, pdm, hatch, uv, version, build-backend, build-system.requires, PdmSchema.dev-dependencies, UvSchema.dev-dependencies)",
+    "annotations": {
+      "importance": "must have",
+      "description": "The PyProjectSchema and its sub-schemas must use .catch() on their top-level sections and leaf fields so that a malformed section does not prevent parsing the rest of the pyproject file. The 16 fields are: project, build-system, dependency-groups, tool, requires-python, dependencies, optional-dependencies, pixi, pdm, hatch, uv, version, build-backend, build-system.requires, PdmSchema.dev-dependencies, and UvSchema.dev-dependencies.",
+      "evidence": "gold.patch shows .catch() added throughout schema.ts: PdmSchema dev-dependencies (.catch([])), HatchSchema (.catch({ envs: {} })), UvSchema dev-dependencies (.catch([])), and PyProjectSchema fields (lines 462-514) including requires-python, dependencies, optional-dependencies, project section, requires, build-backend, build-system section, dependency-groups, pixi, pdm, hatch, uv, and tool section.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The schema should use .catch() for graceful error recovery so that a malformed section doesn't prevent parsing the rest of the pyproject file.' [2: Scope] Only these 16 enumerated fields are evaluated for .catch(). Other schema fields (e.g., uv.required-version, uv.sources, uv.index, pdm.source) are NOT part of this criterion. Pass if all 16 listed fields have .catch() with any appropriate default value. [5: Conclusion] Therefore, any correct answer must add .catch() to all 16 schema fields.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "88817f9dc91aa0853e6c9d4ef3078f10",
+    "title": "1.9: Removes both calls to `parseDependencyList` from `extractPackageFile()` in `extract.ts` (for project.dependencies and build-system.requires)",
+    "annotations": {
+      "importance": "must have",
+      "description": "extractPackageFile must no longer call parseDependencyList for project.dependencies or build-system.requires, instead spreading the pre-parsed arrays directly.",
+      "evidence": "gold.patch lines 65-154 show extractPackageFile removing parseDependencyList calls and instead directly spreading def.project?.dependencies and def['build-system']?.requires.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Simplify ... extract.ts to work with the already-parsed data from the schema.' [5: Conclusion] Therefore, extractPackageFile must no longer call parseDependencyList.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d384e093f2f709c6e45cb3d98799977e",
+    "title": "1.10: Removes both calls to `parseDependencyGroupRecord` from `extractPackageFile()` in `extract.ts` (for dependency-groups and optional-dependencies)",
+    "annotations": {
+      "importance": "must have",
+      "description": "extractPackageFile must no longer call parseDependencyGroupRecord for dependency-groups or project.optional-dependencies, instead spreading the pre-parsed arrays directly.",
+      "evidence": "gold.patch lines 65-154 show extractPackageFile removing parseDependencyGroupRecord calls and instead directly spreading def['dependency-groups'] and def.project?.['optional-dependencies'].",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Simplify ... extract.ts to work with the already-parsed data from the schema.' [5: Conclusion] Therefore, extractPackageFile must no longer call parseDependencyGroupRecord.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "f3165d6f1171735b8a282478d0f9d7ba",
+    "title": "3.1: Removes all 3 obsolete functions (parseDependencyList, parseDependencyGroupRecord, and parsePyProject) from `utils.ts`",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "The three functions parseDependencyList, parseDependencyGroupRecord, and parsePyProject must be removed from lib/modules/manager/pep621/utils.ts since their responsibilities have been moved elsewhere.",
+      "evidence": "gold.patch lines 540-594 show deletion of parseDependencyGroupRecord, parseDependencyList, and parsePyProject from utils.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Remove the now-unnecessary parseDependencyList, parseDependencyGroupRecord, and parsePyProject exports from utils.ts.' [4: Qualitative Requirement] Removing dead code keeps the codebase clean. [5: Conclusion] Therefore, any correct answer should remove these three functions from utils.ts.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

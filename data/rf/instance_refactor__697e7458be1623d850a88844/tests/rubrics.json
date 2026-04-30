@@ -1,0 +1,206 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "50e381116d0849e7dad2c9b5bd452361",
+    "title": "1.1: Adds a client field of type *http.Client to all 11 detectors' Scanner structs, including abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, ...",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that all 11 detectors' Scanner structs include a field named client of type *http.Client, matching the interface specification. The 11 detectors are: abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, aeroworkflow, agora, aha, alibaba, and artifactory.",
+      "evidence": "Gold patch: `type Scanner struct { client *http.Client }` appears in all 11 detector source files.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Each detector's Scanner should support an optional HTTP client for testability.' [6: Interface Specification] The interface document specifies Scanner has 'an optional client field of type *http.Client.' [5: Conclusion] Therefore, ANY correct answer must add a client field of type *http.Client to all 11 Scanner structs.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "38afb3268d970b60975deb3cdec4df6a",
+    "title": "1.2: Provides a default HTTP client fallback when the Scanner's client field is nil in all 11 detectors, including abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, ...",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that all 11 detectors' Scanners use the injected client when set, and fall back to a default HTTP client when the client field is nil. The 11 detectors are: abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, aeroworkflow, agora, aha, alibaba, and artifactory. The mechanism can be a getter method, an inline nil check, or any equivalent approach.",
+      "evidence": "Gold patch uses a getClient() method in all 11 detectors, but any fallback mechanism satisfies this criterion.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'with a sensible default fallback.' [3: Logical Necessity] Without a default fallback, existing callers that do not inject a client would break. [5: Conclusion] Therefore, ANY correct answer must provide a default client fallback when the client field is nil in all 11 detectors.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "5173a9727cbdaffcf289ded0a13e72f6",
+    "title": "1.3: Extracts the verification logic out of FromData into a separate function or method in all 11 detectors, including verifyAbbysale, verifyAbstract, verifyAbuseIPDB, verifyAccuweather, verifyAdafruitIO, verifyAdzuna, ...",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the HTTP verification logic is no longer inlined inside FromData but is extracted into its own function or method in all 11 detectors. The 11 detectors are: abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, aeroworkflow, agora, aha, alibaba, and artifactory. The extracted function can be a standalone package function, a Scanner method, or any other separation, as long as verification is no longer inline in FromData.",
+      "evidence": "Gold patch extracts into standalone functions (verifyAbbysale, verifyAbstract, verifyAbuseIPDB, verifyAccuweather, verifyAdafruitIO, verifyAdzuna, verifyAeroworkflow, verifyAgora, verifyAha, verifyAlibaba, verifyArtifactory), but methods on Scanner would also satisfy this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The verification logic should be extracted out of FromData into its own function.' [3: Logical Necessity] Inlined verification conflates secret detection with HTTP verification, making both harder to maintain. [5: Conclusion] Therefore, ANY correct answer must extract verification logic out of FromData into a separate callable in all 11 detectors.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+    "title": "1.4: Ensures all 11 extracted verification functions return both a verification outcome and an error, including verifyAbbysale, verifyAbstract, verifyAbuseIPDB, verifyAccuweather, verifyAdafruitIO, verifyAdzuna, ...",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that all 11 extracted verification functions communicate both whether the secret is verified and whether an error occurred, so callers can distinguish 'secret is invalid' from 'verification could not be completed.' The 11 functions are: verifyAbbysale, verifyAbstract, verifyAbuseIPDB, verifyAccuweather, verifyAdafruitIO, verifyAdzuna, verifyAeroworkflow, verifyAgora, verifyAha, verifyAlibaba, and verifyArtifactory. The mechanism can be a (bool, error) return, a struct, or any equivalent approach.",
+      "evidence": "Gold patch uses `(bool, error)` returns in all 11 verification functions, but any approach that separates the two signals satisfies this.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the function should 'properly return verification results and errors so that callers can distinguish between secret is invalid and verification could not be completed.' [5: Conclusion] Therefore, ANY correct answer must have all 11 verification functions communicate both outcomes.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "eeb76bd9161fe0a3a2315e780fa64901",
+    "title": "1.5: Captures verification errors on the result using SetVerificationError in all 11 detectors, including abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, ...",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that when verification produces an error, it is captured on the detector result by calling SetVerificationError in all 11 detectors. The 11 detectors are: abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, aeroworkflow, agora, aha, alibaba, and artifactory.",
+      "evidence": "Gold patch: `s1.SetVerificationError(verificationErr, resMatch)` appears in all 11 detectors.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Verification errors should be captured on the result using SetVerificationError.' [5: Conclusion] Therefore, ANY correct answer must call SetVerificationError to surface verification errors on the result in all 11 detectors.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "411cd35ea70562bc51ea94f40f6a78c8",
+    "title": "1.6: Replaces broad status code range checks with explicit handling of specific status codes in all 11 detectors, including abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, ...",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that broad range checks like `StatusCode >= 200 && StatusCode < 300` are replaced with explicit handling that distinguishes which specific codes mean verified, which mean unverified, and which are unexpected in all 11 detectors. The 11 detectors are: abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, aeroworkflow, agora, aha, alibaba, and artifactory. The implementation can use switch/case, if/else if chains, or any explicit approach.",
+      "evidence": "Gold patch uses switch statements with specific http.Status constants in all 11 detectors.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Status code handling should be explicit about which codes mean verified, which mean unverified, and which are unexpected.' [2: Implicit Codebase Constraint] The prompt explicitly calls out 'broad range checks like res.StatusCode >= 200 && res.StatusCode < 300' as a problem to fix. [5: Conclusion] Therefore, ANY correct answer must replace range checks with explicit status code handling in all 11 detectors.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ab2c2499d68192dc48d637c48c40008a",
+    "title": "1.7: Defines all 9 API base URL constants (abbysaleURL, abstractURL, abuseipdbURL, accuweatherURL, adafruitioURL, adzunaURL, aeroworkflowURL, agoraURL, alibabaURL) instead of inline string literals",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that all 9 static API base URLs previously hardcoded as string literals in the verification logic are extracted into named constants. The 9 constants are: abbysaleURL, abstractURL, abuseipdbURL, accuweatherURL, adafruitioURL, adzunaURL, aeroworkflowURL, agoraURL, and alibabaURL. Detectors with fully dynamic URLs (aha, artifactory) are not required to have URL constants.",
+      "evidence": "Gold patch defines all 9 constants: abbysaleURL, abstractURL, abuseipdbURL, accuweatherURL, adafruitioURL, adzunaURL, aeroworkflowURL, agoraURL, and alibabaURL.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'API base URLs should be defined as constants.' [2: Implicit Codebase Constraint] The prompt identifies 'API base URLs are hardcoded as string literals scattered throughout the verification logic' as a problem. [5: Conclusion] Therefore, ANY correct answer must extract all 9 static API base URLs into named constants.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "897b9ee6d694dd1063051f20c7eca664",
+    "title": "1.8: Moves the false positive check outside the verification block in all 11 detectors so it runs regardless of the verify flag, including abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, ...",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the IsKnownFalsePositive check is not nested inside the `if verify` block in all 11 detectors. The 11 detectors are: abbysale, abstract, abuseipdb, accuweather, adafruitio, adzuna, aeroworkflow, agora, aha, alibaba, and artifactory. It should execute whether or not verification was requested.",
+      "evidence": "Gold patch places the false positive check after the `if verify` block, outside it, in all 11 detectors.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The false positive check should apply consistently whether or not verification was requested.' [2: Implicit Codebase Constraint] The prompt identifies 'The false positive check is currently nested inside the verification block, so it only runs when verification is enabled' as a problem. [5: Conclusion] Therefore, ANY correct answer must move the false positive check outside the verification block in all 11 detectors.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "130cd321c567e7a4d9c3f36f9e280395",
+    "title": "1.9: Organizes imports following standard Go grouping conventions in all 9 detector files (abbysale.go, abuseipdb.go, accuweather.go, adafruitio.go, aeroworkflow.go, agora.go, aha.go, alibaba.go, artifactory.go)",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that imports are grouped following Go conventions: standard library, then third-party, then internal packages, separated by blank lines, in all 9 detector files that require reordering. The 9 files are: abbysale.go, abuseipdb.go, accuweather.go, adafruitio.go, aeroworkflow.go, agora.go, aha.go, alibaba.go, and artifactory.go. The remaining 2 files (abstract.go, adzuna.go) already have correctly grouped imports.",
+      "evidence": "Gold patch reorders imports in all 9 detector files to follow standard Go grouping.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Imports should follow standard Go grouping.' [5: Conclusion] Therefore, ANY correct answer should organize imports following standard Go grouping conventions in all 9 files that need reordering.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "aabeb073e6afed910a73de6851e30085",
+    "title": "1.10: Validates the abuseipdb response body content in addition to the status code",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the abuseipdb detector inspects the HTTP response body, not just the status code, when determining whether a secret is verified.",
+      "evidence": "Gold patch shows abuseipdb reads and checks response body content during verification.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'abuseipdb validates the response body content in addition to the status code.' [5: Conclusion] Therefore, ANY correct answer must include response body validation for the abuseipdb detector.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "860726a102d466ded43d5bf121c8697c",
+    "title": "1.11: Treats accuweather HTTP 403 as a verified token rather than an invalid one",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the accuweather detector marks a secret as verified (not unverified) when the API returns HTTP 403, since 403 indicates a valid token with insufficient permissions.",
+      "evidence": "Gold patch: accuweather handles 403 as verified alongside 200.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'accuweather treats a 403 as a valid token with insufficient permissions rather than an invalid token.' [5: Conclusion] Therefore, ANY correct answer must treat accuweather 403 responses as verified.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "2fdd835d7c4401a250724fca99c82785",
+    "title": "1.12: Preserves aha's use of a domain extracted from input data for its API URL",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the aha detector continues to extract a subdomain from the scanned input data to construct its verification API URL, rather than replacing it with a hardcoded URL.",
+      "evidence": "Gold patch preserves aha's URL pattern match for extracting the subdomain.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'aha needs to extract a domain from the input data for its API URL.' [3: Logical Necessity] Aha's API is tenant-specific; a hardcoded URL would break verification. [5: Conclusion] Therefore, ANY correct answer must preserve the domain extraction behavior for aha.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e6574fc16978cfba45826461fb0ea971",
+    "title": "1.13: Surfaces alibaba's structured JSON error responses in the verification error",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the alibaba detector parses the structured JSON error response from the API and includes relevant error information when reporting a verification error, rather than discarding it.",
+      "evidence": "Gold patch shows alibaba parses JSON response body and includes error details in the returned error.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'alibaba returns structured JSON error responses that should be surfaced in verification errors.' [5: Conclusion] Therefore, ANY correct answer must parse and surface alibaba's JSON error information.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "ed3b6ee22d9cb56e515d380b7f6ff21c",
+    "title": "4.1: Removes or modifies existing public Scanner method signatures (FromData, Keywords, or Type)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that existing public Scanner methods retain their original signatures and are not deleted or changed.",
+      "evidence": "Gold patch preserves FromData, Keywords, and Type method signatures unchanged.",
+      "justification": "[2: Implicit Codebase Constraint] Existing code depends on the Scanner's public interface (FromData, Keywords, Type). [3: Logical Necessity] Breaking the API would cause compilation failures in dependent code. [5: Conclusion] Therefore, ANY answer that removes or modifies existing public method signatures triggers this negative criterion.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6",
+    "title": "4.2: Modifies test files",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks if the agent modified any test files (files ending in _test.go). Modifying test files violates the explicit constraint in the prompt.",
+      "evidence": "Gold patch modifies only the 11 source .go files, no _test.go files.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.' [5: Conclusion] Therefore, ANY answer that modifies test files triggers this negative criterion.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

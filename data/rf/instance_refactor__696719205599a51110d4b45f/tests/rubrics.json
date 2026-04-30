@@ -1,0 +1,242 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "99dd70bbfc11d8bc54279784bef1e4ca",
+    "title": "1.1: Introduces exported getGrafanaFilter in public/app/features/alerting/unified/rule-list/hooks/filters.ts for Grafana-managed rules",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a getGrafanaFilter function is exported from hooks/filters.ts, accepting filterState: RulesFilter and returning backend filter options and frontend matching methods.",
+      "evidence": "gold.patch lines 136-178 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): line 136 exports getGrafanaFilter(filterState), lines 137-138 normalize filter state and read shouldUseBackendFilters(), lines 143-150 build backendFilter, lines 152-176 configure frontend matching via grafanaFilterProcessingConfig and grafanaGroupFilterConfig, lines 171-177 return { backendFilter, frontendFilter } with groupMatches and ruleMatches.",
+      "justification": "[1: Explicit Prompt Requirement] The problem statement requires that 'each rule type has its own filtering approach' and that for Grafana-managed rules the solution 'clearly separate what gets sent to the backend API versus what gets applied on the frontend'. [2: Implicit Codebase Constraint] The combined prompt's interface section requires a function named getGrafanaFilter at hooks/filters.ts with input filterState: RulesFilter and output including backendFilter and frontendFilter with groupMatches and ruleMatches. [3: Logical Necessity] Together, those obligations entail implementing that exported entry point in filters.ts. [4: Quality Necessity] A single Grafana-specific entry point keeps backend versus frontend filtering coherent. [5: Conclusion] Therefore, ANY correct answer must export getGrafanaFilter from hooks/filters.ts as specified in the provided interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d2d0afb810c9311fe22461859726e5d3",
+    "title": "1.2: Introduces exported getDatasourceFilter in public/app/features/alerting/unified/rule-list/hooks/filters.ts for datasource-managed rules",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a getDatasourceFilter function is exported from hooks/filters.ts, accepting filterState: RulesFilter and returning frontend matching methods for groups and rules.",
+      "evidence": "gold.patch lines 180-205 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): line 180 exports getDatasourceFilter(filterState), lines 183-194 define dsRuleFilterConfig with non-null per-facet handlers, lines 201-204 return groupMatches and ruleMatches closures over that config.",
+      "justification": "[1: Explicit Prompt Requirement] The problem statement requires 'each rule type has its own filtering approach' and states verbatim that 'For datasource-managed rules, all filtering should remain on the frontend'. [2: Implicit Codebase Constraint] The interface section requires a function named getDatasourceFilter at hooks/filters.ts with input filterState: RulesFilter and output providing groupMatches and ruleMatches. [3: Logical Necessity] Those prompt and interface obligations together require that datasource path to be exposed as the specified export. [4: Quality Necessity] A dedicated datasource entry point avoids mixing Grafana backend offload with datasource-only client filtering. [5: Conclusion] Therefore, ANY correct answer must export getDatasourceFilter from hooks/filters.ts as specified in the provided interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7ee018563f2657206359794c3156d436",
+    "title": "1.3: Supplies backendFilter fields for Grafana rules API from getGrafanaFilter in public/app/features/alerting/unified/rule-list/hooks/filters.ts",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that getGrafanaFilter returns a backendFilter value shaped for the Grafana rules listing API so state, health, contact point, and other offloadable facets can be sent server-side when applicable, rather than only performing client-side matching.",
+      "evidence": "gold.patch lines 143-150 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): lines 143-150 assign backendFilter with state and health arrays, contactPoint, and useBackendFilters-gated title, type, and dashboardUid fields for the Grafana rules API payload.",
+      "justification": "[1: Explicit Prompt Requirement] The problem statement says Grafana-managed rules 'can offload certain filters to the backend API' and must 'clearly separate what gets sent to the backend API versus what gets applied on the frontend'. [2: Implicit Codebase Constraint] The interface requires getGrafanaFilter to return a backendFilter field typed as GrafanaPromRulesOptions for the Grafana rules listing payload, and pre-refactor iterator code already assembled analogous backend options for the Grafana rules generator. [3: Logical Necessity] Those constraints require constructing and returning matching API parameters from the Grafana filter path. [5: Conclusion] Therefore, ANY correct answer must supply backendFilter fields from getGrafanaFilter consistent with the provided interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "60ccc77c307837057c20af91e33777e9",
+    "title": "1.4: Skips backend-owned facets in getGrafanaFilter frontend matchers in public/app/features/alerting/unified/rule-list/hooks/filters.ts",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that getGrafanaFilter returns frontend matching methods (groupMatches and ruleMatches per the provided interface) that do not redundantly re-apply filters the backend already applies for the current configuration (for example state, health, and contact point).",
+      "evidence": "gold.patch lines 152-164 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): grafanaFilterProcessingConfig sets ruleState, ruleHealth, and contactPoint handlers to null (lines 156-163) and nulls freeFormWords, ruleName, ruleType, dashboardUid when useBackendFilters is true so the frontend path skips facets already covered by backendFilter.",
+      "justification": "[1: Explicit Prompt Requirement] The problem states verbatim: 'Filters that are already handled by the backend should not be redundantly applied on the frontend.' [2: Implicit Codebase Constraint] The interface defines frontend matching via frontendFilter.groupMatches and frontendFilter.ruleMatches for Grafana-managed rules. [3: Logical Necessity] Applying the same facet on the backend and again in those matchers would double-filter and can empty results. [4: Quality Necessity] Each filter facet should be applied once, either server- or client-side. [5: Conclusion] Therefore, ANY correct answer must implement frontend matching that omits facets already covered by the backend for the active configuration.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "2eefacaba511d0720a10fade1c6f404c",
+    "title": "1.5: Keeps every filter facet client-side in getDatasourceFilter output in public/app/features/alerting/unified/rule-list/hooks/filters.ts",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that getDatasourceFilter keeps every filter concern active on the frontend (no reliance on backend offload for datasource-managed rules).",
+      "evidence": "gold.patch lines 183-194 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): dsRuleFilterConfig assigns non-null handlers for freeFormWords, ruleName, ruleState, ruleType, dataSourceNames, labels, ruleHealth, dashboardUid, plugins, and contactPoint so datasource rules stay fully client-filtered.",
+      "justification": "[1: Explicit Prompt Requirement] The problem states verbatim: 'For datasource-managed rules, all filtering should remain on the frontend.' [2: Implicit Codebase Constraint] The interface specifies getDatasourceFilter returns only client-side groupMatches and ruleMatches (no backendFilter field), which matches frontend-only filtering for that rule type. [3: Implicit Codebase Constraint] Pre-refactor code treated datasource paths as backendFiltered=false, consistent with no datasource filter offload API. [4: Logical Necessity] Frontend-only filtering requires keeping datasource facets active in the client matchers. [5: Conclusion] Therefore, ANY correct answer must not offload datasource rule filtering to a backend API and must keep those concerns in getDatasourceFilter's frontend matching.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d9eddac77695ad047faa98ff7854bf05",
+    "title": "1.6: Updates PaginatedGrafanaLoader.tsx to source group filtering from getGrafanaFilter",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that PaginatedGrafanaLoader.tsx imports getGrafanaFilter and builds its group filter callback from getGrafanaFilter(...).frontendFilter.groupMatches instead of the legacy groupFilter import.",
+      "evidence": "gold.patch lines 68-101 (public/app/features/alerting/unified/rule-list/PaginatedGrafanaLoader.tsx): lines 68-69 switch the import to getGrafanaFilter, lines 85-101 useMemo constructs filterFn using getGrafanaFilter with a full RulesFilter-shaped object and returns frontendFilter.groupMatches.",
+      "justification": "[1: Explicit Prompt Requirement] The problem statement names PaginatedGrafanaLoader.tsx among the consumers that 'should use the new approach' (it does not name getGrafanaFilter or groupMatches in that sentence). [2: Implicit Codebase Constraint] The interface defines the Grafana path solely via getGrafanaFilter and frontendFilter.groupMatches, so adopting the new approach for this Grafana loader implies wiring through that contract. [3: Implicit Codebase Constraint] This loader previously imported groupFilter from hooks/filters for paginated Grafana groups. [4: Logical Necessity] Leaving the legacy import would violate the consumer-update requirement for a listed file. [5: Conclusion] Therefore, ANY correct answer must update PaginatedGrafanaLoader.tsx to source group filtering from getGrafanaFilter as specified in the provided interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7f996a680562193ad078572d7448f260",
+    "title": "1.7: Updates useFilteredRulesIterator.ts to source Grafana filtering from getGrafanaFilter",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the Grafana async pipeline inside useFilteredRulesIterator.ts uses getGrafanaFilter(filterState) for backendFilter passed to grafanaGroupsGenerator and frontendFilter.groupMatches or frontendFilter.ruleMatches for client-side filtering, replacing inline backend option assembly plus groupFilter/ruleFilter.",
+      "evidence": "gold.patch lines 453-489 (public/app/features/alerting/unified/rule-list/hooks/useFilteredRulesIterator.ts): lines 453-454 import getGrafanaFilter, lines 469-489 call grafanaGroupsGenerator(groupLimit, backendFilter) and filter groups or rules with frontendFilter from getGrafanaFilter(filterState).",
+      "justification": "[1: Explicit Prompt Requirement] The problem statement names useFilteredRulesIterator.ts among the consumers that 'should use the new approach.' [2: Implicit Codebase Constraint] The interface specifies getGrafanaFilter(filterState) returns backendFilter and frontendFilter for Grafana-managed rules, which is the contract the iterator's Grafana branch should use instead of ad hoc assembly. [3: Implicit Codebase Constraint] The hook previously inlined Grafana backend fields and used groupFilter and ruleFilter with a backend toggle. [4: Logical Necessity] The listed consumer must migrate or it would bypass the refactor while still named in the prompt. [5: Conclusion] Therefore, ANY correct answer must source Grafana-managed filtering from getGrafanaFilter per the provided interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b3045ee9a04bae3cf8597958e76a1bb8",
+    "title": "1.8: Updates PaginatedDataSourceLoader.tsx to source group filtering from getDatasourceFilter",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that PaginatedDataSourceLoader.tsx imports getDatasourceFilter and builds its group filter callback from getDatasourceFilter(...).groupMatches instead of the legacy groupFilter import.",
+      "evidence": "gold.patch lines 22-55 (public/app/features/alerting/unified/rule-list/PaginatedDataSourceLoader.tsx): lines 22-23 switch the import to getDatasourceFilter, lines 39-55 useMemo returns a function that delegates to groupMatches from getDatasourceFilter.",
+      "justification": "[1: Explicit Prompt Requirement] The problem statement names PaginatedDataSourceLoader.tsx among the consumers that 'should use the new approach.' [2: Implicit Codebase Constraint] The interface defines the datasource path via getDatasourceFilter and its groupMatches return, which is how this datasource loader should implement group filtering under the new approach. [3: Implicit Codebase Constraint] The loader previously imported groupFilter from hooks/filters. [4: Logical Necessity] Keeping the legacy import for a named consumer would contradict the prompt. [5: Conclusion] Therefore, ANY correct answer must update PaginatedDataSourceLoader.tsx to source group filtering from getDatasourceFilter per the provided interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e45395de3f4205c152bd737dc5e0e29f",
+    "title": "1.9: Updates useFilteredRulesIterator.ts to source datasource filtering from getDatasourceFilter",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the datasource generator paths in useFilteredRulesIterator.ts obtain groupMatches and ruleMatches from getDatasourceFilter(filterState) instead of groupFilter plus ruleFilter with a fixed backendFiltered false.",
+      "evidence": "gold.patch lines 497-510 (public/app/features/alerting/unified/rule-list/hooks/useFilteredRulesIterator.ts): line 497 destructures groupMatches and ruleMatches from getDatasourceFilter(filterState), lines 506-510 use those closures in the datasource async pipelines.",
+      "justification": "[1: Explicit Prompt Requirement] The problem statement names useFilteredRulesIterator.ts among the consumers that 'should use the new approach.' [2: Implicit Codebase Constraint] The interface specifies getDatasourceFilter(filterState) with groupMatches and ruleMatches for datasource-managed rules, which supersedes the old groupFilter and ruleFilter(..., backendFiltered) pattern for that branch. [3: Implicit Codebase Constraint] The hook previously filtered datasource rules with groupFilter and ruleFilter while passing backendFiltered false. [4: Logical Necessity] The datasource branch of a named consumer must migrate or it keeps the obsolete API while the prompt requires adoption of the new approach. [5: Conclusion] Therefore, ANY correct answer must source datasource-managed filtering from getDatasourceFilter per the provided interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "027ceb0e85e4e660ae6027b1d96d7231",
+    "title": "1.10: Refactors monolithic ruleFilter in public/app/features/alerting/unified/rule-list/hooks/filters.ts into separated per-concern filter units",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the monolithic ruleFilter function body is broken into separate, distinct filter handlers (e.g., one for labels, one for state, one for health) rather than keeping all filter logic inlined in a single function.",
+      "evidence": "gold.patch lines 253-397 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): line 253 introduces ruleMatches(rule, filterState, filterConfig) dispatching per concern, lines 299-397 add dedicated helpers such as freeFormFilter, ruleNameFilter, labelsFilter, ruleTypeFilter, ruleStateFilter, ruleHealthFilter, contactPointFilter, dashboardUidFilter, pluginsFilter, and dataSourceNamesFilter instead of one inlined ruleFilter body (helper names may differ in other valid solutions).",
+      "justification": "[1: Explicit Prompt Requirement] The problem states verbatim that 'The individual filter concerns in the current monolithic ruleFilter function should be cleanly separated rather than inlined together.' [2: Implicit Codebase Constraint] The pre-change ruleFilter in filters.ts inlined many concerns (labels, state, health, type, plugins, dashboardUid, contactPoint, datasource names) in one body. [3: Logical Necessity] Meeting the quoted requirement means decomposing that monolith into distinct units rather than one uninterrupted block. [4: Quality Necessity] Separation improves readability and lets Grafana versus datasource configs attach per concern. [5: Conclusion] Therefore, ANY correct answer must break monolithic inlined filter logic into clearly separated handlers or functions.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "fc35476a2b6ae8584031af6e5aca6223",
+    "title": "1.11: Applies alertingUIUseBackendFilters gating to Grafana backend offload inside getGrafanaFilter in public/app/features/alerting/unified/rule-list/hooks/filters.ts",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the Grafana filter function conditionally offloads certain filters (such as title search, rule type, and dashboard) to the backend only when the alertingUIUseBackendFilters feature toggle is enabled, and applies them on the frontend when the toggle is disabled.",
+      "evidence": "gold.patch lines 137-161 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): line 138 assigns useBackendFilters from shouldUseBackendFilters(), lines 147-149 set backendFilter title, type, and dashboardUid only when useBackendFilters is true, lines 154-161 null matching frontend handlers when the backend owns those facets.",
+      "justification": "[1: Explicit Prompt Requirement] The problem statement explicitly names 'alertingUIUseBackendFilters' and requires 'respecting' it 'for filters the backend can handle (like title search, rule type, and dashboard)' when separating backend versus frontend Grafana filtering. [2: Implicit Codebase Constraint] Pre-refactor code used shouldUseBackendFilters() to decide whether title search, rule type, and dashboard fields were sent on the Grafana API request. [3: Logical Necessity] The named toggle must continue to gate which of those facets are offloaded versus applied client-side. [4: Quality Necessity] Preserving toggle behavior avoids breaking gradual rollout of backend filtering. [5: Conclusion] Therefore, ANY correct answer must conditionally route those Grafana facets based on alertingUIUseBackendFilters / shouldUseBackendFilters semantics.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "2d0618fc733617476588d1cc7f2d9bc4",
+    "title": "1.12: Colocates exported buildTitleSearch in public/app/features/alerting/unified/rule-list/hooks/filters.ts away from useFilteredRulesIterator.ts",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that buildTitleSearch is exported from hooks/filters.ts as specified in the provided interface, combining ruleName and freeFormWords into an optional backend title search string, and that the duplicate implementation is removed from useFilteredRulesIterator.ts.",
+      "evidence": "gold.patch lines 408-430 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): adds export function buildTitleSearch; gold.patch lines 518-540 (public/app/features/alerting/unified/rule-list/hooks/useFilteredRulesIterator.ts): removes the prior exported buildTitleSearch implementation from the iterator module.",
+      "justification": "[1: Explicit Prompt Requirement] The problem states that filter-related utilities scattered in useFilteredRulesIterator.ts, including 'title search construction', should be 'colocated with the filter logic.' [2: Implicit Codebase Constraint] The interface requires exporting buildTitleSearch from hooks/filters.ts with filterState: RulesFilter and string | undefined output as described there. [3: Logical Necessity] Colocation plus the interface rule out leaving the canonical implementation only in the iterator module. [4: Quality Necessity] One exported helper next to filters avoids duplicate title-search behavior. [5: Conclusion] Therefore, ANY correct answer must export buildTitleSearch from hooks/filters.ts as specified and remove the iterator-local duplicate implementation.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "47b8575cf2cb9c31aa8c4bb78cef61c4",
+    "title": "1.13: Colocates filter state normalization in public/app/features/alerting/unified/rule-list/hooks/filters.ts away from useFilteredRulesIterator.ts",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that filter state normalization used for matching (such as lowercasing free-form words, rule name, group name, namespace) lives in hooks/filters.ts next to the filter helpers and is removed from useFilteredRulesIterator.ts.",
+      "evidence": "gold.patch lines 436-444 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): adds normalizeFilterState helper colocated with filter logic; gold.patch lines 549-561 (public/app/features/alerting/unified/rule-list/hooks/useFilteredRulesIterator.ts): removes the duplicate normalizeFilterState helper from the iterator module.",
+      "justification": "[1: Explicit Prompt Requirement] The problem states that utilities in useFilteredRulesIterator.ts such as 'filter state normalization' should be 'colocated with the filter logic' (same sentence as title search construction). [2: Implicit Codebase Constraint] Normalization previously lived in the iterator only to support filtering. [3: Logical Necessity] Leaving the only copy in the iterator while filter logic lives in filters.ts would violate the colocation instruction for that concern. [4: Quality Necessity] Normalization should sit next to the matchers that consume normalized filter state. [5: Conclusion] Therefore, ANY correct answer must move filter state normalization into hooks/filters.ts and remove the duplicate from useFilteredRulesIterator.ts.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "7c8601d2d93905e347107768913f7efc",
+    "title": "3.1: Removes exported ruleFilter entry points that branch on backendFiltered from public/app/features/alerting/unified/rule-list/hooks/filters.ts",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies only that hooks/filters.ts drops the exported rule-filtering API whose signature used an optional backendFiltered flag to merge Grafana and datasource behavior; consumer migration is covered by other criteria.",
+      "evidence": "gold.patch lines 247-308 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): lines 248-251 remove the backendFiltered JSDoc and the exported ruleFilter(rule, filterState, backendFiltered?) declaration, lines 253-297 introduce the internal ruleMatches dispatcher and per-concern helpers in place of that export, and the following hunks through line 308 delete the old backendFiltered-guarded freeFormWords and ruleName branches that belonged to the removed export.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires replacing the monolithic boolean-driven approach with separate filtering per rule type. [2: Implicit Codebase Constraint] The prior public surface in public/app/features/alerting/unified/rule-list/hooks/filters.ts exposed ruleFilter with backendFiltered, coupling two rule-type behaviors behind one export. [3: Logical Necessity] Leaving that export in place would preserve the obsolete contract this refactor is meant to retire, independent of whether callers were updated elsewhere. [4: Quality Necessity] Removing superseded public APIs from the filter module reduces confusion and dead API surface after dedicated functions exist. [5: Conclusion] Therefore, ANY correct answer should remove exported ruleFilter entry points that branch on backendFiltered from that filters module.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "a8945727788a1d5b11e4a163d80c4b2c",
+    "title": "4.1: Removes label-based filtering paths that ruleFilter previously covered in public/app/features/alerting/unified/rule-list/hooks/filters.ts",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that label-based filtering (matching rule labels and alert instance labels against filter matchers) is preserved in the refactored filter functions for both Grafana and datasource rules.",
+      "evidence": "gold.patch lines 320-331 (public/app/features/alerting/unified/rule-list/hooks/filters.ts): labelsFilter applies labelsMatchMatchers to rule.labels and continues to evaluate alert-instance label paths so label-based queries still match after the refactor.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires refactoring the filter logic, not removing filter capabilities; all existing filtering behavior must be preserved. [2: Implicit Codebase Constraint] The existing ruleFilter function supports label filtering via labelsMatchMatchers. Users rely on this to find rules by severity, team, or other labels. [3: Logical Necessity] Refactoring must preserve all existing filter capabilities; removing label filtering would break user workflows. [4: Quality Necessity] Any good implementation must maintain feature parity with the existing system during a refactoring. [5: Conclusion] Therefore, ANY correct answer must NOT remove label filtering capability.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "a31dfb0a5da35ec147fae95bc3022d5e",
+    "title": "4.2: Modifies test files or testing logic",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that no test files are modified, added, or deleted. The problem statement restricts the change set to non-test source files only.",
+      "evidence": "gold.patch lines 1-13 (public/app/features/alerting/unified/api/prometheusApi.ts) and lines 14-59 (public/app/features/alerting/unified/rule-list/PaginatedDataSourceLoader.tsx) and lines 60-105 (public/app/features/alerting/unified/rule-list/PaginatedGrafanaLoader.tsx) and lines 106-444 (public/app/features/alerting/unified/rule-list/hooks/filters.ts) and lines 445-562 (public/app/features/alerting/unified/rule-list/hooks/useFilteredRulesIterator.ts): every hunk targets only these non-test sources, with no paths under **/*.test.* or equivalent test-only files, matching the prompt's source-only scope.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.' [2: Implicit Codebase Constraint] Tests are maintained separately from this task's source-only solution scope. [3: Logical Necessity] Altering tests would violate scope and desynchronize the repository from the provided test patch. [4: Quality Necessity] Any good implementation must respect explicit scope constraints to maintain a clean separation between source and test changes. [5: Conclusion] Therefore, ANY correct answer must NOT modify any test files.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

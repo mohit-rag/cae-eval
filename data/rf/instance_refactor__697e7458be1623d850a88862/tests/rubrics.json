@@ -1,0 +1,218 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "c4bf0a5a2b6a00640e0eb03bd157462d",
+    "title": "1.1: Refactors all 3 silence route descriptors in routes.tsx (SilencesTablePage, NewSilencePage, ExistingSilenceEditorPage) to lazy-load dedicated standalone page modules instead of the shared Silences module",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the three silence routes in public/app/features/alerting/routes.tsx no longer all lazy-load app/features/alerting/unified/Silences, and instead each route points to the dedicated standalone page module \u2014 SilencesTablePage for /alerting/silences, NewSilencePage for /alerting/silence/new, and ExistingSilenceEditorPage for /alerting/silence/:id/edit \u2014 so routing can mount each page directly.",
+      "evidence": "Reference solution routes.tsx hunks @@ -72,7 +72,10 @@ and @@ -84,13 +87,16 @@ replace the shared import of app/features/alerting/unified/Silences with per-route imports of components/silences/SilencesTable, NewSilencePage, and components/silences/SilencesEditor.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires each silence route to become a standalone page component with its own webpack chunk. The provided interface defines SilencesTablePage, NewSilencePage, and ExistingSilenceEditorPage as the three top-level page components for each route. [2: Implicit Code Base Constraint] The pre-refactor routes file pointed all three silence URLs at the same monolithic Silences module. [3: Logical Necessity] Route-level standalone pages cannot be exercised directly unless each route descriptor imports its own page module by the correct name and path specified in the provided interface. [5: Conclusion] Therefore, a correct solution must update the route descriptors to load SilencesTablePage, NewSilencePage, and ExistingSilenceEditorPage for the list, new, and edit silence routes respectively."
+    }
+  },
+  {
+    "id": "aabb1d0d1d58c15cbb140725c90c287d",
+    "title": "1.2: Wraps all 3 standalone silence route pages (NewSilencePage, ExistingSilenceEditorPage, SilencesTablePage) in AlertmanagerPageWrapper with navId='silences'",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the standalone list, new, and edit silence route-entry components each preserve the prior page shell by rendering AlertmanagerPageWrapper with navId='silences' at the page component boundary.",
+      "evidence": "Reference solution NewSilencePage.tsx hunk @@ -0,0 +1,51 @@, SilencesEditor.tsx hunk @@ -279,4 +283,16 @@, and SilencesTable.tsx hunk @@ -382,4 +385,12 @@ all wrap the page body with AlertmanagerPageWrapper navId='silences'.",
+      "justification": "[1: Explicit Prompt Requirement] The provided interface explicitly specifies that each of the three standalone silence route page components renders AlertmanagerPageWrapper with navId='silences'. [2: Implicit Code Base Constraint] The old monolithic SilencesPage already used AlertmanagerPageWrapper as its shell, so the wrapper and navId are an existing contract, not something new introduced by the refactor. [3: Logical Necessity] Once each view becomes its own route-entry page, none of them inherit a shared wrapper \u2014 each must supply AlertmanagerPageWrapper with navId='silences' at its own boundary or the page shell is lost for that route. [5: Conclusion] Therefore, a correct solution must wrap each standalone silence page in AlertmanagerPageWrapper with navId='silences'."
+    }
+  },
+  {
+    "id": "cabb58275bd28ed2266d197b72629482",
+    "title": "1.3: Exports all 3 standalone silence route page components (NewSilencePage, ExistingSilenceEditorPage, SilencesTablePage) as the module default export wrapped in withErrorBoundary, with no named export of the page component",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the default export from each standalone silence page module is wrapped with page-level error handling via withErrorBoundary, and that none of the three page components \u2014 NewSilencePage, ExistingSilenceEditorPage, or SilencesTablePage \u2014 are exported as named exports, so route-level error behavior remains consistent and the lazy-loading path cannot be bypassed.",
+      "evidence": "Reference solution NewSilencePage.tsx ends with export default withErrorBoundary(NewSilencePage, { style: 'page' }); with no named export of NewSilencePage. SilencesEditor.tsx ends with export default withErrorBoundary(ExistingSilenceEditorPage, { style: 'page' }); with no named export of ExistingSilenceEditorPage. SilencesTable.tsx ends with export default withErrorBoundary(SilencesTablePage, { style: 'page' }); with no named export of SilencesTablePage.",
+      "justification": "[1: Explicit Prompt Requirement] The provided interface explicitly states that each of the three standalone silence route page components must be the default export only, wrapped in withErrorBoundary, and must not have a named export. [2: Implicit Code Base Constraint] The pre-refactor SilencesPage default export was already wrapped in a page-level error boundary via withErrorBoundary, so this is an existing contract carried forward. [3: Logical Necessity] Splitting the page into three modules removes the shared top-level error boundary; each new route page must add its own, and a named export of the page component would let callers bypass the error-bounded default. [5: Conclusion] Therefore, a correct solution must export each standalone silence page through withErrorBoundary as the default export only, with no named export."
+    }
+  },
+  {
+    "id": "cf286416baca104c6cb517ab2c3207b4",
+    "title": "1.4: Moves new-silence query parsing and default-form derivation into NewSilencePage.tsx helper logic that feeds SilencesEditor",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that public/app/features/alerting/unified/NewSilencePage.tsx contains helper logic for the /alerting/silence/new route that reads location.search, derives default silence form values from query parameters, extracts the optional MATCHER_ALERT_RULE_UID matcher, and passes the computed formValues plus optional ruleUid into SilencesEditor.",
+      "evidence": "Reference solution NewSilencePage.tsx hunk @@ -0,0 +1,51 @@ imports useLocation, defaultsFromQuery, getDefaultSilenceFormValues, MATCHER_ALERT_RULE_UID, and parseQueryParamMatchers; it builds queryParams, finds the alert-rule matcher, computes formValues, and passes formValues and ruleUid to SilencesEditor.",
+      "justification": "[1: Explicit Prompt Requirement] The provided interface for NewSilencePage specifies that the new-route page renders GrafanaAlertmanagerDeliveryWarning and SilencesEditor with default form values and an optional alert-rule UID matcher derived from the current URL query parameters. [2: Implicit Code Base Constraint] This logic previously lived inside the monolithic Silences.tsx module. [3: Logical Necessity] After removing the monolithic router page, the new-route page must own this route-specific setup work. [5: Conclusion] Therefore, a correct solution must move the query parsing and default-form derivation into NewSilencePage.tsx helper logic that feeds SilencesEditor."
+    }
+  },
+  {
+    "id": "7304820124360954573be4eea07ca2a1",
+    "title": "1.5: Provides a fallback default or render guard for absent selected Alertmanager in NewSilencePage.tsx for the /alerting/silence/new route",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the NewSilencePage module handles an absent selected Alertmanager safely \u2014 either by using a string fallback in the context destructure, or by guarding render in a page-level wrapper before passing the value to GrafanaAlertmanagerDeliveryWarning and SilencesEditor.",
+      "evidence": "Reference solution NewSilencePage.tsx hunk @@ -0,0 +1,51 @@ uses const { selectedAlertmanager = '' } = useAlertmanager(); before passing currentAlertmanager and alertManagerSourceName onward. The deleted Silences.tsx file previously protected child rendering with if (!selectedAlertmanager) { return null; }.",
+      "justification": "[2: Implicit Code Base Constraint] The deleted Silences.tsx had an explicit early return when selectedAlertmanager was missing. [3: Logical Necessity] Once the route split removes that parent guard, the page module must provide its own safety \u2014 either inside the content component or in a wrapper. The prompt says 'each page now owns its own lifecycle,' which includes guarding context reads. [5: Conclusion] Therefore, a correct solution must ensure the /alerting/silence/new route is safe when the context value is absent."
+    }
+  },
+  {
+    "id": "ba2409f4d63ebbd7aa797529198e8e9a",
+    "title": "1.6: Refactors ExistingSilenceEditor in SilencesEditor.tsx to read selected Alertmanager from AlertmanagerContext instead of an alertManagerSourceName prop",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that ExistingSilenceEditor in public/app/features/alerting/unified/components/silences/SilencesEditor.tsx no longer accepts alertManagerSourceName as an input prop and instead resolves the selected Alertmanager from AlertmanagerContext inside the component.",
+      "evidence": "Reference solution SilencesEditor.tsx hunk @@ -32,26 +33,26 @@ removes the Props interface, changes ExistingSilenceEditor from ({ alertManagerSourceName }: Props) => to () =>, and adds const { selectedAlertmanager: alertManagerSourceName = '' } = useAlertmanager();.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states that the inner view components currently accept alertManagerSourceName as a prop and after the refactor must read the selected Alertmanager from context directly. The provided interface for ExistingSilenceEditorPage confirms this by wrapping an ExistingSilenceEditor that takes no props. [2: Implicit Code Base Constraint] The old monolithic Silences component passed alertManagerSourceName as a prop down to ExistingSilenceEditor. [3: Logical Necessity] After removing that parent router component, ExistingSilenceEditor must resolve the selected Alertmanager for itself. [5: Conclusion] Therefore, a correct solution must refactor ExistingSilenceEditor to read selected Alertmanager from context instead of taking an alertManagerSourceName prop."
+    }
+  },
+  {
+    "id": "d00a7a5bcc26087a72eb2fe0dc806c0c",
+    "title": "1.7: Provides a fallback default or render guard for absent selected Alertmanager in SilencesEditor.tsx for the /alerting/silence/:id/edit route",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the ExistingSilenceEditorPage module handles an absent selected Alertmanager safely \u2014 either by using a string fallback in the context destructure, or by guarding render in a page-level wrapper before reaching the existing-silence editor.",
+      "evidence": "Reference solution SilencesEditor.tsx hunk @@ -32,26 +33,26 @@ uses const { selectedAlertmanager: alertManagerSourceName = '' } = useAlertmanager(); before rendering the warning and the reusable SilencesEditor form.",
+      "justification": "[2: Implicit Code Base Constraint] The deleted Silences.tsx had an explicit early return when selectedAlertmanager was missing. [3: Logical Necessity] Once the route split removes that parent guard, the page module must provide its own safety \u2014 either inside ExistingSilenceEditor or in a wrapper. The prompt says 'each page now owns its own lifecycle,' which includes guarding context reads. [5: Conclusion] Therefore, a correct solution must ensure the /alerting/silence/:id/edit route is safe when the context value is absent."
+    }
+  },
+  {
+    "id": "4d4762845c2900227427e5f89ed2cbfb",
+    "title": "1.8: Refactors SilencesTable in SilencesTable.tsx to read selected Alertmanager from AlertmanagerContext instead of an alertManagerSourceName prop",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that SilencesTable in public/app/features/alerting/unified/components/silences/SilencesTable.tsx no longer accepts alertManagerSourceName as an input prop and instead resolves the selected Alertmanager from AlertmanagerContext inside the component.",
+      "evidence": "Reference solution SilencesTable.tsx hunk @@ -40,13 +44,11 @@ removes the Props interface, changes SilencesTable from ({ alertManagerSourceName }: Props) => to () =>, and adds const { selectedAlertmanager: alertManagerSourceName = '' } = useAlertmanager();.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states that the inner view components currently accept alertManagerSourceName as a prop and after the refactor must read the selected Alertmanager from context directly. The provided interface for SilencesTablePage confirms this by wrapping a SilencesTable that takes no props. [2: Implicit Code Base Constraint] The old monolithic Silences component passed alertManagerSourceName into SilencesTable as a prop. [3: Logical Necessity] After the route split removes that parent prop source, SilencesTable must resolve the selected Alertmanager internally. [5: Conclusion] Therefore, a correct solution must refactor SilencesTable to read selected Alertmanager from context instead of taking an alertManagerSourceName prop."
+    }
+  },
+  {
+    "id": "7ba4523208e4ee5bbc2f0063bffb3e08",
+    "title": "1.9: Provides a fallback default or render guard for absent selected Alertmanager in SilencesTable.tsx for the /alerting/silences route",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the SilencesTablePage module handles an absent selected Alertmanager safely \u2014 either by using a string fallback in the context destructure, or by guarding render in a page-level wrapper before reaching the silences table.",
+      "evidence": "Reference solution SilencesTable.tsx hunk @@ -40,13 +44,11 @@ uses const { selectedAlertmanager: alertManagerSourceName = '' } = useAlertmanager(); before rendering the delivery warning, filters, and table content.",
+      "justification": "[2: Implicit Code Base Constraint] The deleted Silences.tsx had an explicit early return when selectedAlertmanager was missing. [3: Logical Necessity] Once the route split removes that parent guard, the page module must provide its own safety \u2014 either inside SilencesTable or in a wrapper. The prompt says 'each page now owns its own lifecycle,' which includes guarding context reads. [5: Conclusion] Therefore, a correct solution must ensure the /alerting/silences route is safe when the context value is absent."
+    }
+  },
+  {
+    "id": "f8e7d6c5b4a392810a1b2c3d4e5f6001",
+    "title": "1.10: Moves GrafanaAlertmanagerDeliveryWarning rendering into all 3 inner silence views (NewSilencePage, ExistingSilenceEditor, SilencesTable) so every route owns its delivery warning independently",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that each inner silence view renders GrafanaAlertmanagerDeliveryWarning directly with the resolved alertManagerSourceName, replacing the single shared rendering that previously existed at the top of the now-deleted Silences.tsx parent component.",
+      "evidence": "Reference solution NewSilencePage.tsx hunk @@ -0,0 +1,51 @@ renders <GrafanaAlertmanagerDeliveryWarning currentAlertmanager={selectedAlertmanager} /> inside SilencesEditorComponent. SilencesEditor.tsx hunk @@ -91,7 +92,10 @@ adds <GrafanaAlertmanagerDeliveryWarning currentAlertmanager={alertManagerSourceName} /> before SilencesEditor. SilencesTable.tsx hunk @@ -135,6 +137,7 @@ adds <GrafanaAlertmanagerDeliveryWarning currentAlertmanager={alertManagerSourceName} /> at the top of the table render.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states that each inner view should render the GrafanaAlertmanagerDeliveryWarning itself rather than relying on a parent to do it. The provided interface for NewSilencePage also specifies that it renders GrafanaAlertmanagerDeliveryWarning alongside SilencesEditor. [2: Implicit Code Base Constraint] The deleted Silences.tsx parent rendered GrafanaAlertmanagerDeliveryWarning once at the top level before delegating to any child view, so that rendering is lost when Silences.tsx is removed. [3: Logical Necessity] Once each route has its own standalone page with no shared rendering parent, each inner view must add its own delivery warning or the warning is silently dropped for that route. [5: Conclusion] Therefore, a correct solution must render GrafanaAlertmanagerDeliveryWarning inside each inner silence view."
+    }
+  },
+  {
+    "id": "75d45ec6c6f0a67d6095e6f029aed366",
+    "title": "1.11: Removes the obsolete public/app/features/alerting/unified/hooks/useSilenceNavData.ts hook after page navigation becomes static per route",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the obsolete useSilenceNavData hook file is removed once the new and edit silence pages own their page navigation metadata statically instead of determining it by inspecting the current route at runtime.",
+      "evidence": "Reference solution marks public/app/features/alerting/unified/hooks/useSilenceNavData.ts as deleted file mode 100644 and removes the entire hook implementation.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states that the useSilenceNavData hook becomes obsolete and should be removed once each page component owns its own lifecycle and defines its own navigation data directly. [2: Implicit Code Base Constraint] The removed hook existed only to inspect the route at runtime and select page navigation metadata inside the monolithic Silences page. [3: Logical Necessity] Once each route has its own standalone page component with static pageNav, that hook is no longer needed for correctness. [5: Conclusion] Therefore, a correct solution must remove the obsolete useSilenceNavData hook."
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6789012345678901234ab",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "618ce3f060a0dbfab36e1794050f3f71",
+    "title": "3.1: Removes the obsolete public/app/features/alerting/unified/Silences.tsx module after the route split",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that the obsolete monolithic router module public/app/features/alerting/unified/Silences.tsx is removed once the three silence views are split into dedicated route pages, so there is no leftover internal Switch-based entry point for the same routes.",
+      "evidence": "Reference solution marks public/app/features/alerting/unified/Silences.tsx as deleted file mode 100644 and removes the entire file contents.",
+      "justification": "[2: Implicit Code Base Constraint] After routes.tsx imports SilencesTablePage, NewSilencePage, and ExistingSilenceEditorPage as standalone pages, the old Silences.tsx module no longer has a legitimate routing role. [4: Qualitative Requirement] Removing dead routing code prevents duplicate entry points and reduces maintenance overhead. [5: Conclusion] Therefore, cleaning up the obsolete Silences.tsx module is a valid artifact-cleanup criterion."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "3248aeb3fddedd599459bd038132fad1",
+    "title": "4.1: Changes any public silence route paths at /alerting/silences, /alerting/silence/new, or /alerting/silence/:id/edit",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Checks that the refactor preserves the existing public URL contract by leaving the three silence route paths exactly as /alerting/silences, /alerting/silence/new, and /alerting/silence/:id/edit.",
+      "evidence": "Reference solution routes.tsx keeps the same path strings for all three silence routes while changing only the dynamically imported page modules.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for a refactor of how silence routes are implemented, not a change to the user-facing URLs. [2: Implicit Code Base Constraint] These route paths are existing public entry points that other code, bookmarks, and tests may rely on. [3: Logical Necessity] A route-splitting refactor is correct only if it preserves the same external URLs. [5: Conclusion] Therefore, changing any of the three silence route paths is a regression and must be rejected."
+    }
+  },
+  {
+    "id": "e9cd4cda9d36a1ea94c7abcb41320606",
+    "title": "4.2: Modifies files ending in .test.tsx, .test.ts, .spec.tsx, .spec.ts, or any other test infrastructure file",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Checks that the solution confines all changes to non-test source files and does not touch any test file or test helper. The six source files modified in the reference solution are: public/app/features/alerting/routes.tsx, public/app/features/alerting/unified/NewSilencePage.tsx, public/app/features/alerting/unified/Silences.tsx, public/app/features/alerting/unified/components/silences/SilencesEditor.tsx, public/app/features/alerting/unified/components/silences/SilencesTable.tsx, and public/app/features/alerting/unified/hooks/useSilenceNavData.ts.",
+      "evidence": "Reference solution diff headers show only the six source files listed above \u2014 no *.test.tsx, *.test.ts, *.spec.*, or test helper files appear anywhere in the diff.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states: 'I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.' [2: Implicit Code Base Constraint] The reference solution modifies only the six source files listed above \u2014 no test or spec files appear anywhere in the diff \u2014 confirming the expected scope boundary. [3: Logical Necessity] A solution that also modifies test files violates the stated scope and alters the evaluation surface. [5: Conclusion] Therefore, any modification to a test or spec file must cause this criterion to fail."
+    }
+  }
+]

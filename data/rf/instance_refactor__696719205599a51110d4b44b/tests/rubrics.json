@@ -1,0 +1,230 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "2e5b991c5412a5c50a6ea1a42eaf96ac",
+    "title": "1.1: Changes the `Logger` field type in `TestPreInitState` struct within `lib/test_state.go` from `*logrus.Logger` to `logrus.FieldLogger`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that TestPreInitState.Logger uses the logrus.FieldLogger interface type instead of a concrete logger.",
+      "evidence": "gold.patch lines 146-156 (lib/test_state.go): lines 150-152 remove the TODO comment and `Logger *logrus.Logger`, line 153 adds `Logger logrus.FieldLogger`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the Logger fields in lib/test_state.go use concrete *logrus.Logger with TODO comments acknowledging they should use logrus.FieldLogger, and asks to refactor to use interfaces. [2: Implicit Codebase Constraint] The interface specifies TestPreInitState.Logger with output type logrus.FieldLogger at path lib/test_state.go. [5: Conclusion] Therefore, ANY correct and good answer must change TestPreInitState.Logger from *logrus.Logger to logrus.FieldLogger in lib/test_state.go."
+    }
+  },
+  {
+    "id": "3c06ac104561918c97334f35845328e4",
+    "title": "1.2: Changes the `Logger` field type in `State` struct within `lib/vu_state.go` from `*logrus.Logger` to `logrus.FieldLogger`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that State.Logger uses the logrus.FieldLogger interface type instead of a concrete logger.",
+      "evidence": "gold.patch lines 282-293 (lib/vu_state.go): lines 286-288 remove the TODO comment and `Logger *logrus.Logger`, lines 289-290 add `Logger logrus.FieldLogger`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the Logger fields in lib/vu_state.go use concrete *logrus.Logger with TODO comments acknowledging they should use logrus.FieldLogger. [2: Implicit Codebase Constraint] The interface specifies State.Logger with output type logrus.FieldLogger at path lib/vu_state.go. [5: Conclusion] Therefore, ANY correct and good answer must change State.Logger from *logrus.Logger to logrus.FieldLogger in lib/vu_state.go."
+    }
+  },
+  {
+    "id": "525a5bd8e6cf05d159dd4e40fe410fad",
+    "title": "1.3: Adds a `NewLogHook` function in `lib/testutils/logrus_hook.go` that accepts variadic `logrus.Level` arguments and returns a `*SimpleLogrusHook`, defaulting to all levels when none are provided",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies a reusable hook constructor exists with the prescribed signature to reduce test boilerplate.",
+      "evidence": "gold.patch lines 195-201 (lib/testutils/logrus_hook.go): lines 196-201 add the NewLogHook function that defaults to logrus.AllLevels when no levels are passed.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for hook construction with configurable log levels that default to all levels to reduce boilerplate. [2: Implicit Codebase Constraint] The interface specifies NewLogHook(levels ...logrus.Level) returning *SimpleLogrusHook at path lib/testutils/logrus_hook.go. [5: Conclusion] Therefore, ANY correct and good answer must add a NewLogHook function with variadic levels and all-levels default in lib/testutils/logrus_hook.go."
+    }
+  },
+  {
+    "id": "165da8f5fd8cea79acd86e5d64f5d078",
+    "title": "1.4: Adds a `Reset` method on `SimpleLogrusHook` in `lib/testutils/logrus_hook.go` that clears captured entries without returning them",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies a hook reset capability exists with the prescribed signature to support reuse between subtests.",
+      "evidence": "gold.patch lines 173-178 (lib/testutils/logrus_hook.go): lines 174-178 add the Reset method that locks the mutex and clears messageCache.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for clearing captured entries for reuse between subtests. [2: Implicit Codebase Constraint] The interface specifies SimpleLogrusHook.Reset() with no parameters and no return at path lib/testutils/logrus_hook.go. [5: Conclusion] Therefore, ANY correct and good answer must add a Reset method on SimpleLogrusHook that clears captured entries in lib/testutils/logrus_hook.go."
+    }
+  },
+  {
+    "id": "6f49196c78d049b536c2bcbd69e8ffd9",
+    "title": "1.5: Adds a `LastEntry` method on `SimpleLogrusHook` in `lib/testutils/logrus_hook.go` that returns the most recent captured `*logrus.Entry` or nil if none exist",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies a convenience accessor exists with the prescribed signature for inspecting the most recent log entry.",
+      "evidence": "gold.patch lines 180-190 (lib/testutils/logrus_hook.go): lines 181-189 add the LastEntry method that returns the last element of messageCache or nil.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for inspecting the most recent entry directly without draining the full buffer. [2: Implicit Codebase Constraint] The interface specifies SimpleLogrusHook.LastEntry() returning *logrus.Entry at path lib/testutils/logrus_hook.go. [5: Conclusion] Therefore, ANY correct and good answer must add a LastEntry method on SimpleLogrusHook returning *logrus.Entry or nil in lib/testutils/logrus_hook.go."
+    }
+  },
+  {
+    "id": "d13b763c1399a75ebdf707c9f4e1efc9",
+    "title": "1.6: Changes the return type of `NewLogger` in `lib/testutils/test_output.go` from `*logrus.Logger` to `logrus.FieldLogger`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies the primary test logger utility returns an interface type compatible with interface-based logger fields.",
+      "evidence": "gold.patch lines 229-255 (lib/testutils/test_output.go): line 253 declares `func NewLogger(t testing.TB) logrus.FieldLogger` replacing the old concrete return type.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states existing helpers return concrete types rather than interfaces and asks that logger creation helpers return interface types. [2: Implicit Codebase Constraint] The interface specifies NewLogger(t testing.TB) returning logrus.FieldLogger at path lib/testutils/test_output.go. [3: Logical Necessity] Given the Logger fields are now logrus.FieldLogger, the helper that creates loggers for tests must return the matching interface type to avoid unnecessary type assertions at every call site. [5: Conclusion] Therefore, ANY correct and good answer must change NewLogger to return logrus.FieldLogger in lib/testutils/test_output.go."
+    }
+  },
+  {
+    "id": "36288e9b8c1a8d8323dfd88312dce2e8",
+    "title": "1.7: Adds a `NewLoggerWithHook` function in `lib/testutils/test_output.go` that accepts `t testing.TB` and variadic `logrus.Level` arguments, returning both a `logrus.FieldLogger` and a `*SimpleLogrusHook`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies a single-call helper exists with the prescribed signature to create a logger and hook together.",
+      "evidence": "gold.patch lines 257-277 (lib/testutils/test_output.go): lines 260-277 add NewLoggerWithHook that creates a logger, attaches a hook, and returns both.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for a convenient single call to get both a logger and a hook together. [2: Implicit Codebase Constraint] The interface specifies NewLoggerWithHook(t testing.TB, levels ...logrus.Level) returning (logrus.FieldLogger, *SimpleLogrusHook) at path lib/testutils/test_output.go. [5: Conclusion] Therefore, ANY correct and good answer must add NewLoggerWithHook with the prescribed signature in lib/testutils/test_output.go."
+    }
+  },
+  {
+    "id": "9ca5bb7e649296a74302b8ef3f9c084b",
+    "title": "1.8: Changes the `logger` parameter of `ParseArg` in `output/csv/config.go` from `*logrus.Logger` to `logrus.FieldLogger`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies the CSV config parsing function accepts the interface logger type.",
+      "evidence": "gold.patch lines 298-306 (output/csv/config.go): line 303 changes `func ParseArg(arg string, logger *logrus.Logger)` to `func ParseArg(arg string, logger logrus.FieldLogger)`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the concrete type appears in non-test function parameters in output/csv/ and asks to refactor to interfaces. [2: Implicit Codebase Constraint] The interface specifies ParseArg(arg string, logger logrus.FieldLogger) at path output/csv/config.go. [5: Conclusion] Therefore, ANY correct and good answer must change ParseArg's logger parameter to logrus.FieldLogger in output/csv/config.go."
+    }
+  },
+  {
+    "id": "5707c90947012813077434537eacc0d9",
+    "title": "1.9: Changes the `logger` parameter of `GetConsolidatedConfig` in `output/csv/config.go` from `*logrus.Logger` to `logrus.FieldLogger`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies the CSV consolidated config function accepts the interface logger type.",
+      "evidence": "gold.patch lines 307-316 (output/csv/config.go): line 312 changes `logger *logrus.Logger` to `logger logrus.FieldLogger` in the GetConsolidatedConfig signature.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the concrete type appears in non-test function parameters in output/csv/ and asks to refactor to interfaces. [2: Implicit Codebase Constraint] The interface specifies GetConsolidatedConfig(..., logger logrus.FieldLogger) at path output/csv/config.go. [5: Conclusion] Therefore, ANY correct and good answer must change GetConsolidatedConfig's logger parameter to logrus.FieldLogger in output/csv/config.go."
+    }
+  },
+  {
+    "id": "72fb7267d07d536d0361fa256b83e296",
+    "title": "1.10: Replaces the direct `r.preInitState.Logger.Formatter` access in `Runner.SetOptions` in `js/runner.go` with a type assertion that extracts the `logrus.Formatter` through the `logrus.FieldLogger` interface",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the Formatter access in js/runner.go is adapted to work through the interface via a type assertion instead of directly accessing the concrete *logrus.Logger field.",
+      "evidence": "gold.patch lines 93-107 (js/runner.go): lines 98-104 replace the direct `r.preInitState.Logger.Formatter` access with a type assertion to extract the formatter safely through the interface.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to adapt production code that directly accesses concrete logger fields like Formatter to work safely through the interface. [2: Implicit Codebase Constraint] In the codebase, js/runner.go SetOptions accesses r.preInitState.Logger.Formatter, which is only valid on *logrus.Logger and would fail to compile once the field becomes logrus.FieldLogger. [3: Logical Necessity] Given the Logger field is now an interface, any code accessing concrete-only fields must use type assertions or alternative approaches to compile. [5: Conclusion] Therefore, ANY correct and good answer must adapt the Formatter access in js/runner.go to work through the logrus.FieldLogger interface."
+    }
+  },
+  {
+    "id": "6b8852de8a13fc2c5a2b4aa1a4aa9cce",
+    "title": "1.11: Changes the `loadSystemCertPool` function parameter in `cmd/test_load.go` from `*logrus.Logger` to `logrus.FieldLogger`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies a production helper function in cmd/ accepts the interface logger type.",
+      "evidence": "gold.patch lines 46-54 (cmd/test_load.go): line 51 changes `func loadSystemCertPool(logger *logrus.Logger)` to `func loadSystemCertPool(logger logrus.FieldLogger)`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies concrete logger types in cmd/ utility functions as part of the coupling problem. [2: Implicit Codebase Constraint] loadSystemCertPool only calls WithError().Warning() on the logger, both available on logrus.FieldLogger, so accepting the interface is safe. [5: Conclusion] Therefore, ANY correct and good answer should change loadSystemCertPool's logger parameter to logrus.FieldLogger in cmd/test_load.go."
+    }
+  },
+  {
+    "id": "99ff094520b1a606c188fd324de5d9b7",
+    "title": "1.12: Adds a linter rule in `.golangci.yml` that flags direct usage of the concrete `logrus.Logger` type to prevent regressions",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies automated guardrails exist to discourage regressions back to concrete logrus logger usage.",
+      "evidence": "gold.patch lines 1-12 (.golangci.yml): line 9 adds a forbidigo pattern `'^logrus\\.Logger$'` to the existing list of forbidden identifiers.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to add a lint rule to prevent regressions back to using the concrete logger type. [2: Implicit Codebase Constraint] The repository already uses golangci-lint with a forbidigo section in .golangci.yml to enforce import/usage restrictions. [5: Conclusion] Therefore, ANY correct and good answer must add a lint rule in .golangci.yml that flags concrete logrus.Logger usage."
+    }
+  },
+  {
+    "id": "2dfef12fc617c6e553fa72362a612cf3",
+    "title": "1.13: Removes the `NewMemLogger` function from `lib/testutils/logrus_hook.go` that returned `(*logrus.Logger, *SimpleLogrusHook)` with a concrete logger type",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the NewMemLogger function, which returned a concrete *logrus.Logger, is removed from lib/testutils/logrus_hook.go since it is superseded by the new interface-returning helpers.",
+      "evidence": "gold.patch lines 206-224 (lib/testutils/logrus_hook.go): lines 210-224 remove the NewMemLogger function that returned (*logrus.Logger, *SimpleLogrusHook), eliminating the last public concrete-returning helper.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The logger creation helpers should return interface types.' [2: Implicit Codebase Constraint] lib/testutils/logrus_hook.go has NewMemLogger which returns (*logrus.Logger, *SimpleLogrusHook), a concrete return type that contradicts the prompt requirement. NewLoggerWithHook (1.7) supersedes this function. [3: Logical Necessity] Given the prompt requires helpers to return interfaces, NewMemLogger must be removed since it returns a concrete type. [5: Conclusion] Therefore, ANY correct and good answer must remove the NewMemLogger function from lib/testutils/logrus_hook.go."
+    }
+  },
+  {
+    "id": "eab74d277113702b38589574540be84a",
+    "title": "1.14: Removes the TODO comment from `lib/test_state.go` that references replacing the Logger type with an interface",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies resolved documentation debt is cleaned up after implementing the interface change.",
+      "evidence": "gold.patch lines 146-156 (lib/test_state.go): lines 150-151 remove the comment `// TODO: replace with logrus.FieldLogger when all of the tests can be fixed`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to address the TODO comments about Logger fields using interfaces. [2: Implicit Codebase Constraint] lib/test_state.go contains the TODO comment '// TODO: replace with logrus.FieldLogger when all of the tests can be fixed' which becomes stale once the change is made. [5: Conclusion] Therefore, ANY correct and good answer must remove the TODO comment from lib/test_state.go after changing the Logger field type."
+    }
+  },
+  {
+    "id": "6735e8bc54cd68c3d193b141c63b7b56",
+    "title": "1.15: Removes the TODO comment from `lib/vu_state.go` that references changing the Logger type to an interface",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies resolved documentation debt is cleaned up after implementing the interface change.",
+      "evidence": "gold.patch lines 282-293 (lib/vu_state.go): lines 286-287 remove the comment `// TODO: change to logrus.FieldLogger when there is time to fix all the tests`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to address the TODO comments about Logger fields using interfaces. [2: Implicit Codebase Constraint] lib/vu_state.go contains the TODO comment '// TODO: change to logrus.FieldLogger when there is time to fix all the tests' which becomes stale once the change is made. [5: Conclusion] Therefore, ANY correct and good answer must remove the TODO comment from lib/vu_state.go after changing the Logger field type."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b8db8602767ed75bf96367f1eb68fd50",
+    "title": "4.1: Removes or changes the signatures of existing `SimpleLogrusHook` methods `Levels`, `Fire`, `Drain`, or `Lines` in `lib/testutils/logrus_hook.go`",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects regressions where existing hook API methods are broken while adding new ones.",
+      "evidence": "gold.patch lines 157-224 (lib/testutils/logrus_hook.go): the patch adds new methods (Reset, LastEntry, NewLogHook) without modifying the existing Levels, Fire, Drain, or Lines methods.",
+      "justification": "[2: Implicit Codebase Constraint] Existing tests and utilities throughout the codebase depend on Levels, Fire, Drain, and Lines methods of SimpleLogrusHook. Removing or changing them would break consumers. [3: Logical Necessity] Given the prompt asks for additions and the existing methods have dependents, preserving them is mandatory. [5: Conclusion] Therefore, ANY correct and good answer must preserve the existing SimpleLogrusHook methods unchanged."
+    }
+  },
+  {
+    "id": "27a9cd57b89dcabf456c49260e1f1af3",
+    "title": "4.2: Modifies any existing Go test file (`*_test.go`) as part of the refactoring",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects violation of the explicit instruction not to modify test files.",
+      "evidence": "The prompt explicitly states: 'Do NOT modify any test files (*_test.go) or testing logic in any way. Your task is to make the minimal changes to non-test source files only.'",
+      "justification": "[2: Implicit Codebase Constraint] The test files (*_test.go) are managed separately and already contain adaptations for the new interface signatures via base_test.patch; modifying them would conflict with those pre-applied changes. [3: Logical Necessity] Since the refactoring scope is explicitly limited to non-test source files, any agent touching *_test.go files is operating outside the defined scope. [5: Conclusion] Therefore, ANY correct and good answer must not modify any *_test.go files."
+    }
+  }
+]

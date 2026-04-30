@@ -1,0 +1,206 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b5e43fdd6eb8db4128e06e953adf962a",
+    "title": "1.1: Creates the ChecklistCard component as a named export in client/landing/stepper/declarative-flow/internals/components/checklist-card/index.tsx",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that ChecklistCard exists as a named export in checklist-card/index.tsx within the shared stepper components directory.",
+      "evidence": "Gold patch: checklist-card/index.tsx is a new file containing `export const ChecklistCard = ( { title, items }: ChecklistCardProps ) => {` (diff line 22)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The component, its types, and its styles should all live in a shared location so other steps can use the same pattern without duplicating code.' [2: Implicit Code Base Constraint] The interface specifies the component path as client/landing/stepper/declarative-flow/internals/components/checklist-card/index.tsx and the name as ChecklistCard, exported as a named export. [5: Conclusion] Therefore, any correct answer must create ChecklistCard as a named export at the interface-specified path within the shared components directory."
+    }
+  },
+  {
+    "id": "20e23747348ac57a9d8c37a7f24453e5",
+    "title": "1.2: Exports ChecklistCardItem interface with an icon field of type React.ReactElement and a text field of type TranslateResult from checklist-card/index.tsx",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that ChecklistCardItem is an exported interface in checklist-card/index.tsx with the exact fields specified in the interface documentation.",
+      "evidence": "Gold patch: checklist-card/index.tsx adds `export interface ChecklistCardItem { icon: React.ReactElement; text: TranslateResult; }` (diff lines 12-15)",
+      "justification": "[2: Implicit Code Base Constraint] The interface specifies ChecklistCardItem as an exported interface with 'an icon field of type React.ReactElement and a text field of type TranslateResult.' [3: Logical Necessity] The component needs a typed contract for its items to be reusable by other stepper steps. [5: Conclusion] Therefore, any correct answer must export ChecklistCardItem with the specified fields."
+    }
+  },
+  {
+    "id": "834aa6724a6054792d60196af4fb0414",
+    "title": "1.3: Accepts title (TranslateResult) and items (ChecklistCardItem[]) as props in ChecklistCard",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the ChecklistCard component accepts a title of type TranslateResult and an items array of type ChecklistCardItem[] as its props.",
+      "evidence": "Gold patch: checklist-card/index.tsx defines `interface ChecklistCardProps { title: TranslateResult; items: ChecklistCardItem[]; }` and uses it in the component signature (diff lines 17-22)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt describes the pattern as a 'titled list of icon and text items,' requiring both a title and a list of items. [2: Implicit Code Base Constraint] The interface specifies the input as `{ title: TranslateResult, items: ChecklistCardItem[] }`. [5: Conclusion] Therefore, any correct answer must accept title and items as props with the specified types."
+    }
+  },
+  {
+    "id": "e26905598ac611b803efbc64e793eb91",
+    "title": "1.4: Uses Card and CardBody from @wordpress/components as the outer container of the extracted shared component",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the extracted shared component wraps its content using the Card and CardBody components from @wordpress/components.",
+      "evidence": "Gold patch: checklist-card/index.tsx imports `{ Card, CardBody } from '@wordpress/components'` and wraps the component output in `<Card><CardBody>...</CardBody></Card>` (diff lines 7, 24-25, 37-38)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the current styling 'uses a flat background with custom padding instead of following the project's existing card conventions from @wordpress/components.' This directly requires adopting the @wordpress/components card convention. [2: Implicit Code Base Constraint] Card and CardBody are the standard card primitives in @wordpress/components and the established card convention across the Calypso project. [5: Conclusion] Therefore, any correct answer must use Card and CardBody from @wordpress/components as the container."
+    }
+  },
+  {
+    "id": "4d7e41563729b8e8dc0adf3f65e379de",
+    "title": "1.5: Renders each item's icon and text content within the extracted shared component",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the extracted shared component iterates over the items array and renders both the icon element and the text for each item.",
+      "evidence": "Gold patch: checklist-card/index.tsx maps over items and renders `<Icon icon={ item.icon } size={ 20 } />` and `{ item.text }` for each item (diff lines 28-35)",
+      "justification": "[2: Implicit Code Base Constraint] The interface describes ChecklistCard as a component that 'renders a titled list of icon and text items.' [3: Logical Necessity] The ChecklistCardItem interface contains icon and text fields; both must be rendered for the component to fulfill its stated purpose. [5: Conclusion] Therefore, any correct answer must render each item's icon and text content."
+    }
+  },
+  {
+    "id": "5766206936be5cab426b79eeaf1dcfd1",
+    "title": "1.6: Updates Authorization in authorization.tsx to import and use the extracted shared component instead of the inline AuthorizationBenefits component",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the Authorization component in authorization.tsx imports the extracted shared component and uses it to render the benefits section, replacing the previous inline AuthorizationBenefits usage.",
+      "evidence": "Gold patch: authorization.tsx adds `import { ChecklistCard } from 'calypso/landing/stepper/declarative-flow/internals/components/checklist-card'` and replaces the AuthorizationBenefits JSX with `<ChecklistCard title={...} items={[...]} />` (diff lines 130, 169-195)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the pattern 'is locked inside a single step' and 'should all live in a shared location so other steps can use the same pattern without duplicating code.' [3: Logical Necessity] Extracting a shared component without updating the original callsite to use it leaves the refactoring incomplete. [5: Conclusion] Therefore, any correct answer must update Authorization to import and use ChecklistCard."
+    }
+  },
+  {
+    "id": "8f776043ede82739e34b375bf21540b1",
+    "title": "1.7: Creates a dedicated stylesheet co-located with the extracted shared component",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that a stylesheet (style.scss) is created alongside the extracted shared component containing the component's styles, and that the component imports it.",
+      "evidence": "Gold patch: adds new file checklist-card/style.scss with component-specific styles (.checklist-card, .checklist-card__title, .checklist-card__items, .checklist-card__item, .checklist-card__item-icon) and checklist-card/index.tsx imports `'./style.scss'` (diff lines 10, 46-82)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The component, its types, and its styles should all live in a shared location' and 'styling should be consolidated with the extracted component rather than scattered across the authorization step's stylesheet.' [2: Implicit Code Base Constraint] Existing shared components in the same directory (e.g., google-domains-transfer-instructions, site-preview) co-locate their styles with their component files. [5: Conclusion] Therefore, any correct answer must create a dedicated stylesheet co-located with the ChecklistCard component."
+    }
+  },
+  {
+    "id": "da5acb984bda196e4501bf6200cddfb4",
+    "title": "1.8: Tightens the vertical spacing between elements in the authorization step's layout by reducing the gap value in the authorization stylesheet",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the gap (or equivalent spacing property) between elements in the .site-migration-application-password-authorization__authorization layout is reduced from its original value.",
+      "evidence": "Gold patch: style.scss changes the gap on .site-migration-application-password-authorization__authorization from `gap: 1em` to `gap: 0.5rem` (diff lines 207-208)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the authorization step's layout has some UI polish issues. The vertical spacing between elements is too loose.' [3: Logical Necessity] Reducing the gap value is the direct fix for spacing that is 'too loose.' [5: Conclusion] Therefore, any correct answer must tighten the vertical spacing in the authorization layout."
+    }
+  },
+  {
+    "id": "ff2e71e66b8a0ac32d8124deafa6d316",
+    "title": "1.9: Widens the primary action button in the authorization step by applying a width or min-width style",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that a width or min-width CSS rule is applied to the primary action button in the authorization step to make it wider than its default size.",
+      "evidence": "Gold patch: style.scss adds `.action_buttons__button { width: 300px; }` nested inside the authorization layout (diff lines 219-221)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the primary action button is too narrow.' [3: Logical Necessity] Applying a width or min-width is the standard CSS approach to make a button wider. [5: Conclusion] Therefore, any correct answer must apply a width style to widen the primary action button."
+    }
+  },
+  {
+    "id": "354bf3dcf80f5dab90c26ae38c59efdd",
+    "title": "1.10: Enhances the visual prominence of the secondary 'Share credentials instead' navigation link by adding styling such as font weight, underline, or color",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that additional CSS styling is applied to the secondary navigation link ('Share credentials instead') to make it stand out more visually, using one or more of: increased font weight, text decoration (underline), or explicit color.",
+      "evidence": "Gold patch: style.scss adds `.navigation-link { color: var(--color-neutral-70, #1d2327); font-weight: 500; text-decoration: underline; }` nested inside the authorization layout (diff lines 253-257)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the secondary \"Share credentials instead\" link does not stand out enough visually.' [3: Logical Necessity] Adding visual emphasis through font weight, underline, or color are the standard CSS approaches to increase link prominence. [5: Conclusion] Therefore, any correct answer must add styling to enhance the visual prominence of the secondary navigation link."
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "219955418cd312e421c77897d56c9e48",
+    "title": "3.1: Removes the inline AuthorizationBenefits component and its 2 associated interfaces (AuthorizationBenefitsItem, AuthorizationBenefitsProps) from authorization.tsx",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the AuthorizationBenefits component definition, the AuthorizationBenefitsItem interface, and the AuthorizationBenefitsProps interface are removed from authorization.tsx after extraction.",
+      "evidence": "Gold patch: authorization.tsx removes the AuthorizationBenefitsItem interface (diff lines 102-105), AuthorizationBenefitsProps interface (diff lines 107-109), and the AuthorizationBenefits component (diff lines 111-127)",
+      "justification": "[4: Quality Necessity] After the benefits list logic is extracted into the shared ChecklistCard component, the AuthorizationBenefits component and its interfaces become dead code that nothing references. [1: Explicit Prompt Requirement] The prompt states the pattern 'is locked inside a single step,' implying the local copy should be replaced, not duplicated. [5: Conclusion] Therefore, any correct answer should remove the now-obsolete AuthorizationBenefits component and its interfaces from authorization.tsx."
+    }
+  },
+  {
+    "id": "a237622e39300c90c8752f47c7c14185",
+    "title": "3.2: Removes all 4 of the benefits-specific CSS rules (.benefits-container, .benefits, .benefits-item, .benefits-item-icon) from the authorization step's stylesheet",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the CSS rules for .site-migration-application-password-authorization__benefits-container, __benefits, __benefits-item, and __benefits-item-icon are removed from the authorization step's style.scss.",
+      "evidence": "Gold patch: style.scss removes .benefits-container (diff lines 211-219), .benefits (diff lines 223-235), .benefits-item and .benefits-item-icon (diff lines 237-253)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'styling should be consolidated with the extracted component rather than scattered across the authorization step's stylesheet.' [4: Quality Necessity] After the benefits UI is moved to the shared ChecklistCard component with its own stylesheet, the old benefits CSS rules in the authorization stylesheet become orphaned and unreferenced. [5: Conclusion] Therefore, any correct answer should remove the obsolete benefits-specific CSS rules from the authorization step's stylesheet."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "548b945243387be85a8c5c7be6ffb2d2",
+    "title": "4.1: Removes or alters any of the three existing benefit items (the loop, backup, and shield icon entries with their translated text) from the Authorization component",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactoring drops or changes any of the three benefit items that the Authorization component renders: the uninterrupted service item (loop icon), the uptime reliability item (backup icon), or the security monitoring item (shield icon).",
+      "evidence": "Gold patch: authorization.tsx preserves all three benefit items intact, passing them as items to ChecklistCard with the same icons (loop, backup, shield) and the same translated text strings (diff lines 171-194)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to refactor the code structure, not to change the rendered content. The three benefit items are existing user-facing content. [3: Logical Necessity] Removing or altering benefit items would change what users see on the authorization step, which is a functional regression unrelated to the refactoring. [5: Conclusion] Therefore, any correct answer must NOT remove or alter any of the three existing benefit items."
+    }
+  },
+  {
+    "id": "fa0874dfbd3631f3cbb3e53555e32ae8",
+    "title": "4.2: Modifies components or logic unrelated to the benefits list extraction and the authorization step layout (such as altering NextButton behavior, callback handlers, or other stepper steps)",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the agent over-scopes the refactoring by modifying parts of the codebase unrelated to extracting the benefits list component and polishing the authorization step's layout.",
+      "evidence": "Gold patch: only modifies checklist-card/index.tsx (new), checklist-card/style.scss (new), components/index.tsx (barrel export), authorization.tsx (use ChecklistCard), and authorization style.scss (cleanup and polish). No other files or unrelated logic are touched.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Your task is to make the minimal changes to non-test source files only.' [3: Logical Necessity] Modifying unrelated components such as NextButton, the callback handlers (onShareCredentialsClick, onAuthorizationClick), or other stepper steps could introduce regressions in unrelated flows. [5: Conclusion] Therefore, any correct answer must NOT modify components or logic unrelated to the benefits list extraction and authorization step layout."
+    }
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "task_id": "69b7c2a04b6f8ff9ed988136",
+  "repo": "OISF_suricata",
+  "base_commit": "6e389a1fbbd179f77eb46bfb7660555052333255",
+  "language": "C",
+  "mount_path": "/app/suricata",
+  "initial_complexity": "Mid",
+  "uid": "0f1a823e-3191-4800-a0ea-b9cfccb19f64"
+}

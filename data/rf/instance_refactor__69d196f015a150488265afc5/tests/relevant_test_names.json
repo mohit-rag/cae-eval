@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "parses fixture from \"gradle\" manager"
+    },
+    {
+      "name": "parses long-form dependency with group, name, version"
+    },
+    {
+      "name": "parses maven registry with name and url"
+    },
+    {
+      "name": "parses maven registry with setUrl"
+    },
+    {
+      "name": "parses maven registry with url property"
+    },
+    {
+      "name": "parses plugin with version"
+    }
+  ]
+}

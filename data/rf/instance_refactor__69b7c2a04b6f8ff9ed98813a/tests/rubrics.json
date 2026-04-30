@@ -1,0 +1,278 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required.",
+      "justification": "N/A: No Justification Required."
+    }
+  },
+  {
+    "id": "a7106c4ee79f6f48ea2b86f990c9edde",
+    "title": "1.1: Applies forced inlining to page cache hot-path functions in cache.c",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that performance-critical functions in the database engine page cache (src/database/engine/cache.c) use the codebase's forced-inlining annotations rather than relying on the advisory inline keyword alone.",
+      "evidence": "Prompt paragraph 1: 'Functions on the hot path for data collection, page cache operations ... should all use forced inlining instead of the advisory keyword.' Base codebase: cache.c contains many static inline functions on the page management hot path.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly lists 'page cache operations' as a hot-path area requiring forced inlining. [2: Implicit Code Base Constraint] cache.c contains the page lifecycle functions (acquire, release, state transitions) that run on every data point collected. [5: Conclusion] Any correct solution must convert advisory inline to forced inlining in cache.c."
+    }
+  },
+  {
+    "id": "b9f12e61ab0bddfa13cdb564ff67d2a9",
+    "title": "1.2: Applies forced inlining to buffer utility functions",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that hot-path buffer functions in both buffer files (src/libnetdata/buffer/buffer.h and buffer.c) use forced inlining instead of advisory inline.",
+      "evidence": "Prompt paragraph 1: 'buffer manipulation ... should all use forced inlining.' Base codebase: buffer.h has ~40 static inline functions used on every metric serialization path.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly lists 'buffer manipulation' as requiring forced inlining. [2: Implicit Code Base Constraint] Buffer functions (strcat, putc, flush, print functions) are called millions of times per second during metric serialization. [5: Conclusion] Any correct solution must convert advisory inline to forced inlining in buffer.h and buffer.c."
+    }
+  },
+  {
+    "id": "01c8a5f7826da712dd410b1698417c9d",
+    "title": "1.3: Applies forced inlining to reference counting helpers",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that refcount helper functions in src/libnetdata/atomics/refcount.h use forced inlining.",
+      "evidence": "Prompt paragraph 1: 'reference counting ... should all use forced inlining.' Base codebase: refcount.h has static inline acquire/release/deletion functions using atomic operations.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly lists 'reference counting' as requiring forced inlining. [2: Implicit Code Base Constraint] Refcount acquire/release are called on every page cache operation, making them critical-path. [5: Conclusion] Any correct solution must apply forced inlining to the refcount helpers."
+    }
+  },
+  {
+    "id": "3cc4999aeb9f21b15c56bb72687a0b0f",
+    "title": "1.4: Applies forced inlining to plugin data parser functions",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that hot-path functions in both pluginsd sources (pluginsd_parser.c and pluginsd_replication.c) use forced inlining.",
+      "evidence": "Prompt paragraph 1: 'plugin data parsing ... should all use forced inlining.' Base codebase: pluginsd_parser.c and pluginsd_replication.c contain static inline functions that parse every incoming metric line.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly lists 'plugin data parsing' as requiring forced inlining. [2: Implicit Code Base Constraint] The begin_v2/set_v2/end_v2 and replay functions process every data point received from collectors and child nodes. [5: Conclusion] Any correct solution must convert advisory inline to forced inlining in the pluginsd parser and replication handlers."
+    }
+  },
+  {
+    "id": "70c154c685e4c0baf5969bd5c0cbdd04",
+    "title": "1.5: Removes inline qualifier from variadic (va_list) functions instead of force-inlining them",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that functions accepting va_list arguments do not retain the inline qualifier, since variadic functions cannot be force-inlined by the compiler.",
+      "evidence": "Prompt paragraph 1: 'Functions that accept variadic arguments cannot be force-inlined and should have the inline qualifier simply removed instead.' Base codebase: buffer_vsprintf in buffer.c is declared 'inline void buffer_vsprintf(BUFFER *wb, const char *fmt, va_list args)'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states variadic functions should have inline removed. [3: Logical Necessity] Applying __attribute__((always_inline)) to a va_list function causes compiler errors or undefined behavior. [5: Conclusion] Any correct solution must remove inline from variadic functions rather than replacing it with a forced-inlining macro."
+    }
+  },
+  {
+    "id": "c277c03276d66b3c1d5201edfc6bdd91",
+    "title": "1.6: Introduces a STRCNT_CMD enum type in src/streaming/stream-sender-internals.h",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that a STRCNT_CMD enum type exists in the streaming sender internals header, defining command values that distinguish reconnection from permanent removal.",
+      "evidence": "Interface: 'STRCNT_CMD - Type: enum - Description: Command type for the streaming connector queue. Defines at least CONNECT and REMOVE.' Prompt paragraph 2: connector should handle both reconnection and permanent removal.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires the connector to handle both reconnection and permanent removal. [2: Implicit Code Base Constraint] The interface specifies STRCNT_CMD as the enum type. [5: Conclusion] Any correct solution must introduce this enum to distinguish connect from remove operations."
+    }
+  },
+  {
+    "id": "c2acebe4607af2b98859730e439336bf",
+    "title": "1.7: Updates stream_connector_requeue to accept a STRCNT_CMD command parameter",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that stream_connector_requeue in src/streaming/stream-sender-internals.h accepts (struct sender_state *s, STRCNT_CMD cmd) as specified by the interface.",
+      "evidence": "Interface: 'stream_connector_requeue - Input: struct sender_state *s, STRCNT_CMD cmd - Description: Enqueues a sender to the connector thread with a command indicating whether to attempt reconnection or permanently remove the sender.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says the stream thread should always hand off to the connector. [2: Implicit Code Base Constraint] The interface specifies the exact signature. [3: Logical Necessity] The connector needs to know what operation to perform on each queued sender. [5: Conclusion] Any correct solution must update this function to accept a command parameter."
+    }
+  },
+  {
+    "id": "528b5b86a45ceef842381e2a69fd4c06",
+    "title": "1.8: Declares stream_sender_on_disconnect as a public function callable from outside the sender module",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that stream_sender_on_disconnect is declared in src/streaming/stream-sender-internals.h so the connector thread can invoke it when processing remove commands.",
+      "evidence": "Interface: 'stream_sender_on_disconnect - Input: struct sender_state *s - Description: Runs disconnect hooks for a sender ... Callable from both the sender module and the connector thread.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says heavy disconnect work should be handled by the connector thread. [2: Implicit Code Base Constraint] The interface specifies this function must be callable from outside. [3: Logical Necessity] The connector thread lives in stream-connector.c and needs to call disconnect hooks defined in stream-sender.c. [5: Conclusion] Any correct solution must make the disconnect hook publicly accessible."
+    }
+  },
+  {
+    "id": "df4f6e0916521152534dfa81b2d4dd50",
+    "title": "1.9: Consolidates shared cleanup logic so connect, disconnect paths call common code",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the connect and disconnect hooks for senders share at least one common cleanup operation rather than duplicating equivalent cleanup logic separately in each path.",
+      "evidence": "Prompt paragraph 2: 'The cleanup logic that is common to both connecting and disconnecting a sender should be shared rather than duplicated.' Base codebase: stream_sender_on_connect and the (previously static) disconnect handler both call chart reset, replication reset, and buffer flush.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires shared cleanup logic. [4: Qualitative Requirement] DRY principle: duplicating cleanup across connect and disconnect paths creates maintenance risk. [5: Conclusion] Any correct solution must consolidate the shared cleanup into a common path."
+    }
+  },
+  {
+    "id": "5b5ae7322a91cc31a37d57aa1bb36f79",
+    "title": "1.10: Ensures the stream thread delegates sender removal to the connector instead of doing it inline",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the disconnect path in the stream thread (stream_sender_move_running_to_connector_or_remove) always requeues to the connector thread instead of sometimes calling stream_sender_remove directly.",
+      "evidence": "Prompt paragraph 2: 'the stream thread can always hand off to the connector after a disconnect instead of sometimes doing the teardown itself.' Base codebase: the function currently has a conditional path that calls stream_sender_remove directly on the stream thread.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly says 'always hand off to the connector.' [3: Logical Necessity] Doing heavy teardown on the stream thread blocks metric processing for all nodes on that thread. [5: Conclusion] Any correct solution must eliminate the direct stream_sender_remove call from the stream thread's disconnect path."
+    }
+  },
+  {
+    "id": "f64f59dab07a8659ce9665591a9ba01b",
+    "title": "1.11: Ensures the connector thread processes removal operations in addition to connections",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the connector thread function in stream-connector.c handles permanent sender removal by invoking disconnect hooks, not just connection attempts.",
+      "evidence": "Prompt paragraph 2: 'The connector thread already manages connection attempts and should also be responsible for handling permanent sender removal.' Interface: STRCNT_CMD defines REMOVE.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires the connector to handle removal. [2: Implicit Code Base Constraint] The interface defines a REMOVE command the connector must process. [5: Conclusion] Any correct solution must add remove handling to the connector thread's main loop."
+    }
+  },
+  {
+    "id": "14f36722a2f04cdacb75e9c4e5565594",
+    "title": "1.12: Fixes the receiver so it does not disconnect when the sender encounters a socket error",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that a sender failure during data dispatch in stream_receiver_dequeue_senders does not cause the receiver to be torn down. The receiver and sender connections are independent.",
+      "evidence": "Prompt paragraph 3: 'The receiver has a bug where it gets torn down when the sender encounters a socket error during data dispatch. The receiver and sender connections are independent, so a failure on the sender side should not cause the receiver to disconnect.' Base codebase: stream_receiver_dequeue_senders currently returns false (disconnecting the receiver) when stream_sender_send_data fails.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly identifies this as a bug and requires the fix. [3: Logical Necessity] The receiver processes data from a child node; the sender pushes data to a parent. These are independent TCP connections. [5: Conclusion] Any correct solution must decouple the receiver's fate from the sender's socket errors."
+    }
+  },
+  {
+    "id": "0150bd48b89d0b5af27aeffcdb2e9f1c",
+    "title": "1.13: Centralizes receiver exit reason setting inside the remove function",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that stream_receiver_remove sets the exit reason internally at entry, so callers do not need to call receiver_set_exit_reason before every remove call.",
+      "evidence": "Prompt paragraph 4: 'The remove function should handle setting the exit reason internally so callers do not need to do it.' Base codebase: nearly every call to stream_receiver_remove is preceded by a receiver_set_exit_reason call.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires this centralization. [4: Qualitative Requirement] Reduces repetitive code and eliminates the risk of forgetting to set the reason before removal. [5: Conclusion] Any correct solution must move exit reason assignment into the remove function."
+    }
+  },
+  {
+    "id": "a26c32b2c59bfea35330cef7cd698a74",
+    "title": "1.14: Updates receiver_set_exit_reason to return the stored reason value",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that receiver_set_exit_reason returns a non-void value (the stored exit reason) so callers that need the value for conditional logic or logging can use the return value.",
+      "evidence": "Prompt paragraph 4: 'The exit reason setter should also return the current reason for callers that need the value.' Base codebase: receiver_set_exit_reason currently returns void.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires the setter to return the value. [3: Logical Necessity] Some callers need the stored reason for logging or conditional flow after the remove function centralizes the assignment. [5: Conclusion] Any correct solution must change the return type from void to a value type."
+    }
+  },
+  {
+    "id": "53da16fb8928fd157a67bc2f363e8b9a",
+    "title": "1.15: Moves the ML pulse statistics call outside the spinlock in the prediction path",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the pulse/statistics reporting call in the ML dimension prediction path (ml.cc) occurs after the spinlock is released, not while it is held.",
+      "evidence": "Prompt paragraph 5: 'In the ML dimension prediction path, a statistics reporting call is made while holding a spinlock. It should happen after the lock is released to reduce contention on the ingestion hot path.' Base codebase: pulse_ml_models_consulted is called before spinlock_unlock in ml_dimension_predict.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires moving the call outside the lock. [3: Logical Necessity] Holding a spinlock during a statistics call increases contention on the ingestion path because every dimension prediction acquires this lock. [5: Conclusion] Any correct solution must reorder these calls so the lock is released first."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required.",
+      "justification": "N/A: No Justification Required."
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required.",
+      "justification": "N/A: No Justification Required."
+    }
+  },
+  {
+    "id": "b772649855493fff7a57f22a0858b84f",
+    "title": "3.1: Removes redundant receiver_set_exit_reason calls before stream_receiver_remove",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that callers of stream_receiver_remove no longer call receiver_set_exit_reason immediately before it, since the remove function now sets the exit reason internally.",
+      "evidence": "Prompt paragraph 4: 'This is repetitive and error-prone. The remove function should handle setting the exit reason internally so callers do not need to do it.' Base codebase: nearly every stream_receiver_remove call is preceded by a receiver_set_exit_reason call.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt describes the redundant calls as a maintenance problem. [4: Qualitative Requirement] Once the remove function centralizes exit reason setting, the preceding calls become dead code. [5: Conclusion] A thorough solution removes the now-redundant calls."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required.",
+      "justification": "N/A: No Justification Required."
+    }
+  },
+  {
+    "id": "d1c081d669d6990e7abd44f95f5717c8",
+    "title": "4.1: Introduces compilation errors in modified source files",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if any modified source file has syntax errors, missing includes, mismatched signatures, or other issues that would prevent compilation.",
+      "evidence": "Prompt: 'Your task is to make the minimal changes to non-test source files only.' Base codebase: all source files compile cleanly before the refactor.",
+      "justification": "[2: Implicit Code Base Constraint] The codebase must remain compilable after the refactor. [3: Logical Necessity] Forced inlining annotations and function signature changes can easily introduce compilation failures if not applied correctly. [5: Conclusion] Any correct solution must not break compilation."
+    }
+  },
+  {
+    "id": "a4871d61f9bae9080d00a5a8cf44bcec",
+    "title": "4.2: Modifies test files despite the explicit constraint",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if any test files, unittest functions, or testing infrastructure are modified by the solution.",
+      "evidence": "Prompt constraint: 'I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly forbids modifying test files. [5: Conclusion] Any correct solution must only touch non-test source files."
+    }
+  },
+  {
+    "id": "5da230994e4f202f93a6fa1010d53c5a",
+    "title": "4.3: Removes existing public API functions that are used by other modules",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactor deletes existing public functions (such as stream_sender_on_connect, stream_connector_add, pgc_page_release) that are called from other translation units.",
+      "evidence": "Prompt: 'Your task is to make the minimal changes to non-test source files only.' Base codebase: many functions being annotated are called from other .c files.",
+      "justification": "[2: Implicit Code Base Constraint] The codebase has cross-module function calls that would break if functions are removed during the inlining refactor. [3: Logical Necessity] Removing a public function that other modules call causes linker errors across the project. [5: Conclusion] Any correct solution must preserve all existing public function entry points."
+    }
+  }
+]

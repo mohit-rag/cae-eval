@@ -1,0 +1,253 @@
+diff --git a/tests/events/test_dead_letter_event_source.py b/tests/events/test_dead_letter_event_source.py
+new file mode 100644
+index 00000000..1186d59a
+--- /dev/null
++++ b/tests/events/test_dead_letter_event_source.py
+@@ -0,0 +1,54 @@
++import arrow
++
++from app.db import Session
++from app.models import SyncEvent
++from events.event_source import DeadLetterEventSource, _DEAD_LETTER_THRESHOLD_MINUTES
++
++
++class EventCounter:
++    def __init__(self):
++        self.processed_events = 0
++
++    def on_event(self, event: SyncEvent):
++        self.processed_events += 1
++
++
++def setup_function(func):
++    Session.query(SyncEvent).delete()
++
++
++def test_dead_letter_does_not_take_untaken_events():
++    source = DeadLetterEventSource(1)
++    counter = EventCounter()
++    threshold_time = arrow.utcnow().shift(minutes=-(_DEAD_LETTER_THRESHOLD_MINUTES) + 1)
++    SyncEvent.create(
++        content="test".encode("utf-8"), created_at=threshold_time, flush=True
++    )
++    SyncEvent.create(
++        content="test".encode("utf-8"), taken_time=threshold_time, flush=True
++    )
++    events_processed = source.execute_loop(on_event=counter.on_event)
++    assert len(events_processed) == 0
++    assert counter.processed_events == 0
++
++
++def test_dead_letter_takes_untaken_events_created_older_than_threshold():
++    source = DeadLetterEventSource(1)
++    counter = EventCounter()
++    old_create = arrow.utcnow().shift(minutes=-_DEAD_LETTER_THRESHOLD_MINUTES - 1)
++    SyncEvent.create(content="test".encode("utf-8"), created_at=old_create, flush=True)
++    events_processed = source.execute_loop(on_event=counter.on_event)
++    assert len(events_processed) == 1
++    assert events_processed[0].taken_time > old_create
++    assert counter.processed_events == 1
++
++
++def test_dead_letter_takes_taken_events_created_older_than_threshold():
++    source = DeadLetterEventSource(1)
++    counter = EventCounter()
++    old_taken = arrow.utcnow().shift(minutes=-_DEAD_LETTER_THRESHOLD_MINUTES - 1)
++    SyncEvent.create(content="test".encode("utf-8"), taken_time=old_taken, flush=True)
++    events_processed = source.execute_loop(on_event=counter.on_event)
++    assert len(events_processed) == 1
++    assert events_processed[0].taken_time > old_taken
++    assert counter.processed_events == 1
+diff --git a/tests/events/test_sent_events.py b/tests/events/test_sent_events.py
+index 805abdf9..367cdf32 100644
+--- a/tests/events/test_sent_events.py
++++ b/tests/events/test_sent_events.py
+@@ -1,7 +1,9 @@
++import arrow
++
+ from app import config, alias_utils
+ from app.db import Session
+ from app.events.event_dispatcher import GlobalDispatcher
+-from app.models import Alias
++from app.models import Alias, SyncEvent
+ from tests.utils import random_token
+ from .event_test_utils import (
+     OnMemoryDispatcher,
+@@ -26,6 +28,33 @@ def setup_function(func):
+     on_memory_dispatcher.clear()
+ 
+ 
++def test_event_taken_updates():
++    event = SyncEvent.create(content="test".encode("utf-8"), flush=True)
++    assert event.taken_time is None
++    assert event.mark_as_taken()
++    assert event.taken_time is not None
++
++
++def test_event_mark_as_taken_does_nothing_for_taken_events():
++    now = arrow.utcnow()
++    event = SyncEvent.create(content="test".encode("utf-8"), taken_time=now, flush=True)
++    assert not event.mark_as_taken()
++
++
++def test_event_mark_as_taken_does_nothing_for_not_before_events():
++    now = arrow.utcnow()
++    event = SyncEvent.create(content="test".encode("utf-8"), taken_time=now, flush=True)
++    older_than = now.shift(minutes=-1)
++    assert not event.mark_as_taken(allow_taken_older_than=older_than)
++
++
++def test_event_mark_as_taken_works_for_before_events():
++    now = arrow.utcnow()
++    event = SyncEvent.create(content="test".encode("utf-8"), taken_time=now, flush=True)
++    older_than = now.shift(minutes=+1)
++    assert event.mark_as_taken(allow_taken_older_than=older_than)
++
++
+ def test_fire_event_on_alias_creation():
+     (user, pu) = _create_linked_user()
+     alias = Alias.create_new_random(user)
+diff --git a/tests/oneshot/__init__.py b/tests/oneshot/__init__.py
+new file mode 100644
+index 00000000..e69de29b
+--- /dev/null
++++ b/tests/oneshot/__init__.py
+diff --git a/tests/oneshot/test_send_plan_change_events.py b/tests/oneshot/test_send_plan_change_events.py
+new file mode 100644
+index 00000000..00000001
+--- /dev/null
++++ b/tests/oneshot/test_send_plan_change_events.py
+@@ -0,0 +1,133 @@
++import arrow
++
++from app import config
++from app.db import Session
++from app.events.event_dispatcher import EventDispatcher, GlobalDispatcher
++from app.events.generated import event_pb2
++from app.events.generated.event_pb2 import UserPlanChanged, EventContent
++from app.models import PartnerUser, Subscription, ManualSubscription
++from tests.utils import create_partner_linked_user, random_token
++
++
++class OnMemoryDispatcher:
++    def __init__(self):
++        self.memory = []
++
++    def send(self, event: bytes):
++        self.memory.append(event)
++
++    def clear(self):
++        self.memory = []
++
++
++on_memory_dispatcher = OnMemoryDispatcher()
++
++
++def setup_module():
++    GlobalDispatcher.set_dispatcher(on_memory_dispatcher)
++    config.EVENT_WEBHOOK = "http://test"
++
++
++def teardown_module():
++    GlobalDispatcher.set_dispatcher(None)
++    config.EVENT_WEBHOOK = None
++
++
++def setup_function(func):
++    on_memory_dispatcher.clear()
++
++
++def _dispatch_plan_change_for_user(user, partner_user):
++    """Replicate the per-user logic from send_plan_change_events.py"""
++    subscription_end = user.get_active_subscription_end(
++        include_partner_subscription=False
++    )
++    end_timestamp = None
++    if subscription_end:
++        end_timestamp = subscription_end.timestamp
++    event = UserPlanChanged(plan_end_time=end_timestamp)
++    EventDispatcher.send_event(
++        partner_user.user, EventContent(user_plan_change=event)
++    )
++    Session.flush()
++
++
++def _get_plan_change_event(data: bytes, user, pu) -> UserPlanChanged:
++    event = event_pb2.Event()
++    event.ParseFromString(data)
++    assert event.user_id == user.id
++    assert event.external_user_id == pu.external_user_id
++    assert event.partner_id == pu.partner_id
++    return event.content.user_plan_change
++
++
++def test_plan_change_event_for_user_without_subscription():
++    user, pu = create_partner_linked_user()
++    _dispatch_plan_change_for_user(user, pu)
++    assert len(on_memory_dispatcher.memory) == 1
++    plan_change = _get_plan_change_event(on_memory_dispatcher.memory[0], user, pu)
++    assert plan_change.plan_end_time == 0
++
++
++def test_plan_change_event_for_user_with_subscription():
++    user, pu = create_partner_linked_user()
++    end_at = arrow.utcnow().shift(days=1).replace(hour=0, minute=0, second=0)
++    Subscription.create(
++        user_id=user.id,
++        cancel_url="",
++        update_url="",
++        subscription_id=random_token(10),
++        event_time=arrow.now(),
++        next_bill_date=end_at.date(),
++        plan="yearly",
++        flush=True,
++    )
++    _dispatch_plan_change_for_user(user, pu)
++    assert len(on_memory_dispatcher.memory) == 1
++    plan_change = _get_plan_change_event(on_memory_dispatcher.memory[0], user, pu)
++    assert plan_change.plan_end_time == end_at.timestamp
++
++
++def test_plan_change_event_for_user_with_manual_subscription():
++    user, pu = create_partner_linked_user()
++    end_at = arrow.utcnow().shift(days=3).replace(hour=0, minute=0, second=0)
++    ManualSubscription.create(
++        user_id=user.id, end_at=end_at.date().strftime("%Y-%m-%d"), flush=True
++    )
++    _dispatch_plan_change_for_user(user, pu)
++    assert len(on_memory_dispatcher.memory) == 1
++    plan_change = _get_plan_change_event(on_memory_dispatcher.memory[0], user, pu)
++    assert plan_change.plan_end_time == end_at.timestamp
++
++
++def test_plan_change_dispatches_for_multiple_partner_users():
++    user1, pu1 = create_partner_linked_user()
++    user2, pu2 = create_partner_linked_user()
++    _dispatch_plan_change_for_user(user1, pu1)
++    _dispatch_plan_change_for_user(user2, pu2)
++    assert len(on_memory_dispatcher.memory) == 2
++    plan_change1 = _get_plan_change_event(on_memory_dispatcher.memory[0], user1, pu1)
++    plan_change2 = _get_plan_change_event(on_memory_dispatcher.memory[1], user2, pu2)
++    assert plan_change1.plan_end_time == 0
++    assert plan_change2.plan_end_time == 0
++
++
++def test_plan_change_event_contains_correct_partner_user_info():
++    user, pu = create_partner_linked_user()
++    _dispatch_plan_change_for_user(user, pu)
++    assert len(on_memory_dispatcher.memory) == 1
++    event = event_pb2.Event()
++    event.ParseFromString(on_memory_dispatcher.memory[0])
++    assert event.user_id == user.id
++    assert event.external_user_id == pu.external_user_id
++    assert event.partner_id == pu.partner_id
++    assert event.content.HasField("user_plan_change")
++
++
++def test_plan_change_excludes_partner_subscription_from_end_time():
++    user, pu = create_partner_linked_user()
++    sub_end = user.get_active_subscription_end(include_partner_subscription=False)
++    assert sub_end is None
++    _dispatch_plan_change_for_user(user, pu)
++    plan_change = _get_plan_change_event(on_memory_dispatcher.memory[0], user, pu)
++    assert plan_change.plan_end_time == 0

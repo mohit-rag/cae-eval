@@ -1,0 +1,61 @@
+{
+  "files": [
+    {
+      "name": "src/decode-ethernet.c"
+    },
+    {
+      "name": "src/decode-gre.c"
+    },
+    {
+      "name": "src/decode-icmpv4.c"
+    },
+    {
+      "name": "src/decode-icmpv6.c"
+    },
+    {
+      "name": "src/decode-ipv4.c"
+    },
+    {
+      "name": "src/decode-ipv6.c"
+    },
+    {
+      "name": "src/decode-ppp.c"
+    },
+    {
+      "name": "src/decode-pppoe.c"
+    },
+    {
+      "name": "src/decode-raw.c"
+    },
+    {
+      "name": "src/decode-sctp.c"
+    },
+    {
+      "name": "src/decode-sll.c"
+    },
+    {
+      "name": "src/decode-tcp.c"
+    },
+    {
+      "name": "src/decode-teredo.c"
+    },
+    {
+      "name": "src/decode-udp.c"
+    },
+    {
+      "name": "src/decode-vlan.c"
+    },
+    {
+      "name": "src/decode.c"
+    },
+    {
+      "name": "src/defrag.c"
+    },
+    {
+      "name": "src/decode-api-test.c"
+    },
+    {
+      "name": "src/decode-api-test.h"
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+diff --git a/lib/modules/manager/gradle/parser/common.ts b/lib/modules/manager/gradle/parser/common.ts
+index fffc610c0..a008c3024 100644
+--- a/lib/modules/manager/gradle/parser/common.ts
++++ b/lib/modules/manager/gradle/parser/common.ts
+@@ -321,14 +321,24 @@ export const qDotOrBraceExpr = (
+   matcher: q.QueryBuilder<Ctx, parser.Node>,
+ ): q.QueryBuilder<Ctx, parser.Node> =>
+   q.sym<Ctx>(symValue).alt(
+-    q.alt<Ctx>(
+-      q.op<Ctx>('.').join(matcher),
+-      q.tree({
+-        type: 'wrapped-tree',
+-        maxDepth: 1,
+-        startsWith: '{',
+-        endsWith: '}',
+-        search: matcher,
+-      }),
+-    ),
++    q.op<Ctx>('.').join(matcher),
++    q.tree({
++      type: 'wrapped-tree',
++      maxDepth: 1,
++      startsWith: '{',
++      endsWith: '}',
++      search: matcher,
++    }),
+   );
++
++export const qGroupId = qValueMatcher.handler((ctx) =>
++  storeInTokenMap(ctx, 'groupId'),
++);
++
++export const qArtifactId = qValueMatcher.handler((ctx) =>
++  storeInTokenMap(ctx, 'artifactId'),
++);
++
++export const qVersion = qValueMatcher.handler((ctx) =>
++  storeInTokenMap(ctx, 'version'),
++);
+diff --git a/lib/modules/manager/gradle/parser/dependencies.ts b/lib/modules/manager/gradle/parser/dependencies.ts
+index 93e029da4..e9fb2b126 100644
+--- a/lib/modules/manager/gradle/parser/dependencies.ts
++++ b/lib/modules/manager/gradle/parser/dependencies.ts
+@@ -4,9 +4,12 @@ import type { Ctx } from '../types';
+ import {
+   GRADLE_PLUGINS,
+   cleanupTempVars,
++  qArtifactId,
+   qDotOrBraceExpr,
++  qGroupId,
+   qTemplateString,
+   qValueMatcher,
++  qVersion,
+   storeInTokenMap,
+   storeVarToken,
+ } from './common';
+@@ -17,18 +20,6 @@ import {
+   handleLongFormDep,
+ } from './handlers';
+ 
+-const qGroupId = qValueMatcher.handler((ctx) =>
+-  storeInTokenMap(ctx, 'groupId'),
+-);
+-
+-const qArtifactId = qValueMatcher.handler((ctx) =>
+-  storeInTokenMap(ctx, 'artifactId'),
+-);
+-
+-const qVersion = qValueMatcher.handler((ctx) =>
+-  storeInTokenMap(ctx, 'version'),
+-);
+-
+ // "foo:bar:1.2.3"
+ // "foo:bar:$baz"
+ // "foo" + "${bar}" + baz
+diff --git a/lib/modules/manager/gradle/parser/plugins.ts b/lib/modules/manager/gradle/parser/plugins.ts
+index 5cf27b58c..aebb08106 100644
+--- a/lib/modules/manager/gradle/parser/plugins.ts
++++ b/lib/modules/manager/gradle/parser/plugins.ts
+@@ -4,16 +4,12 @@ import type { Ctx } from '../types';
+ import {
+   cleanupTempVars,
+   qStringValue,
+-  qValueMatcher,
++  qVersion,
+   storeInTokenMap,
+   storeVarToken,
+ } from './common';
+ import { handlePlugin } from './handlers';
+ 
+-const qVersion = qValueMatcher.handler((ctx) =>
+-  storeInTokenMap(ctx, 'version'),
+-);
+-
+ export const qPlugins = q
+   .sym(regEx(/^(?:id|kotlin)$/), storeVarToken)
+   .handler((ctx) => storeInTokenMap(ctx, 'methodName'))
+diff --git a/lib/modules/manager/gradle/parser/registry-urls.ts b/lib/modules/manager/gradle/parser/registry-urls.ts
+index 341dc37d5..e684135f8 100644
+--- a/lib/modules/manager/gradle/parser/registry-urls.ts
++++ b/lib/modules/manager/gradle/parser/registry-urls.ts
+@@ -32,6 +32,7 @@ const qUri = q
+ // mavenCentral { ... }
+ const qPredefinedRegistries = q
+   .sym(regEx(`^(?:${Object.keys(REGISTRY_URLS).join('|')})$`), storeVarToken)
++  .handler((ctx) => storeInTokenMap(ctx, 'registryUrl'))
+   .alt(
+     q.tree({
+       type: 'wrapped-tree',
+@@ -45,10 +46,31 @@ const qPredefinedRegistries = q
+       endsWith: '}',
+     }),
+   )
+-  .handler((ctx) => storeInTokenMap(ctx, 'registryUrl'))
+   .handler(handlePredefinedRegistryUrl)
+   .handler(cleanupTempVars);
+ 
++// { url = "https://some.repo" }
++const qMavenArtifactRegistry = q.tree({
++  type: 'wrapped-tree',
++  maxDepth: 1,
++  startsWith: '{',
++  endsWith: '}',
++  search: q.alt(
++    q
++      .sym<Ctx>('name')
++      .opt(q.op('='))
++      .join(qValueMatcher)
++      .handler((ctx) => storeInTokenMap(ctx, 'name')),
++    q.sym<Ctx>('url').opt(q.op('=')).join(qUri),
++    q.sym<Ctx>('setUrl').tree({
++      maxDepth: 1,
++      startsWith: '(',
++      endsWith: ')',
++      search: q.begin<Ctx>().join(qUri).end(),
++    }),
++  ),
++});
++
+ // maven(url = uri("https://foo.bar/baz"))
+ // maven { name = some; url = "https://foo.bar/${name}" }
+ const qCustomRegistryUrl = q
+@@ -61,26 +83,7 @@ const qCustomRegistryUrl = q
+       endsWith: ')',
+       search: q.begin<Ctx>().opt(q.sym<Ctx>('url').op('=')).join(qUri).end(),
+     }),
+-    q.tree({
+-      type: 'wrapped-tree',
+-      maxDepth: 1,
+-      startsWith: '{',
+-      endsWith: '}',
+-      search: q.alt(
+-        q
+-          .sym<Ctx>('name')
+-          .opt(q.op('='))
+-          .join(qValueMatcher)
+-          .handler((ctx) => storeInTokenMap(ctx, 'name')),
+-        q.sym<Ctx>('url').opt(q.op('=')).join(qUri),
+-        q.sym<Ctx>('setUrl').tree({
+-          maxDepth: 1,
+-          startsWith: '(',
+-          endsWith: ')',
+-          search: q.begin<Ctx>().join(qUri).end(),
+-        }),
+-      ),
+-    }),
++    qMavenArtifactRegistry,
+   )
+   .handler(handleCustomRegistryUrl)
+   .handler(cleanupTempVars);
+diff --git a/lib/modules/manager/gradle/parser/version-catalogs.ts b/lib/modules/manager/gradle/parser/version-catalogs.ts
+index 272688ee6..c4c1259cc 100644
+--- a/lib/modules/manager/gradle/parser/version-catalogs.ts
++++ b/lib/modules/manager/gradle/parser/version-catalogs.ts
+@@ -2,6 +2,8 @@ import { query as q } from 'good-enough-parser';
+ import type { Ctx } from '../types';
+ import {
+   cleanupTempVars,
++  qArtifactId,
++  qGroupId,
+   qStringValue,
+   qStringValueAsSymbol,
+   qValueMatcher,
+@@ -10,14 +12,6 @@ import {
+ } from './common';
+ import { handleLibraryDep, handlePlugin } from './handlers';
+ 
+-const qGroupId = qValueMatcher.handler((ctx) =>
+-  storeInTokenMap(ctx, 'groupId'),
+-);
+-
+-const qArtifactId = qValueMatcher.handler((ctx) =>
+-  storeInTokenMap(ctx, 'artifactId'),
+-);
+-
+ const qVersionCatalogVersion = q
+   .op<Ctx>('.')
+   .alt(

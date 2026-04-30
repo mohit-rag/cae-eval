@@ -1,0 +1,170 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e52b90ecf52af65db0970a0f8eeca0a2",
+    "title": "1.1: Removes the verify boolean parameter from the WithDetectors function signature in pkg/engine/engine.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The WithDetectors function should no longer accept a verify boolean parameter. It should only receive the detectors to be added, separating detector registration from verification configuration.",
+      "evidence": "gold.patch pkg/engine/engine.go: WithDetectors changed from 'func WithDetectors(verify bool, d ...detectors.Detector)' to 'func WithDetectors(d ...detectors.Detector)', removing the verify parameter entirely.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'WithDetectors should only handle adding detectors' and describes the verify boolean as 'coupling two unrelated concerns'. [2: Implicit Codebase Constraint] The codebase uses Go's functional options pattern where each Option function configures a single concern. [5: Conclusion] Therefore, any correct answer must remove the verify parameter from WithDetectors.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3a56b9886bf39dd8e849205a42b541a8",
+    "title": "1.2: Creates a new WithVerify option function to control verification independently in pkg/engine/engine.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "A new WithVerify function (or similar named option) should be created that accepts a boolean and configures whether the scanner verifies candidate secrets. This separates verification configuration from detector registration.",
+      "evidence": "gold.patch pkg/engine/engine.go: new 'func WithVerify(verify bool) Option' added that sets 'e.verify = verify' on the Engine.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'create a new WithVerify option to control verification independently'. [2: Implicit Codebase Constraint] Engine configuration options are defined in pkg/engine/engine.go following the functional options pattern. [5: Conclusion] Therefore, any correct answer must create a separate option function to control verification.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "600813497abcec2b237f7af9b7c4a641",
+    "title": "1.3: Stores verification configuration at the Engine level in pkg/engine/engine.go instead of per detector",
+    "annotations": {
+      "importance": "must have",
+      "description": "The Engine struct should have a field (such as a verify boolean) to store the verification setting globally, rather than tracking verification on a per detector basis.",
+      "evidence": "gold.patch pkg/engine/engine.go: new 'verify bool' field added to the Engine struct with comment 'verify determines whether the scanner will attempt to verify candidate secrets'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The verification decision should be a separate engine configuration' and 'verification is really a global scanning decision'. [3: Logical Necessity] To decouple verification from detector registration, it must be stored as a separate field on the Engine struct. [5: Conclusion] Therefore, any correct answer must store verification at the Engine level.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e6866101ed25dddc7fde8a71f1db57c7",
+    "title": "1.4: Removes all 5 verification-tracking definitions (detectorKey struct, DetectorInfo struct, detectorTypeToDetectorInfo field, detectors map[bool][] field, keywordsToDetectors field) from pkg/engine/ahocorasickcore.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "The AhoCorasickCore should no longer track whether each detector should verify. The 5 internal definitions that coupled verification with keyword matching must be removed: the detectorKey struct, the DetectorInfo struct (which contained ShouldVerify), the detectorTypeToDetectorInfo map field, the detectors map[bool][]detectors.Detector field, and the keywordsToDetectors map field.",
+      "evidence": "gold.patch pkg/engine/ahocorasickcore.go: removal of (1) detectorKey struct, (2) DetectorInfo struct with ShouldVerify bool, (3) detectorTypeToDetectorInfo map[detectorKey]DetectorInfo field, (4) detectors map[bool][]detectors.Detector field, and (5) keywordsToDetectors map[string][]detectorKey field from AhoCorasickCore.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The AhoCorasickCore ends up wrapping each detector in a DetectorInfo struct with a ShouldVerify flag and routing lookups through a detectorKey struct', that 'The keyword matching should map directly to detector types rather than going through these intermediate structures', and to 'Simplify the internal data structures by removing the DetectorInfo and detectorKey indirection'. [5: Conclusion] Therefore, any correct answer must remove all 5 verification-coupled definitions (detectorKey, DetectorInfo, detectorTypeToDetectorInfo, detectors map[bool][], keywordsToDetectors) from AhoCorasickCore.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "db4d84a8b8a44cb643b09362712c8432",
+    "title": "1.5: Uses the Engine-level verify setting for chunk verification in pkg/engine/engine.go instead of per-detector ShouldVerify",
+    "annotations": {
+      "importance": "must have",
+      "description": "The Chunk.Verify field should be set from the Engine's global verify setting (e.verify) rather than from per-detector ShouldVerify. This ensures verification is truly a global scanning decision as required by the prompt.",
+      "evidence": "gold.patch pkg/engine/engine.go: change from 'decoded.Chunk.Verify = detector.ShouldVerify' to 'decoded.Chunk.Verify = e.verify', using the Engine's verify field.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states verification should be 'a separate engine configuration' and a 'global scanning decision'. [2: Implicit Codebase Constraint] The codebase uses Chunk.Verify field to control whether verification occurs; previously this was set from detector.ShouldVerify. [3: Logical Necessity] If verification is stored at Engine level (per 1.3), Chunk.Verify must be set from e.verify instead of per-detector ShouldVerify to maintain the same external behavior. [5: Conclusion] Therefore, any correct answer must set Chunk.Verify from the Engine-level setting.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e43d032e4d67b884636e9465dca5dea0",
+    "title": "1.6: Updates main.go to pass verification via WithVerify instead of through WithDetectors",
+    "annotations": {
+      "importance": "must have",
+      "description": "The main.go file (CLI entry point) that previously called WithDetectors with a verify boolean must be updated to call WithDetectors without the boolean and use WithVerify (or similar) separately to configure verification.",
+      "evidence": "gold.patch main.go: change from 'WithDetectors(!*noVerification, engine.DefaultDetectors()...)' to 'WithDetectors(engine.DefaultDetectors()...)' plus 'WithVerify(!*noVerification)'.",
+      "justification": "[2: Implicit Codebase Constraint] main.go is the CLI entry point that calls WithDetectors with the verify boolean. [3: Logical Necessity] Changing the WithDetectors function signature requires updating main.go for the code to compile. [5: Conclusion] Therefore, any correct answer must update main.go to use the new API.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "fa543c8704d43fed3ab0660c23ca5f21",
+    "title": "2.1: Adds documentation for both new verification API surfaces (verify field, WithVerify function) in pkg/engine/engine.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Adds inline documentation for both new verification API additions: a comment on the verify field explaining its purpose, and a godoc comment on the WithVerify function describing its behavior.",
+      "evidence": "gold.patch pkg/engine/engine.go: comment for verify field 'verify determines whether the scanner will attempt to verify candidate secrets' and godoc for WithVerify: 'WithVerify configures whether the scanner will verify candidate secrets.'",
+      "justification": "[4: Quality Necessity] New public API functions benefit from documentation to explain their purpose and usage. [5: Conclusion] Therefore, any correct answer should document the new WithVerify function and verify field.",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "1e901659d858f6f55a5184ab8a77d4ea",
+    "title": "4.1: Misbuilds the keyword-to-detector mappings in NewAhoCorasickCore, causing MatchString or PopulateDetectorsByMatch to return wrong results in pkg/engine/ahocorasickcore.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the refactoring breaks the core Aho-Corasick keyword matching functionality. Both the MatchString method and the PopulateDetectorsByMatch method in AhoCorasickCore must still correctly match keywords to detectors after the refactor.",
+      "evidence": "gold.patch pkg/engine/ahocorasickcore.go: MatchString method is preserved unchanged. PopulateDetectorsByMatch method is preserved with only a signature change (map value type changed from DetectorInfo to detectors.Detector), maintaining the keyword matching functionality.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Maintain the same external behavior'. [3: Logical Necessity] MatchString and PopulateDetectorsByMatch are the two public methods of AhoCorasickCore that perform keyword matching and detector lookup. Breaking either would make the scanner non-functional. [5: Conclusion] Therefore, any correct answer must NOT break the keyword matching functionality of MatchString or PopulateDetectorsByMatch.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "f8bc6e3dd98d3540e45b3408d283b073",
+    "title": "4.2: Removes the ability to configure verification entirely (no WithVerify option or verify setting not applied to Chunk.Verify during scanning) in pkg/engine/engine.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the refactoring removes the ability to enable or disable verification. There must be a WithVerify option (or equivalent) that sets verification on the Engine, AND that setting must be applied to Chunk.Verify during chunk processing in the detectorWorker. Both pieces are required for verification to work end-to-end.",
+      "evidence": "gold.patch pkg/engine/engine.go: WithVerify function sets e.verify on the Engine. In detectorWorker, 'decoded.Chunk.Verify = e.verify' applies the setting during chunk processing.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'create a new WithVerify option to control verification independently' and 'Maintain the same external behavior'. [3: Logical Necessity] Verification requires both a configuration mechanism (WithVerify) and its application during scanning (Chunk.Verify = e.verify). Removing either breaks the verification feature. [5: Conclusion] Therefore, any correct answer must NOT remove the ability to configure verification.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "fdb66f489ad26f646fbf5fc07f7b0f42",
+    "title": "4.3: Adds redundant verify fields to internal structs (such as, AhoCorasickCore, detectableChunk) instead of using the single Engine.verify field in pkg/engine/engine.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the refactoring adds unnecessary verify fields to internal structs that increase complexity. The Engine.verify field is the single source of truth for verification, applied directly to Chunk.Verify via 'decoded.Chunk.Verify = e.verify'. Adding duplicate verify fields to AhoCorasickCore, detectableChunk, or any other struct contradicts the simplification goal.",
+      "evidence": "gold.patch pkg/engine/engine.go: 'decoded.Chunk.Verify = e.verify' sets verification directly on the Chunk before processing, without adding new fields to AhoCorasickCore, detectableChunk, or any other struct. The patch simplifies structures rather than adding redundant fields.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Simplify the internal data structures by removing the DetectorInfo and detectorKey indirection'. Adding unnecessary verify fields to structs beyond Engine directly contradicts the explicit simplification requirement. [3: Logical Necessity] Verification needs only one storage location (Engine.verify) because it is a global scanning decision. Duplicating it into other structs re-introduces the coupling the refactor aims to remove. [5: Conclusion] Therefore, any correct answer must NOT add unnecessary verify fields to internal structures.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

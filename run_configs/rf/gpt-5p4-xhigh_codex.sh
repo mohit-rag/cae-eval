@@ -14,6 +14,9 @@ harbor run \
   -e modal \
   -n 16 \
   --ak reasoning_effort=xhigh \
+  --ae OPENAI_API_KEY="${OPENAI_API_KEY}" \
+  --ae OPENAI_API_BASE="${OPENAI_API_BASE}" \
+  --ae OPENAI_BASE_URL="${OPENAI_BASE_URL}" \
   --ek registry_secret=aws-secret-agent-xiang-deng \
   -o harbor_results/cae/rf_task \
   --job-name "gpt-5p4-xhigh_codex"

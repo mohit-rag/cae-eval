@@ -1,0 +1,314 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "Evaluates whether the solution correctly removes vizAndWidgetSplit feature toggle code, widget-specific props, widget UI elements, and related conditional logic.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "60ef76fc6eba3d466c5e6b2318c17d39",
+    "title": "1.1: Removes the vizAndWidgetSplit property from the FeatureToggles TypeScript interface",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the vizAndWidgetSplit optional boolean field is removed from the FeatureToggles interface in packages/grafana-data/src/types/featureToggles.gen.ts.",
+      "evidence": "gold.patch lines 13-24 show removal of 'vizAndWidgetSplit?: boolean' from the FeatureToggles interface in featureToggles.gen.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the feature toggle is registered in 'the frontend TypeScript feature toggles interface' and to 'clean up all of these definitions.' [3: Logical Necessity] Removing the feature requires removing its type definition to prevent stale types. [5: Conclusion] Therefore, any correct answer must remove the vizAndWidgetSplit property from the FeatureToggles interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "aa983224ed90d2e7f849dbfeafc99771",
+    "title": "1.2: Removes the LS_WIDGET_SELECT_TAB_KEY constant from public/app/core/constants.ts",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the widget-specific local storage key constant (LS_WIDGET_SELECT_TAB_KEY) is removed from public/app/core/constants.ts.",
+      "evidence": "gold.patch lines 118-127 show removal of 'export const LS_WIDGET_SELECT_TAB_KEY' from constants.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'any tab options, enum values, or constants that only exist to support the widget distinction should also be removed.' [3: Logical Necessity] With widget tab functionality removed, this constant serves no purpose. [5: Conclusion] Therefore, any correct answer must remove this widget tab constant.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "546b7bd6ff033911418b23d21b45c989",
+    "title": "1.3: Removes the Widgets value from the VisualizationSelectPaneTab enum",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the Widgets member is removed from the VisualizationSelectPaneTab enum in public/app/features/dashboard/components/PanelEditor/types.ts, leaving only Visualizations, LibraryPanels, and Suggestions.",
+      "evidence": "gold.patch lines 278-286 show removal of 'Widgets,' from the VisualizationSelectPaneTab enum in types.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'any tab options, enum values, or constants that only exist to support the widget distinction should also be removed.' [6: Interface Requirement] The interface specifies VisualizationSelectPaneTab contains only Visualizations, LibraryPanels, and Suggestions members. [5: Conclusion] Therefore, any correct answer must remove the Widgets value from the enum.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "6fb8159fe30e093496e61fba356b615a",
+    "title": "1.4: Removes both widget-specific items (isWidget prop, vizAndWidgetSplit conditional logic) from PanelTypeFilter in PanelTypeFilter.tsx",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that PanelTypeFilter no longer conditionally switches between widget and visualization plugin lists. The component should always provide all panel plugins without any widget/visualization distinction.",
+      "evidence": "gold.patch lines 84-114 show removal of isWidget prop, getVizPluginMeta/getWidgetPluginMeta conditional logic, and config.featureToggles.vizAndWidgetSplit check in PanelTypeFilter.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'components that branch behavior based on whether something is a widget or a visualization should be simplified to always treat everything as a panel.' [6: Interface Requirement] The interface specifies PanelTypeFilter takes only onChange and maxMenuHeight props (no isWidget). [5: Conclusion] Therefore, any correct answer must simplify PanelTypeFilter to always show all panel plugins.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "fb1f8f599b35a4e68ab2c07ecba0eb3f",
+    "title": "1.5: Removes both widget-specific items (isWidget prop, vizAndWidgetSplit conditional logic) from VizTypePicker in VizTypePicker.tsx",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that VizTypePicker no longer conditionally switches between widget and visualization plugin lists. The component should always provide all panel plugins without any widget/visualization distinction.",
+      "evidence": "gold.patch lines 473-506 show removal of isWidget prop and conditional getWidgetPluginMeta/getVizPluginMeta logic in VizTypePicker.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'components that branch behavior based on whether something is a widget or a visualization should be simplified to always treat everything as a panel.' [6: Interface Requirement] The interface specifies VizTypePicker takes pluginId, searchQuery, onChange, and trackSearch props (no isWidget). [5: Conclusion] Therefore, any correct answer must simplify VizTypePicker to always show all panel plugins.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b71998f1f5917f81f4c1ca3d59c5db91",
+    "title": "1.6: Removes both widget-specific items (isWidget prop, widget filtering logic) from LibraryPanelsView in LibraryPanelsView.tsx",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that LibraryPanelsView no longer passes a widget distinction parameter to the search function. The component should display all library panels without filtering by widget type.",
+      "evidence": "gold.patch lines 353-380 show removal of isWidget from LibraryPanelViewProps and the component function in LibraryPanelsView.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'components that branch behavior based on whether something is a widget or a visualization should be simplified to always treat everything as a panel.' [6: Interface Requirement] The interface specifies LibraryPanelsView does not accept an isWidget parameter. [5: Conclusion] Therefore, any correct answer must simplify LibraryPanelsView to show all library panels.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "6abc2eedb0e1b34f6b6ea7094dcb0b6c",
+    "title": "1.7: Removes the isWidget prop from PanelLibraryOptionsGroup in PanelLibraryOptionsGroup.tsx",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that PanelLibraryOptionsGroup no longer passes a widget distinction parameter to its child components (PanelTypeFilter and LibraryPanelsView).",
+      "evidence": "gold.patch lines 440-470 show removal of isWidget prop from PanelLibraryOptionsGroup and its child component calls in PanelLibraryOptionsGroup.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'components that branch behavior based on whether something is a widget or a visualization should be simplified to always treat everything as a panel.' [6: Interface Requirement] The interface specifies PanelLibraryOptionsGroup takes only panel and searchQuery props (no isWidget). [5: Conclusion] Therefore, any correct answer must simplify PanelLibraryOptionsGroup to show all panel types.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "61a44cb67f503641f6ab177b94b25136",
+    "title": "1.8: Removes the widget menu item from the add panel menu",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the conditionally rendered Widget menu item is removed from the dashboard add panel menu in public/app/features/dashboard/components/AddPanelButton/AddPanelMenu.tsx.",
+      "evidence": "gold.patch lines 163-191 show removal of the Menu.Item with key='add-widget' and label 'Widget' from AddPanelMenu.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the dashboard UI presented widgets as a separate category from visualizations, with dedicated menu items... Remove all of this widget-specific conditional UI.' [3: Logical Necessity] With the feature abandoned, the Widget menu item should not exist. [5: Conclusion] Therefore, any correct answer must remove the widget menu item.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "21ff349fd95903548ba30c9d2a8eb246",
+    "title": "1.9: Removes the widget modal usage from DashboardPage",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the AddWidgetModal import and its conditional rendering are removed from public/app/features/dashboard/containers/DashboardPage.tsx.",
+      "evidence": "gold.patch lines 287-306 show removal of AddWidgetModal import and the conditional rendering block in DashboardPage.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the dashboard UI had 'dedicated... modals' for widgets and to 'remove all of this widget-specific conditional UI.' [3: Logical Necessity] With the feature abandoned, the modal should not be rendered or imported. [5: Conclusion] Therefore, any correct answer must remove the AddWidgetModal usage from DashboardPage.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "2938f5b24643a083ae08cf44123f6ba6",
+    "title": "1.10: Removes the widget button section from the empty dashboard page",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the conditional widget button/box section is removed from the DashboardEmpty component in public/app/features/dashboard/dashgrid/DashboardEmpty.tsx.",
+      "evidence": "gold.patch lines 307-352 show removal of the entire Box component containing the Add widget UI elements in DashboardEmpty.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the dashboard UI had 'dedicated... buttons' for widgets and to 'remove all of this widget-specific conditional UI.' [3: Logical Necessity] The empty dashboard widget button is part of the widget UI. [5: Conclusion] Therefore, any correct answer must remove the widget section from DashboardEmpty.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "47ee25cea52fba4afdb56a815539ae7f",
+    "title": "1.11: Removes the Widgets tab from VisualizationSelectPane",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the Widgets tab option and its associated rendering are removed from VisualizationSelectPane in public/app/features/dashboard/components/PanelEditor/VisualizationSelectPane.tsx. Only Visualizations, Suggestions, and Library panels tabs should remain.",
+      "evidence": "gold.patch lines 194-276 show removal of isWidget/isWidgetEnabled variables, radioOptionsWidgetFlow array, and Widgets tab conditional rendering in VisualizationSelectPane.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the UI had 'dedicated... tabs' for widgets and to 'remove all of this widget-specific conditional UI so the dashboard always presents a single unified panel flow.' [5: Conclusion] Therefore, any correct answer must remove the Widgets tab and related conditional logic from VisualizationSelectPane.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "34ed096f12cb9eb238ae44a234b9d3cc",
+    "title": "1.12: Removes the Widgets tab from PanelVizTypePicker",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that PanelVizTypePicker in public/app/features/dashboard-scene/panel-edit/PanelVizTypePicker.tsx no longer includes Widgets in its supported tab list. Only Visualizations and Suggestions tabs should remain in the supported list modes.",
+      "evidence": "gold.patch lines 128-162 show removal of isWidgetEnabled, LS_WIDGET_SELECT_TAB_KEY import, and Widgets from supportedListModes in PanelVizTypePicker.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the UI had 'dedicated... tabs' for widgets and to 'remove all of this widget-specific conditional UI.' [5: Conclusion] Therefore, any correct answer must remove widget tab support from PanelVizTypePicker.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a2765e294d5fb2259bbb8390233fb62f",
+    "title": "1.13: Removes widget filtering logic from library panel search",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the widget-specific filtering function and its conditional invocation are removed from searchForLibraryPanels in public/app/features/library-panels/components/LibraryPanelsView/actions.ts. The search should return all library panels without filtering by skipDataQuery.",
+      "evidence": "gold.patch lines 381-437 show removal of isWidget from SearchArgs, the filterLibraryPanels function, and the conditional filtering block in actions.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the library panels search conditionally filters panels based on the feature flag. This filtering should be removed so the search returns all library panels regardless of type.' [6: Interface Requirement] The interface specifies SearchArgs no longer includes an isWidget field. [5: Conclusion] Therefore, any correct answer must remove the widget filtering logic from the library panel search.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "51bcd8363c8e9561ac99197f34bcd34a",
+    "title": "1.14: Removes the vizAndWidgetSplit guard from the panel suggestions logic",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the vizAndWidgetSplit check is removed from the suggestions condition in public/app/features/panel/state/getAllSuggestions.ts, so widget-type panel suggestions always appear when there is no field data.",
+      "evidence": "gold.patch lines 510-522 show the condition changed from 'if (!config.featureToggles.vizAndWidgetSplit && builder.dataSummary.fieldCount === 0)' to 'if (builder.dataSummary.fieldCount === 0)' in getAllSuggestions.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the panel suggestions logic has a feature flag guard that should be removed so suggestions always appear when there is no field data.' [3: Logical Necessity] With the feature toggle removed, the guard condition referencing it should be simplified. [5: Conclusion] Therefore, any correct answer must remove the vizAndWidgetSplit guard from getAllSuggestions.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c91426f5f0ba24af1437d475e9bf8cfb",
+    "title": "1.15: Removes all 4 widget translation keys (dashboard.add-menu.widget, dashboard.empty.add-widget-body, dashboard.empty.add-widget-button, dashboard.empty.add-widget-header) from the en-US localization file",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that widget-related translation keys (such as 'widget' in dashboard.add-menu and add-widget-* keys in dashboard.empty) are removed from public/locales/en-US/grafana.json.",
+      "evidence": "gold.patch lines 523-546 show removal of 'widget' key from dashboard.add-menu and add-widget-body, add-widget-button, add-widget-header from dashboard.empty in en-US/grafana.json.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'remove the widget related translation keys from the localization files.' [3: Logical Necessity] With widget UI removed, these translations are unused. [5: Conclusion] Therefore, any correct answer must remove widget translations from the US locale file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "327413b85a00dcc220cf8c6efe78fb24",
+    "title": "1.16: Removes all 4 widget translation keys (dashboard.add-menu.widget, dashboard.empty.add-widget-body, dashboard.empty.add-widget-button, dashboard.empty.add-widget-header) from the pseudo-LOCALE localization file",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that widget-related translation keys are removed from public/locales/pseudo-LOCALE/grafana.json, matching the English locale changes.",
+      "evidence": "gold.patch lines 547-570 show removal of 'widget' key and add-widget-* keys from pseudo-LOCALE/grafana.json.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'remove the widget related translation keys from the localization files.' [3: Logical Necessity] With widget UI removed, these translations are unused and locales must stay in sync. [5: Conclusion] Therefore, any correct answer must remove widget translations from the pseudo-LOCALE file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c1ce2fc6e0d5e4c57f9c3c63292a73ee",
+    "title": "1.17: Removes the vizAndWidgetSplit row from the feature toggles documentation",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the documentation table row for vizAndWidgetSplit is removed from docs/sources/setup-grafana/configure-grafana/feature-toggles/index.md.",
+      "evidence": "gold.patch lines 1-12 show removal of the vizAndWidgetSplit row from the feature toggles documentation table in index.md.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the feature toggle is registered across the backend including 'documentation' and to 'clean up all of these definitions.' [5: Conclusion] Therefore, any correct answer must remove the feature toggle documentation row.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "2b990b29a1bea22e4081087ba1b0c2b8",
+    "title": "1.18: Removes the vizAndWidgetSplit feature flag definition from the Go registry",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the Go feature flag registry entry for vizAndWidgetSplit is removed from pkg/services/featuremgmt/registry.go.",
+      "evidence": "gold.patch lines 25-42 show removal of the entire feature definition block for vizAndWidgetSplit from registry.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the feature toggle is registered in 'the backend feature management system (Go registry, constants, CSV, generated JSON, and documentation)' and to 'clean up all of these definitions.' [5: Conclusion] Therefore, any correct answer must remove the Go registry entry.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "63df70598ae933c531034b7f9c49ad3b",
+    "title": "1.19: Removes the FlagVizAndWidgetSplit constant from the Go generated toggles file",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the Go constant FlagVizAndWidgetSplit is removed from pkg/services/featuremgmt/toggles_gen.go.",
+      "evidence": "gold.patch lines 55-69 show removal of the FlagVizAndWidgetSplit constant and its comment from toggles_gen.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the feature toggle is registered in 'the backend feature management system (Go registry, constants...)' and to 'clean up all of these definitions.' [5: Conclusion] Therefore, any correct answer must remove this Go constant.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "45c199f9186c6d6351af06735cfaf4d2",
+    "title": "1.20: Removes the vizAndWidgetSplit entry from the Go generated CSV file",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the CSV line for vizAndWidgetSplit is removed from pkg/services/featuremgmt/toggles_gen.csv.",
+      "evidence": "gold.patch lines 43-54 show removal of the vizAndWidgetSplit line from toggles_gen.csv.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the feature toggle is registered in 'the backend feature management system (Go registry, constants, CSV...)' and to 'clean up all of these definitions.' [5: Conclusion] Therefore, any correct answer must remove this CSV entry.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "0b837e57a58f1dace678f54bcf3586d8",
+    "title": "1.21: Marks the vizAndWidgetSplit feature toggle as deprecated by adding a deletionTimestamp to its entry in toggles_gen.json",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the vizAndWidgetSplit feature toggle entry in pkg/services/featuremgmt/toggles_gen.json is either removed entirely or marked as deleted (e.g., with a deletionTimestamp). Both approaches are valid.",
+      "evidence": "gold.patch lines 70-83 show a modification to the vizAndWidgetSplit entry in toggles_gen.json adding a deletionTimestamp.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the feature toggle is registered in 'the backend feature management system (Go registry, constants, CSV, generated JSON...)' and to 'clean up all of these definitions.' [5: Conclusion] Therefore, any correct answer must clean up the vizAndWidgetSplit entry in the generated JSON file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Evaluates whether documentation is updated to reflect the removal of the vizAndWidgetSplit feature toggle.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Evaluates whether unused imports resulting from vizAndWidgetSplit removal are cleaned up.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "Ensures the solution does not introduce regressions, breaking changes, or anti-patterns while removing vizAndWidgetSplit code.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "6e3bad22ed666f3a543229b2a5e05742",
+    "title": "4.1: Removes any of the 3 preserved VisualizationSelectPaneTab enum values (Visualizations, Suggestions, LibraryPanels) from types.ts",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the solution only removes the Widgets enum value and does not accidentally remove the Visualizations, Suggestions, or LibraryPanels enum values which must remain.",
+      "evidence": "gold.patch preserves Visualizations, Suggestions, and LibraryPanels enum values in types.ts while only removing the Widgets value.",
+      "justification": "[2: Implicit Codebase Constraint] The codebase has both visualization and widget enum values; only widget-specific ones should be removed. [3: Logical Necessity] The prompt asks to remove widget-specific code, not visualization code. Removing these enum values would break the panel editor tabs. [5: Conclusion] Therefore, the 3 non-widget enum values must be preserved.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

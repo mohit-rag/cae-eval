@@ -1,0 +1,302 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Code Maintainability",
+      "description": "The refactor improves frontend provisioning code by extracting shared selector logic, standardizing on RTK Query, and expanding the endpoint surface to match the backend API.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "680e7e3615ff00da06913b3eb0e19a0c",
+    "title": "1.1: Exports `parseListOptionsSelector` as a public function from `public/app/features/apiserver/client.ts`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that parseListOptionsSelector is exported from client.ts so other modules can import and use it. The function accepts ListOptionsLabelSelector | ListOptionsFieldSelector | undefined and returns string | undefined.",
+      "evidence": "gold.patch lines 50-79: adds `export const parseListOptionsSelector = (selector: ...) => { ... }` as a standalone exported function in public/app/features/apiserver/client.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says the selector-to-query-string logic 'should live in a shared place\u2014export so that the rest of the app can import.' [2: Implicit Code Base Constraint] The interface specifies parseListOptionsSelector with exact input/output types exported from client.ts. [5: Conclusion] Without this export, other modules (e.g. provisioning endpoints) cannot reuse the serialization logic."
+    }
+  },
+  {
+    "id": "70ec6ac86c31f59b8086182e6d0f355a",
+    "title": "1.2: `ScopedResourceClient` delegates to the exported `parseListOptionsSelector` instead of using a private duplicate",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that ScopedResourceClient calls the shared parseListOptionsSelector rather than keeping its own private copy of the serialization logic.",
+      "evidence": "gold.patch lines 9-41: removes the 30-line private method body (lines 9-40) and replaces it with `private parseListOptionsSelector = parseListOptionsSelector;` (line 41), delegating to the exported function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'the client should call into that instead of duplicating the behavior internally.' [3: Logical Necessity] If the client still has a private copy, the extraction is incomplete and the logic can drift. [5: Conclusion] The client must delegate to the shared function to fulfill the prompt."
+    }
+  },
+  {
+    "id": "9eced4ed0436639ee2c508a0e8230643",
+    "title": "1.3: Adds a `ListApiArg` interface in `public/app/features/provisioning/api/types.ts` that extends `ListOptions` and adds optional watch-related list parameters",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that a ListApiArg interface exists in types.ts extending ListOptions. Label and field selectors are provided via ListOptions; ListApiArg additionally declares all 6 optional watch-related fields (allowWatchBookmarks, resourceVersion, resourceVersionMatch, sendInitialEvents, timeoutSeconds, watch).",
+      "evidence": "gold.patch lines 367-374: adds `export interface ListApiArg extends ListOptions { allowWatchBookmarks?, resourceVersion?, resourceVersionMatch?, sendInitialEvents?, timeoutSeconds?, watch? }` in public/app/features/provisioning/api/types.ts. Line 312 imports ListOptions from apiserver types.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'List calls for repositories and jobs should accept the optional list parameters the API supports (think Kubernetes-style list options).' [2: Implicit Code Base Constraint] The interface specifies ListApiArg extending ListOptions. [5: Conclusion] Without this type, list endpoints have no typed way to receive selector parameters."
+    }
+  },
+  {
+    "id": "4dbd5bd51dfd9fe4e79967e0b914428b",
+    "title": "1.4: Adds a `RequestArg` interface in `public/app/features/provisioning/api/types.ts` with `name: string` and optional `ref` field",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that RequestArg exists with name: string and ref?: string, serving as the base type for repository-scoped endpoint arguments.",
+      "evidence": "gold.patch lines 317-321: modifies the existing RequestArg interface to add `ref?: string` (line 320), keeping the existing `name: string` field (line 319).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires filling in the endpoint surface for repository routes. [2: Implicit Code Base Constraint] The interface defines RequestArg with name and optional ref. [5: Conclusion] This base type ensures consistent argument shapes across repository endpoints."
+    }
+  },
+  {
+    "id": "4cc9bda5b37854ef661ee6e0da8415fc",
+    "title": "1.5: Adds a `GetRequestArg` interface in `public/app/features/provisioning/api/types.ts` that extends `RequestArg` with a required `path` field",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that GetRequestArg extends RequestArg and adds a required path: string field for endpoints that address sub-resources by path (such as repository history entries).",
+      "evidence": "gold.patch lines 323-325: adds `export interface GetRequestArg extends RequestArg { path: string; }` in public/app/features/provisioning/api/types.ts.",
+      "justification": "[2: Implicit Code Base Constraint] The interface defines GetRequestArg extending RequestArg with path: string required. [3: Logical Necessity] Endpoints like getRepositoryHistory need a path segment in addition to the repository name. [5: Conclusion] This type is required for correct typing of path-based sub-resource endpoints."
+    }
+  },
+  {
+    "id": "33a0106d9d4863f28bb9b178b827eda6",
+    "title": "1.6: Updates the `JobSpec` type in `public/app/features/provisioning/api/types.ts` to narrow the `action` field and extend it with commit metadata fields",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that JobSpec is updated consistently with the interface: the action field is narrowed to the union 'export' | 'merge' | 'pr' and the type gains an optional commits field of type CommitInfo[] for API responses.",
+      "evidence": "gold.patch lines 332-339: changes JobSpec.action from string to 'export' | 'merge' | 'pr' (line 333) and adds commits?: CommitInfo[] (line 338), in public/app/features/provisioning/api/types.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'Update the typings so jobs, webhooks, and list arguments stay consistent with the existing Resource patterns.' [2: Implicit Code Base Constraint] The interface describes JobSpec as having a narrowed action union. [5: Conclusion] A narrowed action type makes the API surface more type-safe and self-documenting."
+    }
+  },
+  {
+    "id": "033345b5429bf91ed7fbb8b923e2e7de",
+    "title": "1.7: Adds `FileRef` and `CommitInfo` types to `public/app/features/provisioning/api/types.ts` for commit metadata",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that FileRef (path and ref fields) and CommitInfo (commit-level change metadata referencing FileRef arrays) are defined in types.ts.",
+      "evidence": "gold.patch lines 341-344: adds FileRef { path: string; ref: string }. Lines 346-351: adds CommitInfo { added?, modified?, removed?: FileRef[]; sha1? }, in public/app/features/provisioning/api/types.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'Update the typings so jobs, webhooks, and list arguments stay consistent with the existing Resource patterns.' [2: Implicit Code Base Constraint] The interface describes FileRef and CommitInfo as types for commit metadata associated with jobs. [5: Conclusion] These types are needed for JobSpec to reference commit information correctly."
+    }
+  },
+  {
+    "id": "8e3da14faaeefcd8063ead2817460283",
+    "title": "1.8: Adds a `WebhookResponse` type to `public/app/features/provisioning/api/types.ts`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that WebhookResponse is defined in types.ts as the response shape for repository webhook endpoints.",
+      "evidence": "gold.patch lines 359-365: adds WebhookResponse { added?, apiVersion?, code?, job?, kind? } in public/app/features/provisioning/api/types.ts.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'Update the typings so jobs, webhooks, and list arguments stay consistent.' [2: Implicit Code Base Constraint] The interface defines WebhookResponse as the response body shape for webhook GET/POST endpoints. [5: Conclusion] Without this type, the new webhook endpoints lack a typed response."
+    }
+  },
+  {
+    "id": "2e9d9e736af0d97df3be921b5b895b17",
+    "title": "1.9: Adds a `listJobs` RTK Query endpoint in `public/app/features/provisioning/api/endpoints.ts` that accepts optional list parameters and wires selectors through `parseListOptionsSelector`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that a listJobs endpoint exists in the provisioning RTK slice, accepts optional label/field selectors (e.g. via ListApiArg), and uses the shared parseListOptionsSelector to encode them into query parameters.",
+      "evidence": "gold.patch lines 204-211: replaces the old `listJobs: build.query<JobList, void>` with `listJobs: build.query<JobList, ListApiArg | void>` that calls `getListParams(queryArg)` (line 208). Lines 293-303: getListParams calls parseListOptionsSelector (lines 299-300) imported at line 178.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says list calls for jobs 'should accept the optional list parameters the API supports' and 'wire field and label selectors through using the shared helper above, without copy-pasting selector encoding.' [5: Conclusion] listJobs must exist, accept list options, and use the shared helper."
+    }
+  },
+  {
+    "id": "7ccf267ab253ca7b95cc8ed3eaa5137f",
+    "title": "1.10: Adds a `listRepository` RTK Query endpoint in `endpoints.ts` that accepts optional list parameters with selector encoding",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that a listRepository endpoint exists in the provisioning RTK slice and accepts optional label/field selector parameters, encoding them via the shared helper.",
+      "evidence": "gold.patch lines 218-224: replaces the old `listRepository: build.query<RepositoryList, void>` with `listRepository: build.query<RepositoryList, ListApiArg | void>` that calls `getListParams(params)` (line 221).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'List calls for repositories and jobs should accept the optional list parameters the API supports.' [5: Conclusion] listRepository must accept and encode list options like listJobs does."
+    }
+  },
+  {
+    "id": "1868f775d3e9429aa2f0797cac8e7d24",
+    "title": "1.11: Adds a `getJob` RTK Query endpoint in `public/app/features/provisioning/api/endpoints.ts` that fetches a single job resource by name",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that a getJob endpoint exists that takes a job name and issues a request to the individual job resource URL (e.g. /jobs/{name}).",
+      "evidence": "gold.patch lines 213-217: adds `getJob: build.query<JobResource, RequestArg>` with url `/jobs/${queryArg.name}` (line 215).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'Fill in the endpoint surface we're missing compared to the backend: things like fetching a single job.' [5: Conclusion] getJob is explicitly requested."
+    }
+  },
+  {
+    "id": "9cd24570779c7745931e66a3378eb64a",
+    "title": "1.12: Adds a `getRepository` RTK Query endpoint in `public/app/features/provisioning/api/endpoints.ts` that fetches a single repository resource by name",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that a getRepository endpoint exists that takes a repository name and targets the individual repository resource URL.",
+      "evidence": "gold.patch lines 242-246: adds `getRepository: build.query<RepositoryResource, RequestArg>` with url `${BASE_PATH}/${queryArg.name}` (line 244).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt mentions filling in the endpoint surface; individual resource fetches are part of a complete REST surface. [3: Logical Necessity] The RepositoryStatusPage needs to fetch a single repository. [5: Conclusion] getRepository is needed for the page refactor and API completeness."
+    }
+  },
+  {
+    "id": "6c23fb7ca681cbc1a215656897742227",
+    "title": "1.13: Adds a `listRepositoryHistory` RTK Query endpoint in `public/app/features/provisioning/api/endpoints.ts` that forwards `ref` as a query parameter",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that a listRepositoryHistory endpoint exists that lists history entries for a repository, forwarding ref as an optional query parameter.",
+      "evidence": "gold.patch lines 257-261: adds `listRepositoryHistory: build.query<HistoryListResponse, RequestArg>` with url `${BASE_PATH}/${queryArg.name}/history` (line 259) and params `{ ref: queryArg.ref }` (line 260).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'listing and reading repository history' are among the missing endpoints. [5: Conclusion] A list-level history endpoint is explicitly requested."
+    }
+  },
+  {
+    "id": "908e355c19ef7b0438e5b30283e429da",
+    "title": "1.14: Adds a `getRepositoryHistory` RTK Query endpoint in `public/app/features/provisioning/api/endpoints.ts` that includes the file path segment in the URL",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that a getRepositoryHistory endpoint exists that fetches a single history entry by file path, including the path segment in the URL and forwarding ref as a query parameter.",
+      "evidence": "gold.patch lines 263-267: adds `getRepositoryHistory: build.query<HistoryItem, GetRequestArg>` with url `${BASE_PATH}/${queryArg.name}/history/${queryArg.path}` (line 265) and params `{ ref: queryArg.ref }` (line 266).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'reading repository history' is among the missing endpoints. [2: Implicit Code Base Constraint] The interface defines GetRequestArg with a required path field for this purpose. [5: Conclusion] A per-file history endpoint is explicitly requested."
+    }
+  },
+  {
+    "id": "8e282b0ca9039d67519347b2d3330ccd",
+    "title": "1.15: Adds a `deleteRepositoryFiles` RTK Query mutation in `public/app/features/provisioning/api/endpoints.ts` that passes `ref` and `message` as query parameters on DELETE",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the deleteRepositoryFiles endpoint forwards ref and message as query parameters to the server on the DELETE request.",
+      "evidence": "gold.patch lines 251-254: modifies deleteRepositoryFiles to include `method: 'DELETE'` (line 253) and adds `params: { ref, message }` (line 254).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'making sure file delete requests pass through whatever query params the server needs (e.g. ref and message).' [5: Conclusion] The delete mutation must send the specified params."
+    }
+  },
+  {
+    "id": "2c0a4ff490f375dd25b6911936b6d6fc",
+    "title": "1.16: Adds a `getRepositoryWebhook` RTK Query endpoint in `public/app/features/provisioning/api/endpoints.ts` targeting the webhook route via GET",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that a getRepositoryWebhook query endpoint exists that reads webhook state via GET on the repository's webhook sub-resource.",
+      "evidence": "gold.patch lines 274-278: adds `getRepositoryWebhook: build.query<WebhookResponse, RequestArg>` with url `${BASE_PATH}/${queryArg.name}/webhook` (line 276).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'webhook GET/POST' are among the missing endpoints. [5: Conclusion] The GET webhook endpoint is explicitly requested."
+    }
+  },
+  {
+    "id": "47b4213d8855f9d1a2ddf345516389a7",
+    "title": "1.17: Adds a `postRepositoryWebhook` RTK Query mutation in `public/app/features/provisioning/api/endpoints.ts` targeting the webhook route via POST",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that a postRepositoryWebhook mutation endpoint exists that triggers a webhook via POST on the repository's webhook sub-resource.",
+      "evidence": "gold.patch lines 279-284: adds `postRepositoryWebhook: build.mutation<WebhookResponse, RequestArg>` with url `${BASE_PATH}/${queryArg.name}/webhook` (line 281) and `method: 'POST'` (line 282).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'webhook GET/POST' are among the missing endpoints. [5: Conclusion] The POST webhook endpoint is explicitly requested."
+    }
+  },
+  {
+    "id": "7838a71655b74a16cde1d51391b307f7",
+    "title": "1.18: Replaces the hand-rolled `ScopedResourceClient` usage in `RepositoryStatusPage.tsx` with RTK Query hooks from the provisioning API",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that RepositoryStatusPage.tsx no longer instantiates a ScopedResourceClient or uses useAsync for jobs. Instead it imports and uses the useListJobsQuery hook to load jobs filtered by the current repository.",
+      "evidence": "gold.patch lines 88, 96-98: removes `import { useAsync } from 'react-use'` (line 88) and `import { ScopedResourceClient } from '../apiserver/client'` (line 96). Lines 100-106: adds import of `useListJobsQuery` (line 102). Lines 114-118: removes the `jobsClient = new ScopedResourceClient(...)` instantiation. Lines 122-141: replaces `useAsync(() => jobsClient.list(...))` with `useListJobsQuery({...})` (line 133).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'replace the hand-rolled client + async pattern on the jobs tab with the RTK Query hooks from the provisioning API, using the same idea as today\u2014filter jobs to the current repository.' [5: Conclusion] This is the core UI refactor requested."
+    }
+  },
+  {
+    "id": "28568499c5cf1e86359a2176c00d39b3",
+    "title": "1.19: `RepositoryStatusPage.tsx` preserves loading, error, and empty states when using RTK Query hooks",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that after the RTK migration, the jobs tab in RepositoryStatusPage still handles loading (spinner), error (alert), and empty (no-data message) states.",
+      "evidence": "gold.patch line 145: `if (query.isLoading)` renders Spinner. Line 149: `if (query.isError)` renders Alert with error. Line 158: `if (!items?.length)` shows 'No recent events'. Line 167: `items.map(...)` renders job cards.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'keep the usual loading, error, and empty states you'd expect from RTK.' [5: Conclusion] Dropping any of these states would regress the user experience."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "Documentation Maintainability",
+      "description": "Important documentation updates tied to the refactor. No verifiers required for this task as the prompt does not request documentation changes.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "Artifact Cleanup",
+      "description": "Removal of obsolete code, dead code, unused deps, or legacy artifacts. No verifiers required for this task as the prompt focuses on extraction and addition rather than cleanup of unrelated artifacts.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Negative Rubrics",
+      "description": "Catches harmful practices: breaking changes, regressions, constraint violations, and anti-patterns that would degrade the codebase.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "0c371736dfc11d5d224e123dfb4ac579",
+    "title": "4.1: Removes or renames existing public exports from `public/app/features/apiserver/client.ts` that other call sites depend on",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "Flags if the refactor removes or renames public exports (such as ScopedResourceClient, ListOptions, or existing type exports) that other modules import, which would break unrelated call sites.",
+      "evidence": "gold.patch lines 1-79: the diff in client.ts only removes the private method body and adds the exported function; the class declaration `export class ScopedResourceClient` (line 5 context) and `export class DatasourceAPIVersions` (line 45 context) remain intact.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'Don't break unrelated call sites.' [3: Logical Necessity] Removing or renaming a public export that other files import causes compile-time and runtime breakage. [5: Conclusion] Existing public API surface must be preserved."
+    }
+  },
+  {
+    "id": "8c8e947363a68af5655461ca0893d8f2",
+    "title": "4.2: Inlined selector serialization logic inside endpoint definitions in `endpoints.ts` instead of importing `parseListOptionsSelector` from `client.ts`",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "Flags if the agent copies the label/field selector mapping logic (e.g. the operator switch or .map/.filter/.join chain) directly inside any endpoint's query function in endpoints.ts, rather than importing and delegating to the shared parseListOptionsSelector from client.ts. This catches a class of failure distinct from not accepting list params at all: the endpoint could accept params but encode them locally.",
+      "evidence": "gold.patch line 178: imports parseListOptionsSelector from client.ts. All list endpoints (listJobs line 208, listRepository line 221) delegate to a shared encoding path rather than having their own mapping logic inline.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'wire field and label selectors through using the shared helper above, without copy-pasting selector encoding in every endpoint.' [4: Qualitative Requirement] Inline duplication defeats the purpose of the extraction and creates maintenance risk if encoding rules change. [5: Conclusion] Any inline encoding in endpoints.ts is a violation of the explicit prompt requirement, regardless of whether the endpoint 'works'."
+    }
+  }
+]

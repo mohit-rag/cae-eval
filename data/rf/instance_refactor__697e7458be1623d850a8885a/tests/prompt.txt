@@ -1,0 +1,9 @@
+The unified search service has a stub implementation that just returns a placeholder instead of actual results with structured fields (kind, uid, name, url, tags, location) matching the existing search frame pattern. When something goes wrong during search, like parsing failures or unexpected data, there's no visibility into what happened. Failures are silent - there's no error logging, and debugging is frustrating.
+
+The frontend also lacks integration with this search API. When the unifiedStorageSearch feature toggle is enabled, there's no way to actually use unified search from the UI. The frontend needs to handle edge cases gracefully, like when the backend can't serve requests.
+
+Fix the backend stub to return actual search results, and improve the debuggability of this search flow so that failures are visible and diagnosable across both the backend and frontend. Don't break existing search functionality.
+
+I've already taken care of all changes to the test files. This means you DON'T have to modify the testing logic or any of the tests in any way!
+
+Your task is to make the minimal changes to non-tests files in the working directory to ensure the task is satisfied.

@@ -1,0 +1,242 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "f85fa682275f4fdbaa6101a20acd7e32",
+    "title": "1.1: Replaces all 4 individual useState hooks (repo, path, ref, comment) with react-hook-form for form state management in SaveProvisionedDashboard",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that SaveProvisionedDashboard in public/app/features/dashboard-scene/saving/SaveProvisionedDashboard.tsx no longer uses separate useState calls for repo, path, ref, and comment, and instead uses react-hook-form (e.g., useForm) for unified form state management.",
+      "evidence": "gold.patch L20-22: removes useState import, adds useForm import; L65-71: removes four useState<string>() hooks; L73-74: adds useUpdateRepositoryFilesMutation() and useForm({ defaultValues: getDefaultValues(meta) })",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'Refactor it to use react-hook-form for state management'. [2: Implicit Codebase Constraint] The codebase already uses react-hook-form in other form components. [5: Conclusion] A form library eliminates manual state synchronization and is the explicit refactor requested."
+    }
+  },
+  {
+    "id": "e58a959a9393499854ee29bfa7a65eb2",
+    "title": "1.2: Extracts annotation parsing logic into a helper function for computing form default values",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the logic for parsing k8s annotation metadata (extracting repo name, splitting path and ref from the path#ref format) is moved out of the component body into a standalone helper function that computes the form's default values.",
+      "evidence": "gold.patch L45-56: introduces getDefaultValues(meta: DashboardMeta) function outside the component that parses AnnoKeyRepoPath and AnnoKeyRepoName from meta.k8s.annotations",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'extracting the annotation parsing logic into a helper function for computing default values'. [5: Conclusion] The annotation parsing is reusable initialization logic that belongs outside the component render cycle."
+    }
+  },
+  {
+    "id": "fe1fd7f82b49075e4363845d7a062c15",
+    "title": "1.3: Replaces the raw getBackendSrv() call with the useUpdateRepositoryFilesMutation hook from the provisioning API",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that SaveProvisionedDashboard no longer constructs API URLs manually or calls getBackendSrv().put() directly, and instead uses the useUpdateRepositoryFilesMutation RTK Query mutation hook from public/app/features/provisioning/api.",
+      "evidence": "gold.patch L31: imports useUpdateRepositoryFilesMutation; L73: const [saveDashboard, request] = useUpdateRepositoryFilesMutation(); L121-126: removes getBackendSrv().put(); L131: calls saveDashboard({ ref, name: repo, path, message: comment, body: ... })",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Replace the raw API call with the appropriate RTK Query mutation hook from the provisioning API layer'. [2: Implicit Codebase Constraint] The provisioning API layer already defines useUpdateRepositoryFilesMutation for this purpose. [5: Conclusion] Using the RTK Query hook provides automatic caching, loading states, and error handling instead of manual HTTP construction."
+    }
+  },
+  {
+    "id": "9c98e4deb0fa729e6e5f3e3ccea6db5c",
+    "title": "1.4: Publishes a success app event notification upon save mutation success",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that when the save mutation succeeds, the component publishes an application-level success notification event (e.g., via AppEvents, getAppEvents, or useAppNotification) so the user receives proper feedback.",
+      "evidence": "gold.patch L104-109: appEvents = getAppEvents(); if (request.isSuccess) { appEvents.publish({ type: AppEvents.alertSuccess.name, payload: ['Dashboard saved'] }) }",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'add proper success/error handling using app events'. [2: Implicit Codebase Constraint] Grafana uses AppEvents for consistent user notifications across the application. [5: Conclusion] Replacing console.log/alert with app events provides proper user feedback consistent with the rest of the application."
+    }
+  },
+  {
+    "id": "01457fcfcb0b360f15519bfbd7101ef3",
+    "title": "1.5: Clears dashboard dirty state upon successful save",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that after a successful save mutation, the component updates the dashboard state to mark it as no longer dirty (e.g., setting isDirty to false), so the UI reflects the saved state.",
+      "evidence": "gold.patch L110: dashboard.setState({ isDirty: false }) inside the request.isSuccess branch",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'including clearing the dashboard dirty state on success'. [3: Logical Necessity] Without clearing dirty state, the UI would continue showing unsaved changes after a successful save. [5: Conclusion] Dirty state must be cleared to maintain correct UI state after saving."
+    }
+  },
+  {
+    "id": "d276a2349ed4a33ced00d3534d85a67a",
+    "title": "1.6: Publishes an error app event notification upon save mutation failure",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that when the save mutation fails, the component publishes an application-level error notification event so the user is informed of the failure.",
+      "evidence": "gold.patch L113-117: else if (request.isError) { appEvents.publish({ type: AppEvents.alertError.name, payload: ['Error saving dashboard', request.error] }) }",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'add proper success/error handling using app events'. [3: Logical Necessity] Save operations can fail due to network errors or conflicts, the user must be notified. [5: Conclusion] Error handling via app events replaces the missing error feedback in the original implementation."
+    }
+  },
+  {
+    "id": "cd6b67a46f3b275327c5297e3e4457ca",
+    "title": "1.7: Wraps the form content in a form element with proper submit handling",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that SaveProvisionedDashboard wraps its content in a <form> element (or equivalent) with an onSubmit handler, and the save button triggers submission via form mechanics (e.g., type='submit') rather than an onClick handler.",
+      "evidence": "gold.patch L135-137: replaces <div className={styles.container}> with <form onSubmit={handleSubmit(doSave)}>; L186-187: changes <Button onClick={doSave}> to <Button type='submit'>; L195-196: replaces </div> with </form>",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The form should use proper HTML form submission'. [5: Conclusion] Proper form submission is explicitly requested and follows web standards for keyboard support and accessibility."
+    }
+  },
+  {
+    "id": "cd225482a8081ff2a94d58e7aa5ec203",
+    "title": "1.8: Makes the repository input field read-only",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the repository field in the save form is rendered as a read-only input (rather than plain text or an editable input), preventing user modification while still displaying the value in a form-consistent manner.",
+      "evidence": "gold.patch L146-147: changes <div>{repo}</div> to <Input {...register('repo')} readOnly />",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the repository field should be read-only'. [3: Logical Necessity] The repository is determined by the dashboard's provisioning metadata and should not be editable by the user during save. [5: Conclusion] A read-only input is explicitly required by the prompt."
+    }
+  },
+  {
+    "id": "b2bc6e90cd62bd5c8425e575239e444b",
+    "title": "1.9: Renames all 9 connect-prefixed endpoints to standard CRUD naming (getRepositoryExport, createRepositoryExport, getRepositoryFiles, updateRepositoryFiles, createRepositoryFiles, deleteRepositoryFiles, getRepositoryHello, getRepositoryWebhook, createRepositoryWebhook) in endpoints.ts and updates exported hooks",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that all 9 connect-prefixed endpoint definitions in public/app/features/provisioning/api/endpoints.ts are renamed to use standard CRUD verbs (get, create, update, delete), and that the corresponding exported hooks are updated to match (e.g., useGetRepositoryExportQuery, useUpdateRepositoryFilesMutation, useCreateRepositoryFilesMutation, useDeleteRepositoryFilesMutation, useGetRepositoryFilesQuery, useCreateRepositoryExportMutation, useGetRepositoryHelloQuery, useGetRepositoryWebhookQuery, useCreateRepositoryWebhookMutation).",
+      "evidence": "gold.patch L222-223, L228-229, L235-237, L244-246, L255-257, L266-272, L279-280, L288-289, L294-295: renames 9 connect-prefixed endpoints; L320-342: updates all exported hook names",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Clean these up to use standard CRUD naming, update the exported hooks accordingly'. [5: Conclusion] The verbose connect prefix adds no value and the prompt explicitly requires its removal."
+    }
+  },
+  {
+    "id": "437b94975adefad2db65008425617f44",
+    "title": "1.10: Removes the unused watchRepositoryList and watchRepository endpoints",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the watchRepositoryList and watchRepository query endpoints and their associated exported hooks are removed from endpoints.ts.",
+      "evidence": "gold.patch L301-312: removes watchRepositoryList and watchRepository endpoint definitions; L339-340: removes useWatchRepositoryListQuery and useWatchRepositoryQuery exports",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'remove the unused watch endpoints'. [5: Conclusion] The prompt explicitly identifies these as unused and requests their removal."
+    }
+  },
+  {
+    "id": "3a9ef8094821afa1dce3a8c24098d000",
+    "title": "1.11: Adds optional ref field to FileOperationArg in types.ts",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that in public/app/features/provisioning/api/types.ts, the FileOperationArg type includes an optional ref?: string field for branch targeting.",
+      "evidence": "gold.patch L352: adds ref?: string to FileOperationArg",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states file operation endpoints 'need a ref parameter for branch support, both in their type definitions and query implementations'. [5: Conclusion] The FileOperationArg type must include ref so file mutation endpoints can target a specific branch."
+    }
+  },
+  {
+    "id": "8d699a14a6cc85409438df2889050152",
+    "title": "1.12: Renames commit to ref in GetFileArg in types.ts",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that in public/app/features/provisioning/api/types.ts, the GetFileArg type has its commit field renamed to ref.",
+      "evidence": "gold.patch L358-359: changes commit?: string to ref?: string in GetFileArg",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The existing commit field in GetFileArg should become ref'. [5: Conclusion] The commit field must be renamed to ref to align with the branch-targeting convention used by the other file operation types."
+    }
+  },
+  {
+    "id": "9d8634486beb546d95c6bf7511c0eca0",
+    "title": "1.13: Passes the ref parameter through in all 4 file operation endpoint query definitions (getRepositoryFiles, updateRepositoryFiles, createRepositoryFiles, deleteRepositoryFiles)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the file operation endpoints (getRepositoryFiles, updateRepositoryFiles, createRepositoryFiles, deleteRepositoryFiles) include ref in their query destructuring and pass it as a query parameter.",
+      "evidence": "gold.patch L238,241: getRepositoryFiles passes params: { ref }; L247,252: updateRepositoryFiles passes params: { ref, message }; L258,263: createRepositoryFiles passes params: { ref, message }; L272,276: deleteRepositoryFiles passes params: { ref, message }",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states file operation endpoints 'need a ref parameter for branch support, both in their type definitions and query implementations'. [3: Logical Necessity] Adding ref to the types without passing it through the queries would make the parameter non-functional. [5: Conclusion] Both the type and query implementation must be updated for ref to actually reach the API."
+    }
+  },
+  {
+    "id": "22b40f120cd1479ebd913860f0a4b5f2",
+    "title": "1.14: Fixes missing semicolons in dashboard.ts and SaveDashboardDrawer.tsx",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that missing statement-terminating semicolons are added in public/app/features/provisioning/dashboard.ts and public/app/features/dashboard-scene/saving/SaveDashboardDrawer.tsx to match the project's code style.",
+      "evidence": "gold.patch L10: adds semicolon in SaveDashboardDrawer.tsx; L384,387,391,392,395: adds semicolons in dashboard.ts",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'clean up the code quality issues in dashboard.ts and SaveDashboardDrawer.tsx, there are missing semicolons'. [5: Conclusion] This is explicitly requested cleanup that aligns the files with the project's linting rules."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "625f88a36fbf9ba5915e5c358e646e42",
+    "title": "3.1: Removes the unused WatchEvent type import from endpoints.ts",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that the WatchEvent type import is removed from endpoints.ts since the watch endpoints that used it are deleted.",
+      "evidence": "gold.patch L214: removes WatchEvent from the import statement in endpoints.ts",
+      "justification": "[3: Logical Necessity] The WatchEvent type was only used by watchRepositoryList and watchRepository endpoints which are removed. [4: Qualitative Requirement] Unused imports are dead code that can cause linter warnings. [5: Conclusion] Cleaning up the import follows from the endpoint removal."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b7dd510e856d547b582f8f25d16fb0e2",
+    "title": "4.1: Retains the raw getBackendSrv().put() call or console.log/alert() feedback in SaveProvisionedDashboard",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the agent kept the old manual API call (getBackendSrv().put()) or the console.log/alert() user feedback in SaveProvisionedDashboard alongside or instead of the new RTK Query mutation and app event notifications. Retaining either creates dead code, duplicate save paths, or unprofessional user feedback.",
+      "evidence": "gold.patch L96-97,121-126: removes the original doSave() with getBackendSrv().put(url, dashboardJSON, { params }).then(v => { console.log('WROTE', v); alert('WROTE value'); })",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states to replace the raw API call and add proper feedback via app events, implying the old approach should be removed. [4: Qualitative Requirement] console.log/alert are debug-level feedback inappropriate for production UI. [5: Conclusion] Keeping old save logic alongside new creates confusion and dead code."
+    }
+  }
+]

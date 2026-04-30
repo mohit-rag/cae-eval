@@ -1,0 +1,88 @@
+{
+  "tests": [
+    {
+      "name": "TestFatalStructHasErrnoField"
+    },
+    {
+      "name": "TestDedupStructHasHashField"
+    },
+    {
+      "name": "TestDedupStructHasRestartCounter"
+    },
+    {
+      "name": "TestRegisterFatalDeclHasErrnoParam"
+    },
+    {
+      "name": "TestLogEventTypeHasErrnoParam"
+    },
+    {
+      "name": "TestLogFieldStrdupzDeclReturnsConstChar"
+    },
+    {
+      "name": "TestStatusFileVersionBumped"
+    },
+    {
+      "name": "TestDaemonStatusFileHasHashFunction"
+    },
+    {
+      "name": "TestHashFunctionUsesMultipleFields"
+    },
+    {
+      "name": "TestOldDedupComparisonRemoved"
+    },
+    {
+      "name": "TestDedupJsonSerializesHashField"
+    },
+    {
+      "name": "TestDedupJsonSerializesRestarts"
+    },
+    {
+      "name": "TestFatalJsonIncludesErrno"
+    },
+    {
+      "name": "TestRegisterFatalImplAcceptsErrno"
+    },
+    {
+      "name": "TestRegisterFatalStoresErrno"
+    },
+    {
+      "name": "TestJsonParserHasVersionGatedLogic"
+    },
+    {
+      "name": "TestDedupComparesHash"
+    },
+    {
+      "name": "TestDedupStoresHashAfterPost"
+    },
+    {
+      "name": "TestDedupCarryForwardUsesHashField"
+    },
+    {
+      "name": "TestDedupIncreasesRestartCounter"
+    },
+    {
+      "name": "TestNdLogEventExtractsErrnoField"
+    },
+    {
+      "name": "TestNdLogEventPassesErrnoToCallback"
+    },
+    {
+      "name": "TestLogFieldStrdupzDefReturnsConst"
+    },
+    {
+      "name": "TestEnvFatalIncludesEnvParam"
+    },
+    {
+      "name": "TestEnvFatalNoManualStrerror"
+    },
+    {
+      "name": "TestDedupJsonParserReadsHashField"
+    },
+    {
+      "name": "TestDedupJsonParserReadsRestarts"
+    },
+    {
+      "name": "TestFatalJsonParserReadsErrno"
+    }
+  ]
+}

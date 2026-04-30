@@ -1,0 +1,723 @@
+diff --git a/pkg/services/unifiedSearch/service_test.go b/pkg/services/unifiedSearch/service_test.go
+new file mode 100644
+index 00000000000..aaaaaaaaa01
+--- /dev/null
++++ b/pkg/services/unifiedSearch/service_test.go
+@@ -0,0 +1,191 @@
++package unifiedSearch
++
++import (
++	"encoding/json"
++	"testing"
++	"time"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++)
++
++func TestGetDoc_ValidJSON(t *testing.T) {
++	input := `{
++		"Uid": "abc-123",
++		"Group": "dashboard.grafana.app",
++		"Namespace": "default",
++		"Kind": "Dashboard",
++		"Name": "my-dashboard",
++		"CreatedAt": "2024-01-01T00:00:00Z",
++		"CreatedBy": "admin",
++		"UpdatedAt": "2024-06-01T12:00:00Z",
++		"UpdatedBy": "editor",
++		"FolderId": "folder-1",
++		"Spec": {"title": "My Dashboard"}
++	}`
++
++	doc, err := getDoc([]byte(input))
++	require.NoError(t, err)
++	require.NotNil(t, doc)
++
++	assert.Equal(t, "abc-123", doc.UID)
++	assert.Equal(t, "dashboard.grafana.app", doc.Group)
++	assert.Equal(t, "default", doc.Namespace)
++	assert.Equal(t, "Dashboard", doc.Kind)
++	assert.Equal(t, "my-dashboard", doc.Name)
++	assert.Equal(t, "admin", doc.CreatedBy)
++	assert.Equal(t, "editor", doc.UpdatedBy)
++	assert.Equal(t, "folder-1", doc.FolderID)
++	assert.Equal(t, "My Dashboard", doc.Spec.Title)
++
++	expectedCreated := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
++	assert.True(t, doc.CreatedAt.Equal(expectedCreated))
++
++	expectedUpdated := time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC)
++	assert.True(t, doc.UpdatedAt.Equal(expectedUpdated))
++}
++
++func TestGetDoc_InvalidJSON(t *testing.T) {
++	doc, err := getDoc([]byte("not valid json"))
++	assert.Error(t, err)
++	assert.Nil(t, doc)
++}
++
++func TestGetDoc_EmptyInput(t *testing.T) {
++	doc, err := getDoc([]byte(""))
++	assert.Error(t, err)
++	assert.Nil(t, doc)
++}
++
++func TestGetDoc_EmptyObject(t *testing.T) {
++	doc, err := getDoc([]byte("{}"))
++	require.NoError(t, err)
++	require.NotNil(t, doc)
++
++	assert.Equal(t, "", doc.UID)
++	assert.Equal(t, "", doc.Kind)
++	assert.Equal(t, "", doc.Name)
++	assert.Equal(t, "", doc.FolderID)
++	assert.Equal(t, "", doc.Spec.Title)
++}
++
++func TestGetDoc_PartialFields(t *testing.T) {
++	input := `{"Uid": "partial-uid", "Kind": "Folder"}`
++
++	doc, err := getDoc([]byte(input))
++	require.NoError(t, err)
++	require.NotNil(t, doc)
++
++	assert.Equal(t, "partial-uid", doc.UID)
++	assert.Equal(t, "Folder", doc.Kind)
++	assert.Equal(t, "", doc.Group)
++	assert.Equal(t, "", doc.FolderID)
++	assert.Equal(t, "", doc.Spec.Title)
++}
++
++func TestGetDoc_SpecWithEmptyTitle(t *testing.T) {
++	input := `{"Uid": "uid-1", "Kind": "Dashboard", "Spec": {"title": ""}}`
++
++	doc, err := getDoc([]byte(input))
++	require.NoError(t, err)
++	assert.Equal(t, "", doc.Spec.Title)
++}
++
++func TestGetDoc_SpecWithSpecialCharacters(t *testing.T) {
++	input := `{"Uid": "uid-2", "Kind": "Dashboard", "Spec": {"title": "Dashboard with \"quotes\" & <special> chars"}}`
++
++	doc, err := getDoc([]byte(input))
++	require.NoError(t, err)
++	assert.Equal(t, "Dashboard with \"quotes\" & <special> chars", doc.Spec.Title)
++}
++
++func TestGetDoc_NullInput(t *testing.T) {
++	doc, err := getDoc(nil)
++	assert.Error(t, err)
++	assert.Nil(t, doc)
++}
++
++func TestCustomMeta_JSONSerialization(t *testing.T) {
++	meta := customMeta{
++		Count:    42,
++		MaxScore: 1.5,
++		SortBy:   "name_sort",
++	}
++
++	data, err := json.Marshal(meta)
++	require.NoError(t, err)
++
++	var decoded map[string]interface{}
++	err = json.Unmarshal(data, &decoded)
++	require.NoError(t, err)
++
++	assert.Equal(t, float64(42), decoded["count"])
++	assert.Equal(t, 1.5, decoded["max_score"])
++	assert.Equal(t, "name_sort", decoded["sortBy"])
++}
++
++func TestCustomMeta_OmitsEmptyFields(t *testing.T) {
++	meta := customMeta{
++		Count: 10,
++	}
++
++	data, err := json.Marshal(meta)
++	require.NoError(t, err)
++
++	var decoded map[string]interface{}
++	err = json.Unmarshal(data, &decoded)
++	require.NoError(t, err)
++
++	assert.Equal(t, float64(10), decoded["count"])
++	_, hasMaxScore := decoded["max_score"]
++	assert.False(t, hasMaxScore, "max_score should be omitted when zero")
++	_, hasSortBy := decoded["sortBy"]
++	assert.False(t, hasSortBy, "sortBy should be omitted when empty")
++}
++
++func TestCustomMeta_ZeroCount(t *testing.T) {
++	meta := customMeta{
++		Count: 0,
++	}
++
++	data, err := json.Marshal(meta)
++	require.NoError(t, err)
++
++	var decoded map[string]interface{}
++	err = json.Unmarshal(data, &decoded)
++	require.NoError(t, err)
++
++	assert.Equal(t, float64(0), decoded["count"])
++}
++
++func TestDashboardListDoc_JSONDeserialization(t *testing.T) {
++	input := `{
++		"Uid": "dash-1",
++		"Group": "dashboard.grafana.app",
++		"Namespace": "org-1",
++		"Kind": "Dashboard",
++		"Name": "test-dash",
++		"CreatedAt": "2024-03-15T10:30:00Z",
++		"CreatedBy": "user1",
++		"UpdatedAt": "2024-03-16T14:00:00Z",
++		"UpdatedBy": "user2",
++		"FolderId": "folder-abc",
++		"Spec": {"title": "Test Dashboard"}
++	}`
++
++	var doc DashboardListDoc
++	err := json.Unmarshal([]byte(input), &doc)
++	require.NoError(t, err)
++
++	assert.Equal(t, "dash-1", doc.UID)
++	assert.Equal(t, "dashboard.grafana.app", doc.Group)
++	assert.Equal(t, "org-1", doc.Namespace)
++	assert.Equal(t, "Dashboard", doc.Kind)
++	assert.Equal(t, "test-dash", doc.Name)
++	assert.Equal(t, "user1", doc.CreatedBy)
++	assert.Equal(t, "user2", doc.UpdatedBy)
++	assert.Equal(t, "folder-abc", doc.FolderID)
++	assert.Equal(t, "Test Dashboard", doc.Spec.Title)
++	assert.Equal(t, time.Date(2024, 3, 15, 10, 30, 0, 0, time.UTC), doc.CreatedAt)
++	assert.Equal(t, time.Date(2024, 3, 16, 14, 0, 0, 0, time.UTC), doc.UpdatedAt)
++}
+diff --git a/public/app/features/search/service/unified.test.ts b/public/app/features/search/service/unified.test.ts
+new file mode 100644
+index 00000000000..aaaaaaaaa02
+--- /dev/null
++++ b/public/app/features/search/service/unified.test.ts
+@@ -0,0 +1,436 @@
++import { DataFrameJSON, getDisplayProcessor, toDataFrame } from '@grafana/data';
++import { config, getBackendSrv } from '@grafana/runtime';
++
++import { GrafanaSearcher, QueryResponse, SearchQuery } from '.';
++
++import { UnifiedSearcher } from './unified';
++
++jest.mock('@grafana/data', () => {
++  const actual = jest.requireActual('@grafana/data');
++  return {
++    ...actual,
++    getDisplayProcessor: jest.fn().mockReturnValue((value: any) => ({ text: String(value ?? ''), numeric: 0 })),
++  };
++});
++
++jest.mock('@grafana/runtime', () => {
++  const actual = jest.requireActual('@grafana/runtime');
++  return {
++    ...actual,
++    getBackendSrv: jest.fn(),
++    config: {
++      ...actual.config,
++      theme2: {},
++      featureToggles: {},
++      licenseInfo: {
++        enabledFeatures: {
++          analytics: false,
++        },
++      },
++    },
++  };
++});
++
++jest.mock('./utils', () => ({
++  replaceCurrentFolderQuery: jest.fn((q: SearchQuery) => Promise.resolve(q)),
++}));
++
++const mockBackendSrv = {
++  get: jest.fn(),
++  post: jest.fn(),
++};
++
++beforeEach(() => {
++  jest.clearAllMocks();
++  (getBackendSrv as jest.Mock).mockReturnValue(mockBackendSrv);
++});
++
++function createFallbackSearcher(): GrafanaSearcher {
++  return {
++    search: jest.fn().mockResolvedValue({ view: { dataFrame: { length: 0, fields: [] } }, totalRows: 0 }),
++    starred: jest.fn().mockResolvedValue({ view: { dataFrame: { length: 0, fields: [] } }, totalRows: 0 }),
++    tags: jest.fn().mockResolvedValue([]),
++    getSortOptions: jest.fn().mockResolvedValue([]),
++    getFolderViewSort: jest.fn().mockReturnValue('name_sort'),
++  } as unknown as GrafanaSearcher;
++}
++
++function makeSearchResponse(frames: DataFrameJSON[]): { frames: DataFrameJSON[] } {
++  return { frames };
++}
++
++function makeResultFrame(name: string, count: number): DataFrameJSON {
++  return {
++    schema: {
++      name,
++      fields: [
++        { name: 'kind', type: 'string' as any },
++        { name: 'uid', type: 'string' as any },
++        { name: 'name', type: 'string' as any },
++        { name: 'url', type: 'string' as any },
++        { name: 'tags', type: 'other' as any },
++        { name: 'location', type: 'string' as any },
++      ],
++      meta: {
++        custom: {
++          count,
++          max_score: 1,
++          locationInfo: {},
++        },
++      },
++    },
++    data: {
++      values: [
++        ['dashboard'],
++        ['uid-1'],
++        ['Test Dashboard'],
++        ['/d/uid-1'],
++        [null],
++        ['folder-1'],
++      ],
++    },
++  };
++}
++
++describe('UnifiedSearcher', () => {
++  describe('search', () => {
++    it('should return results from the unified search API', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([makeResultFrame('Query results', 1)]));
++
++      const result = await searcher.search({ query: 'test' });
++      expect(result.totalRows).toBe(1);
++      expect(result.view.dataFrame.length).toBe(1);
++      expect(mockBackendSrv.post).toHaveBeenCalledWith(
++        'api/unified-search',
++        expect.objectContaining({ query: 'test' })
++      );
++    });
++
++    it('should throw error when facets are requested', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      await expect(
++        searcher.search({ query: 'test', facet: [{ field: 'type' }] })
++      ).rejects.toThrow('facets not supported!');
++    });
++
++    it('should use default query "*" when query is undefined', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([makeResultFrame('Query results', 0)]));
++
++      await searcher.search({});
++      expect(mockBackendSrv.post).toHaveBeenCalledWith(
++        'api/unified-search',
++        expect.objectContaining({ query: '*' })
++      );
++    });
++
++    it('should fall back when backend returns Loading frame', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      const loadingFrame: DataFrameJSON = {
++        schema: {
++          name: 'Loading',
++          fields: [],
++        },
++        data: { values: [] },
++      };
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([loadingFrame]));
++
++      await searcher.search({ query: 'test' });
++      expect(fallback.search).toHaveBeenCalled();
++    });
++
++    it('should default limit to 50 when not specified', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([makeResultFrame('Query results', 0)]));
++
++      await searcher.search({ query: 'test' });
++      expect(mockBackendSrv.post).toHaveBeenCalledWith(
++        'api/unified-search',
++        expect.objectContaining({ limit: 50 })
++      );
++    });
++
++    it('should use provided limit when specified', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([makeResultFrame('Query results', 0)]));
++
++      await searcher.search({ query: 'test', limit: 25 });
++      expect(mockBackendSrv.post).toHaveBeenCalledWith(
++        'api/unified-search',
++        expect.objectContaining({ limit: 25 })
++      );
++    });
++
++    it('should set default meta when custom meta is missing', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      const frameNoMeta: DataFrameJSON = {
++        schema: {
++          name: 'Query results',
++          fields: [
++            { name: 'kind', type: 'string' as any },
++          ],
++        },
++        data: { values: [[]] },
++      };
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([frameNoMeta]));
++
++      const result = await searcher.search({ query: 'test' });
++      expect(result.totalRows).toBeDefined();
++    });
++
++    it('should handle empty response frames', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([]));
++
++      const result = await searcher.search({ query: 'test' });
++      expect(result.totalRows).toBeDefined();
++    });
++  });
++
++  describe('starred', () => {
++    it('should throw error when facets are requested', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      await expect(
++        searcher.starred({ query: 'test', facet: [{ field: 'type' }] })
++      ).rejects.toThrow('facets not supported!');
++    });
++
++    it('should return empty response when no stars exist', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.get.mockResolvedValue([]);
++
++      const result = await searcher.starred({ query: 'test' });
++      expect(result.totalRows).toBe(0);
++      expect(result.isItemLoaded(0)).toBe(true);
++    });
++
++    it('should return empty response when stars API returns null', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.get.mockResolvedValue(null);
++
++      const result = await searcher.starred({ query: 'test' });
++      expect(result.totalRows).toBe(0);
++    });
++
++    it('should search with starred UIDs when stars exist', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.get.mockResolvedValue(['uid-1', 'uid-2']);
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([makeResultFrame('Query results', 2)]));
++
++      const result = await searcher.starred({ query: 'my query' });
++      expect(mockBackendSrv.post).toHaveBeenCalledWith(
++        'api/unified-search',
++        expect.objectContaining({
++          uid: ['uid-1', 'uid-2'],
++          query: 'my query',
++        })
++      );
++      expect(result.totalRows).toBe(2);
++    });
++
++    it('should use default query "*" when query.query is undefined', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.get.mockResolvedValue(['uid-1']);
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([makeResultFrame('Query results', 1)]));
++
++      await searcher.starred({});
++      expect(mockBackendSrv.post).toHaveBeenCalledWith(
++        'api/unified-search',
++        expect.objectContaining({ query: '*' })
++      );
++    });
++
++    it('should fetch stars from api/user/stars', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.get.mockResolvedValue([]);
++
++      await searcher.starred({ query: 'test' });
++      expect(mockBackendSrv.get).toHaveBeenCalledWith('api/user/stars');
++    });
++  });
++
++  describe('tags', () => {
++    it('should return tag counts from the response', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      const tagFrame: DataFrameJSON = {
++        schema: {
++          name: 'Tags',
++          fields: [
++            { name: 'tag', type: 'string' as any },
++            { name: 'count', type: 'number' as any },
++          ],
++        },
++        data: {
++          values: [
++            ['production', 'staging'],
++            [5, 3],
++          ],
++        },
++      };
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([tagFrame]));
++
++      const result = await searcher.tags({ query: 'test' });
++      expect(result).toEqual([
++        { term: 'production', count: 5 },
++        { term: 'staging', count: 3 },
++      ]);
++    });
++
++    it('should fall back when Loading frame is returned', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      const loadingFrame: DataFrameJSON = {
++        schema: { name: 'Loading', fields: [] },
++        data: { values: [] },
++      };
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([loadingFrame]));
++
++      await searcher.tags({ query: 'test' });
++      expect(fallback.tags).toHaveBeenCalledWith({ query: 'test' });
++    });
++
++    it('should return empty array when no tag frame is found', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      const nonTagFrame: DataFrameJSON = {
++        schema: {
++          name: 'Other',
++          fields: [{ name: 'other', type: 'string' as any }],
++        },
++        data: { values: [[]] },
++      };
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([nonTagFrame]));
++
++      const result = await searcher.tags({ query: 'test' });
++      expect(result).toEqual([]);
++    });
++
++    it('should post with facet tag and limit 1', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      const tagFrame: DataFrameJSON = {
++        schema: {
++          name: 'Tags',
++          fields: [
++            { name: 'tag', type: 'string' as any },
++            { name: 'count', type: 'number' as any },
++          ],
++        },
++        data: { values: [[], []] },
++      };
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([tagFrame]));
++
++      await searcher.tags({ query: 'test' });
++      expect(mockBackendSrv.post).toHaveBeenCalledWith(
++        'api/unified-search',
++        expect.objectContaining({
++          facet: [{ field: 'tag' }],
++          limit: 1,
++        })
++      );
++    });
++  });
++
++  describe('getSortOptions', () => {
++    it('should return alphabetical sort options by default', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      const opts = await searcher.getSortOptions();
++      expect(opts).toEqual(
++        expect.arrayContaining([
++          { value: 'name_sort', label: 'Alphabetically (A-Z)' },
++          { value: '-name_sort', label: 'Alphabetically (Z-A)' },
++        ])
++      );
++    });
++
++    it('should only return 2 options when analytics is disabled', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      (config as any).licenseInfo.enabledFeatures.analytics = false;
++
++      const opts = await searcher.getSortOptions();
++      expect(opts).toHaveLength(2);
++    });
++
++    it('should include enterprise sort options when analytics is enabled', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      (config as any).licenseInfo.enabledFeatures.analytics = true;
++
++      const opts = await searcher.getSortOptions();
++      expect(opts.length).toBeGreaterThan(2);
++
++      const labels = opts.map((o: any) => o.label);
++      expect(labels).toContain('Views total (most)');
++      expect(labels).toContain('Views total (least)');
++      expect(labels).toContain('Views 30 days (most)');
++      expect(labels).toContain('Errors total (most)');
++      expect(labels).toContain('Created time (recent)');
++      expect(labels).toContain('Created time (oldest)');
++      expect(labels).toContain('Updated time (recent)');
++      expect(labels).toContain('Updated time (oldest)');
++
++      (config as any).licenseInfo.enabledFeatures.analytics = false;
++    });
++  });
++
++  describe('getFolderViewSort', () => {
++    it('should return "name_sort"', () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      expect(searcher.getFolderViewSort()).toBe('name_sort');
++    });
++  });
++
++  describe('doSearchQuery pagination', () => {
++    it('should report isItemLoaded correctly', async () => {
++      const fallback = createFallbackSearcher();
++      const searcher = new UnifiedSearcher(fallback);
++
++      mockBackendSrv.post.mockResolvedValue(makeSearchResponse([makeResultFrame('Query results', 1)]));
++
++      const result = await searcher.search({ query: 'test' });
++      expect(result.isItemLoaded(0)).toBe(true);
++      expect(result.isItemLoaded(1)).toBe(false);
++    });
++  });
++});
+diff --git a/public/app/features/search/service/searcher.test.ts b/public/app/features/search/service/searcher.test.ts
+new file mode 100644
+index 00000000000..aaaaaaaaa03
+--- /dev/null
++++ b/public/app/features/search/service/searcher.test.ts
+@@ -0,0 +1,78 @@
++import { config } from '@grafana/runtime';
++
++import { getGrafanaSearcher } from './searcher';
++
++jest.mock('@grafana/runtime', () => {
++  const actual = jest.requireActual('@grafana/runtime');
++  return {
++    ...actual,
++    config: {
++      ...actual.config,
++      featureToggles: {},
++    },
++  };
++});
++
++jest.mock('./bluge', () => ({
++  BlugeSearcher: jest.fn().mockImplementation(() => ({ type: 'bluge' })),
++}));
++
++jest.mock('./sql', () => ({
++  SQLSearcher: jest.fn().mockImplementation(() => ({ type: 'sql' })),
++}));
++
++jest.mock('./frontend', () => ({
++  FrontendSearcher: jest.fn().mockImplementation((inner: any) => ({ type: 'frontend', inner })),
++}));
++
++jest.mock('./unified', () => ({
++  UnifiedSearcher: jest.fn().mockImplementation((fallback: any) => ({ type: 'unified', fallback })),
++}));
++
++describe('getGrafanaSearcher', () => {
++  beforeEach(() => {
++    jest.resetModules();
++    (config as any).featureToggles = {};
++  });
++
++  it('should return UnifiedSearcher when unifiedStorageSearch is enabled', () => {
++    jest.isolateModules(() => {
++      const { config: cfg } = require('@grafana/runtime');
++      cfg.featureToggles = { unifiedStorageSearch: true };
++
++      const { getGrafanaSearcher: getSearcher } = require('./searcher');
++      const searcher = getSearcher();
++      expect(searcher).toHaveProperty('type', 'unified');
++    });
++  });
++
++  it('should return SQLSearcher when no feature toggles are enabled', () => {
++    jest.isolateModules(() => {
++      const { config: cfg } = require('@grafana/runtime');
++      cfg.featureToggles = {};
++
++      const { getGrafanaSearcher: getSearcher } = require('./searcher');
++      const searcher = getSearcher();
++      expect(searcher).toHaveProperty('type', 'sql');
++    });
++  });
++
++  it('should return FrontendSearcher when panelTitleSearch and do-frontend-query are active', () => {
++    jest.isolateModules(() => {
++      const { config: cfg } = require('@grafana/runtime');
++      cfg.featureToggles = { panelTitleSearch: true };
++
++      const originalSearch = window.location.search;
++      Object.defineProperty(window, 'location', {
++        value: { ...window.location, search: '?do-frontend-query' },
++        writable: true,
++      });
++
++      const { getGrafanaSearcher: getSearcher } = require('./searcher');
++      const searcher = getSearcher();
++      expect(searcher).toHaveProperty('type', 'frontend');
++
++      Object.defineProperty(window, 'location', { value: { ...window.location, search: originalSearch }, writable: true });
++    });
++  });
++});

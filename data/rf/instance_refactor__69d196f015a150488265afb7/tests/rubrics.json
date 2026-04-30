@@ -1,0 +1,326 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "High-level intent verifying the refactoring updates the GTP modules for 3GPP Release 16 compliance. This includes centralizing IE length computation, extending address support, adding missing protocol elements required by the spec, restructuring PCO base classes, and reworking specific PCO field definitions.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "480b32ffe334410d352067c5be69237d",
+    "title": "1.1: Adds a post_build method to IE_Base in scapy/contrib/gtp.py that auto-computes the length field when it is None",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that IE_Base gains a post_build method that fills the length field with a computed value during building when its value is None. This enables all IE subclasses to omit manual length computation.",
+      "evidence": "The prompt states: 'the length should be computed automatically during packet building by the base class IE_Base in scapy/contrib/gtp.py'. The interface defines IE_Base.post_build(self, p, pay) -> bytes.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires automatic length computation by IE_Base during post_build. [2: Interface Specification] The interface specifies IE_Base.post_build at scapy/contrib/gtp.py. [5: Conclusion] Any correct solution must add a post_build to IE_Base that auto-fills the length field.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "bf8d9eb37e75b3c2e862a21cc4eb531a",
+    "title": "1.2: Uses ShortField with a default of None for the length field in all 35 existing IE classes (including IE_IMSI, IE_Cause, IE_EPSBearerID, IE_MEI, IE_RAT, IE_FTEID, IE_PCO, IE_EPCO, IE_PAA, IE_ServingNetwork, ...) in scapy/contrib/gtp_v2.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that all 35 existing IE classes in gtp_v2.py use a ShortField with a default of None for their length field, instead of FieldLenField with custom adjust lambdas or hardcoded defaults. This includes classes where FieldLenField is replaced with ShortField and IE_AMBR where the existing ShortField default is changed from 8 to None.",
+      "evidence": "The prompt states: 'All IE classes should use a simple ShortField for their length field with a default of None, and the base class should handle filling in the correct value during post_build.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires replacing FieldLenField with ShortField across IE classes. [4: Qualitative Requirement] Removing per-class adjust lambdas reduces complexity. [5: Conclusion] Any correct solution must replace FieldLenField with ShortField(default=None) for IE length fields.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "057603cf72c7456040dd74d9de747211",
+    "title": "1.3: Renames IE_IPv4 to IE_IP_Address in scapy/contrib/gtp_v2.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the class formerly named IE_IPv4 is renamed to IE_IP_Address, reflecting its support for both IPv4 and IPv6 address types for IE type 74.",
+      "evidence": "The prompt states: 'The class should be renamed to reflect that it handles both address types.' The interface specifies the class as IE_IP_Address at scapy/contrib/gtp_v2.py.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires renaming IE_IPv4 to reflect dual address support. [2: Interface Specification] The interface names the class IE_IP_Address. [5: Conclusion] Any correct solution must rename IE_IPv4 to IE_IP_Address.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "16071ed16e889b07fa07dc09ab2b99a4",
+    "title": "1.4: Updates the IEType dictionary entry for type 74 to reflect the renamed IE_IP_Address class",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the IEType name dictionary maps type 74 to a label reflecting IP addresses (not just IPv4), consistent with the IE_IP_Address rename.",
+      "evidence": "The prompt states: 'The IEType dictionary and the IE dispatcher dictionary should be updated accordingly.' The interface specifies IE_IP_Address with ietype 74.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires updating the IEType dictionary. [3: Logical Necessity] Without updating the dictionary, dissected packets would show the old label for type 74. [5: Conclusion] Any correct solution must update the IEType dictionary for type 74.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "25ba38af5a914e1129460b9fb560dfda",
+    "title": "1.5: Adds IPv6 support to IE_IP_Address with a conditional address6 field",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that IE_IP_Address conditionally parses a 16-byte IPv6 address (e.g. via IP6Field) when the length is 16, in addition to the existing 4-byte IPv4 parsing when length is 4.",
+      "evidence": "The prompt states: 'it should conditionally parse either a 4 byte IPv4 or 16 byte IPv6 address based on the length field.' The interface specifies conditional address (IPField, length==4) and address6 (IP6Field, length==16).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires conditional IPv4/IPv6 parsing based on length. [2: Interface Specification] The interface defines the address6 conditional field. [5: Conclusion] Any correct solution must support 16-byte IPv6 in IE_IP_Address.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "1c12ec2e782bb5d79b80f098fd068bde",
+    "title": "1.6: Adds IE_MMContext_EPS class with ietype 107 in scapy/contrib/gtp_v2.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new IE class named IE_MMContext_EPS exists for 'MM Context (EPS Security Context and Quadruplets)' with ietype 107, registered in the ietypecls dispatcher so it can be dissected from GTPv2 packets.",
+      "evidence": "The prompt states: 'there is no support for MM Context with EPS Security Context and Quadruplets (IE type 107) ... These should be added as proper IE classes with appropriate fields and registered in both the type name dictionary and the dispatcher dictionary.' The interface defines IE_MMContext_EPS with ietype 107.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires adding IE type 107. [2: Interface Specification] The interface names it IE_MMContext_EPS with ietype 107. [5: Conclusion] Any correct solution must add this IE class.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "b3dbfc4c10bb718c41e51f4f7d861e8b",
+    "title": "1.7: Adds IE_PDNConnection class with ietype 109 in scapy/contrib/gtp_v2.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new IE class named IE_PDNConnection exists for 'PDN Connection' with ietype 109, capable of holding nested IEs (e.g. via a PacketListField named IE_list).",
+      "evidence": "The prompt states: 'PDN Connection (IE type 109) ... should be added as proper IE classes.' The interface defines IE_PDNConnection with ietype 109 containing an IE_list PacketListField.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires adding IE type 109. [2: Interface Specification] The interface names it IE_PDNConnection with nested IE_list. [5: Conclusion] Any correct solution must add this IE class with nested IE support.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "212a74a16fca37edb693944c488f5a7d",
+    "title": "1.8: Adds IE_FQDN class with ietype 136 in scapy/contrib/gtp_v2.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new IE class named IE_FQDN exists for 'FQDN' with ietype 136, containing a fqdn_tr_bit field followed by a fqdn string field.",
+      "evidence": "The prompt states: 'FQDN (IE type 136) ... should be added as proper IE classes.' The interface defines IE_FQDN with ietype 136, fqdn_tr_bit, and fqdn fields.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires adding IE type 136. [2: Interface Specification] The interface names it IE_FQDN with ietype 136. [5: Conclusion] Any correct solution must add this IE class.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "9cde0bd97ea03cae90d8a1d7d18f1220",
+    "title": "1.9: Adds GTPV2ContextRequest command class bound to GTPHeader with gtp_type 130",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new GTPV2ContextRequest class exists inheriting from GTPV2Command, bound to GTPHeader with gtp_type 130 via bind_layers.",
+      "evidence": "The prompt states: 'Context Request (type 130) ... are missing and should be added with proper layer bindings.' The interface defines GTPV2ContextRequest(GTPV2Command) with gtp_type 130.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires this command class. [2: Interface Specification] The interface specifies the class name, parent, and gtp_type. [5: Conclusion] Any correct solution must add GTPV2ContextRequest with bind_layers for gtp_type 130.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "c47266c2a56eb92cb75cacfae7029bb5",
+    "title": "1.10: Adds GTPV2ContextResponse command class bound to GTPHeader with gtp_type 131",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new GTPV2ContextResponse class exists inheriting from GTPV2Command, bound to GTPHeader with gtp_type 131 via bind_layers.",
+      "evidence": "The prompt states: 'Context Response (type 131) ... are missing and should be added with proper layer bindings.' The interface defines GTPV2ContextResponse(GTPV2Command) with gtp_type 131.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires this command class. [2: Interface Specification] The interface specifies the class name, parent, and gtp_type. [5: Conclusion] Any correct solution must add GTPV2ContextResponse with bind_layers for gtp_type 131.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "c3c536889fea9b98067bddaeee54eb91",
+    "title": "1.11: Adds GTPV2ContextAcknowledge command class bound to GTPHeader with gtp_type 132",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new GTPV2ContextAcknowledge class exists inheriting from GTPV2Command, bound to GTPHeader with gtp_type 132 via bind_layers.",
+      "evidence": "The prompt states: 'Context Acknowledge (type 132) ... are missing and should be added with proper layer bindings.' The interface defines GTPV2ContextAcknowledge(GTPV2Command) with gtp_type 132.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires this command class. [2: Interface Specification] The interface specifies the class name, parent, and gtp_type. [5: Conclusion] Any correct solution must add GTPV2ContextAcknowledge with bind_layers for gtp_type 132.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "4962d613beff092eff06c02569df14a4",
+    "title": "1.12: Adds an extraPadding conditional field to GTPPDUSessionContainer in scapy/contrib/gtp.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that GTPPDUSessionContainer includes a conditional field (named extraPadding per the interface) that captures additional padding bytes when ExtHdrLen is greater than 1.",
+      "evidence": "The prompt states: 'When ExtHdrLen is greater than 1, there are additional padding bytes that need to be captured in a field.' The interface specifies an extraPadding conditional field on GTPPDUSessionContainer.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires capturing padding bytes for extended headers. [2: Interface Specification] The interface defines the extraPadding field. [5: Conclusion] Any correct solution must add a conditional padding field to GTPPDUSessionContainer.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "3f61e6868ab43364e2255238182c288e",
+    "title": "1.13: Introduces a new PCO_Protocol base class in scapy/contrib/gtp_v2.py inheriting from Packet",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new base class named PCO_Protocol exists inheriting from Packet, separate from PCO_Option. This class serves as the parent for protocol-type PCO entries that use a 2-byte type field.",
+      "evidence": "The prompt states: 'These should be separated into two base classes with appropriate auto length computation in each.' The interface defines PCO_Protocol(Packet).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires separating PCO entries into two base classes. [2: Interface Specification] The interface names the new class PCO_Protocol with Packet as parent. [5: Conclusion] Any correct solution must introduce PCO_Protocol as a separate base class.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "9c27ac7d336285d57fb4a7dca155ab6e",
+    "title": "1.14: Re-parents all 23 protocol-type PCO classes (including PCO_IPCP, PCO_PPP, PCO_DNS_Server_IPv4, PCO_DNS_Server_IPv6, PCO_SOF, PCO_S_Nssai, PCO_Session_AMBR, PCO_P_CSCF_IPv6_Address_Request, PCO_IM_CN_Subsystem_Signaling_Flag, PCO_IP_Allocation_via_NAS, ...) to inherit from PCO_Protocol instead of PCO_Option",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that protocol-type PCO classes (those with a 2-byte type field, such as PCO_IPCP, PCO_PPP, PCO_DNS_Server_IPv4, PCO_DNS_Server_IPv6, PCO_SOF, PCO_S_Nssai, PCO_Session_AMBR, as listed in the interface) inherit from PCO_Protocol instead of PCO_Option.",
+      "evidence": "The prompt states: 'All protocol type PCO classes should be moved to the new base class.' The interface lists 23 PCO classes with Bases changed from PCO_Option to PCO_Protocol.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires moving all protocol-type PCO classes to the new base class. [3: Logical Necessity] Without re-parenting, protocol-type PCO classes would use the wrong length offset during auto-computation. [5: Conclusion] Any correct solution must re-parent protocol-type PCO classes to PCO_Protocol.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "d1e2224b1948997e461eb6643038d25e",
+    "title": "1.15: Adds a post_build method to PCO_Option for auto-computing the length byte of option-type PCO entries",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that PCO_Option gains a post_build method that auto-computes the length byte when it is None, allowing option-type PCO entries (1-byte type field) to have their length filled automatically during packet building.",
+      "evidence": "The prompt states the two kinds of PCO entries have 'the length field at a different offset depending on the entry type' requiring 'appropriate auto length computation.' The interface defines PCO_Option.post_build writing length at byte offset 1.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires appropriate auto-length computation for both PCO base classes. [2: Interface Specification] The interface specifies PCO_Option.post_build. [5: Conclusion] Any correct solution must add post_build to PCO_Option.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "1e3ad1eb68249df8dba1945eb857dd9c",
+    "title": "1.16: Reworks PCO_S_Nssai to use conditional fields SST, SD, Hplmn_Sst, Hplmn_Sd instead of a generic packet list",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that PCO_S_Nssai replaces its generic packet list with specific conditional fields: SST (ByteField), SD (ShortField), Hplmn_Sst (ByteField), Hplmn_Sd (ShortField), parsed conditionally based on the length field.",
+      "evidence": "The prompt states: 'S-NSSAI has a well defined structure with specific fields for SST, SD, and HPLMN values that should be parsed conditionally based on length.' The interface defines SST, SD, Hplmn_Sst, Hplmn_Sd conditional fields on PCO_S_Nssai.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires replacing the generic packet list with specific conditional fields. [2: Interface Specification] The interface defines the exact field names. [5: Conclusion] Any correct solution must use named conditional fields in PCO_S_Nssai.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "97a03208d6b1d5aecf4594482b8d68af",
+    "title": "1.17: Reworks PCO_Session_AMBR to use specific fields dlunit, dlambr, ulunit, ulambr instead of a generic packet list",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that PCO_Session_AMBR replaces its generic packet list with specific typed fields: dlunit (ByteField), dlambr (ShortField), ulunit (ByteField), ulambr (ShortField).",
+      "evidence": "The prompt states: 'PCO_Session_AMBR has a defined structure with uplink and downlink unit and rate fields that should replace the generic packet list.' The interface defines dlunit, dlambr, ulunit, ulambr fields on PCO_Session_AMBR.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires replacing the generic packet list with specific fields. [2: Interface Specification] The interface defines the exact field names and types. [5: Conclusion] Any correct solution must use named fields in PCO_Session_AMBR.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "a7f3c2d1e8b94560123456789abcdef0",
+    "title": "1.18: Replaces the len_options callback with lambda pkt: pkt.length in all 4 PCO classes that used it (PCO_QoS_Rules_With_Support_Indicator, PCO_QoS_Flow_Descriptions_With_Support_Indicator, PCO_Qos_Rules, PCO_QoS_Flow_Descriptions) in scapy/contrib/gtp_v2.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the 4 PCO classes that previously used len_options as their length_from callback now use lambda pkt: pkt.length instead. The len_options function subtracts extra bytes inappropriate for protocol-type entries, so these classes must reference the length field directly.",
+      "evidence": "The prompt states: 'A few PCO classes also use len_options as their length_from callback, but this function subtracts extra bytes that are not appropriate for protocol type entries, so those should use the length field directly.' The interface documents this change for these 4 classes.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires replacing len_options with direct length field usage. [2: Interface Specification] The interface specifies length_from changed from len_options to lambda pkt: pkt.length for these classes. [5: Conclusion] Any correct solution must replace len_options with pkt.length in these 4 PCO classes.",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "High-level intent for verifying documentation updates tied to the refactor.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "Documentation Maintainability"
+    }
+  },
+  {
+    "id": "d99e7dcac70f6694316f7d46f6f5c806",
+    "title": "2.1: Adds a docstring to the LenField class in scapy/fields.py documenting its auto-fill behavior",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that the LenField class in scapy/fields.py has a docstring explaining that when its value is set to None, it will be automatically filled with the size of the payload during packet building.",
+      "evidence": "The prompt states: 'the LenField class in scapy/fields.py lacks documentation about its auto fill behavior when set to None. A brief docstring should be added.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requests a docstring for LenField. [4: Qualitative Requirement] Documenting auto-fill behavior helps future developers understand the field's semantics. [5: Conclusion] Any correct solution should add this docstring.",
+      "type": "positive hli verifier",
+      "hli_category": "Documentation Maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "High-level intent for verifying removal of obsolete code after the refactor.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "Artifact Cleanup"
+    }
+  },
+  {
+    "id": "b5c95f5913cf99914597fce4c5dd8fca",
+    "title": "3.1: Removes the unused FieldLenField import from scapy/contrib/gtp_v2.py",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that if FieldLenField is no longer referenced in gtp_v2.py after the ShortField migration, the import is cleaned up.",
+      "evidence": "The prompt requires replacing FieldLenField with ShortField across all IE classes, making the FieldLenField import unused.",
+      "justification": "[3: Logical Necessity] After replacing all FieldLenField usages with ShortField, the import becomes dead code. [4: Qualitative Requirement] Removing unused imports is standard cleanup practice. [5: Conclusion] A correct solution should remove the unused FieldLenField import.",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "High-level intent for detecting harmful changes that violate explicit constraints.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "Negative Rubrics"
+    }
+  },
+  {
+    "id": "274f06797484fc05384163734862d067",
+    "title": "4.1: Modifies test files in the repository",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that no test files (e.g. files under test/, files matching *.uts) are modified, created, or deleted by the solution.",
+      "evidence": "The prompt states: 'I have already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non test source files only.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly forbids modifying test files. [5: Conclusion] Any modification to test files directly violates an explicit constraint.",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics"
+    }
+  },
+  {
+    "id": "b09c8e573475b7b55e0d09ea5efdf8f9",
+    "title": "4.2: Introduces syntax errors in modified source files",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that all modified source files (scapy/contrib/gtp.py, scapy/contrib/gtp_v2.py, scapy/fields.py) remain syntactically valid Python after the refactor.",
+      "evidence": "The prompt requires 'minimal changes to non test source files only', implying the files must remain functional.",
+      "justification": "[2: Implicit Code Base Constraint] Source files must be importable for Scapy to function. [3: Logical Necessity] Syntax errors would prevent the entire GTP module from loading, breaking all GTP functionality. [5: Conclusion] Any correct solution must produce syntactically valid Python.",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics"
+    }
+  },
+  {
+    "id": "6280ab7f10536462142ebb608c54c5b0",
+    "title": "4.3: Removes existing IE class definitions that were present before the refactor",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that no pre-existing IE class (such as IE_IMSI, IE_Cause, IE_EPSBearerID, IE_AMBR, IE_PCO, IE_FTEID) is deleted from scapy/contrib/gtp_v2.py. The refactor changes the length field mechanism but should not remove any existing class.",
+      "evidence": "The prompt describes the refactor as a 'cleanup' that affects 'roughly 25+ IE classes' by changing their length field mechanism. No existing classes should be removed.",
+      "justification": "[2: Implicit Code Base Constraint] Existing IE classes are used by the ietypecls dispatcher for packet dissection. [3: Logical Necessity] Removing an IE class would prevent parsing of that IE type from network packets. [5: Conclusion] Any correct solution must preserve all pre-existing IE class definitions.",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics"
+    }
+  }
+]

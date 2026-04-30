@@ -1,0 +1,189 @@
+diff --git a/packages/grafana-data/src/panel/suggestions/getPanelDataSummary.test.ts b/packages/grafana-data/src/panel/suggestions/getPanelDataSummary.test.ts
+new file mode 100644
+index 00000000000..68b82b4303a
+--- /dev/null
++++ b/packages/grafana-data/src/panel/suggestions/getPanelDataSummary.test.ts
+@@ -0,0 +1,183 @@
++import { createDataFrame } from '../../dataframe/processDataFrame';
++import { FieldType } from '../../types/dataFrame';
++
++import { getPanelDataSummary } from './getPanelDataSummary';
++
++describe('getPanelDataSummary', () => {
++  describe('when called with no dataframes', () => {
++    it('should return summary with zero counts', () => {
++      const summary = getPanelDataSummary();
++
++      expect(summary.rowCountTotal).toBe(0);
++      expect(summary.rowCountMax).toBe(0);
++      expect(summary.fieldCount).toBe(0);
++      expect(summary.frameCount).toBe(0);
++      expect(summary.hasData).toBe(false);
++
++      expect(summary.fieldCountByType(FieldType.time)).toBe(0);
++      expect(summary.fieldCountByType(FieldType.number)).toBe(0);
++      expect(summary.fieldCountByType(FieldType.string)).toBe(0);
++      expect(summary.fieldCountByType(FieldType.boolean)).toBe(0);
++
++      expect(summary.hasFieldType(FieldType.time)).toBe(false);
++      expect(summary.hasFieldType(FieldType.number)).toBe(false);
++      expect(summary.hasFieldType(FieldType.string)).toBe(false);
++      expect(summary.hasFieldType(FieldType.boolean)).toBe(false);
++    });
++  });
++
++  describe('when called with a single dataframes', () => {
++    it('should return correct summary', () => {
++      const frames = [
++        createDataFrame({
++          fields: [
++            { name: 'time', type: FieldType.time, values: [1, 2, 3] },
++            { name: 'value', type: FieldType.number, values: [10, 20, 30] },
++          ],
++        }),
++      ];
++      const summary = getPanelDataSummary(frames);
++
++      expect(summary.rowCountTotal).toBe(3);
++      expect(summary.rowCountMax).toBe(3);
++      expect(summary.fieldCount).toBe(2);
++      expect(summary.frameCount).toBe(1);
++      expect(summary.hasData).toBe(true);
++
++      expect(summary.fieldCountByType(FieldType.time)).toBe(1);
++      expect(summary.fieldCountByType(FieldType.number)).toBe(1);
++      expect(summary.fieldCountByType(FieldType.string)).toBe(0);
++      expect(summary.fieldCountByType(FieldType.boolean)).toBe(0);
++
++      expect(summary.hasFieldType(FieldType.time)).toBe(true);
++      expect(summary.hasFieldType(FieldType.number)).toBe(true);
++      expect(summary.hasFieldType(FieldType.string)).toBe(false);
++      expect(summary.hasFieldType(FieldType.boolean)).toBe(false);
++    });
++  });
++
++  describe('when called with multiple dataframes', () => {
++    it('should return correct summary', () => {
++      const frames = [
++        createDataFrame({
++          fields: [
++            { name: 'time', type: FieldType.time, values: [1, 2, 3] },
++            { name: 'value', type: FieldType.number, values: [10, 20, 30] },
++          ],
++        }),
++        createDataFrame({
++          fields: [
++            { name: 'category', type: FieldType.string, values: ['A', 'B'] },
++            { name: 'amount', type: FieldType.number, values: [100, 200] },
++          ],
++        }),
++      ];
++      const summary = getPanelDataSummary(frames);
++
++      expect(summary.rowCountTotal).toBe(5);
++      expect(summary.rowCountMax).toBe(3);
++      expect(summary.fieldCount).toBe(4);
++      expect(summary.frameCount).toBe(2);
++      expect(summary.hasData).toBe(true);
++
++      expect(summary.fieldCountByType(FieldType.time)).toBe(1);
++      expect(summary.fieldCountByType(FieldType.number)).toBe(2);
++      expect(summary.fieldCountByType(FieldType.string)).toBe(1);
++      expect(summary.fieldCountByType(FieldType.boolean)).toBe(0);
++
++      expect(summary.hasFieldType(FieldType.time)).toBe(true);
++      expect(summary.hasFieldType(FieldType.number)).toBe(true);
++      expect(summary.hasFieldType(FieldType.string)).toBe(true);
++      expect(summary.hasFieldType(FieldType.boolean)).toBe(false);
++    });
++  });
++
++  describe('when a frame has preferredVisualisationType in metadata', () => {
++    it('should capture the preferred visualisation type', () => {
++      const frames = [
++        createDataFrame({
++          meta: { preferredVisualisationType: 'graph' },
++          fields: [
++            { name: 'time', type: FieldType.time, values: [1] },
++            { name: 'value', type: FieldType.number, values: [10] },
++          ],
++        }),
++      ];
++      const summary = getPanelDataSummary(frames);
++
++      expect(summary.preferredVisualisationType).toBe('graph');
++    });
++  });
++
++  describe('deprecated backward-compatible properties', () => {
++    it('should be consistent with the generic field type methods', () => {
++      const frames = [
++        createDataFrame({
++          fields: [
++            { name: 'time', type: FieldType.time, values: [1, 2] },
++            { name: 'value', type: FieldType.number, values: [10, 20] },
++            { name: 'label', type: FieldType.string, values: ['a', 'b'] },
++          ],
++        }),
++      ];
++      const summary = getPanelDataSummary(frames);
++
++      expect(summary.numberFieldCount).toBe(summary.fieldCountByType(FieldType.number));
++      expect(summary.timeFieldCount).toBe(summary.fieldCountByType(FieldType.time));
++      expect(summary.stringFieldCount).toBe(summary.fieldCountByType(FieldType.string));
++      expect(summary.hasNumberField).toBe(summary.hasFieldType(FieldType.number));
++      expect(summary.hasTimeField).toBe(summary.hasFieldType(FieldType.time));
++      expect(summary.hasStringField).toBe(summary.hasFieldType(FieldType.string));
++    });
++
++    it('should return zero/false for deprecated fields when no data is provided', () => {
++      const summary = getPanelDataSummary();
++
++      expect(summary.numberFieldCount).toBe(summary.fieldCountByType(FieldType.number));
++      expect(summary.timeFieldCount).toBe(summary.fieldCountByType(FieldType.time));
++      expect(summary.stringFieldCount).toBe(summary.fieldCountByType(FieldType.string));
++      expect(summary.hasNumberField).toBe(summary.hasFieldType(FieldType.number));
++      expect(summary.hasTimeField).toBe(summary.hasFieldType(FieldType.time));
++      expect(summary.hasStringField).toBe(summary.hasFieldType(FieldType.string));
++    });
++  });
++
++  describe('when preferredVisualisationType is not set', () => {
++    it('should leave preferredVisualisationType undefined', () => {
++      const frames = [
++        createDataFrame({
++          fields: [
++            { name: 'value', type: FieldType.number, values: [1] },
++          ],
++        }),
++      ];
++      const summary = getPanelDataSummary(frames);
++
++      expect(summary.preferredVisualisationType).toBeUndefined();
++    });
++  });
++
++  describe('when called with undefined input', () => {
++    it('should handle undefined gracefully like an empty array', () => {
++      const summaryUndefined = getPanelDataSummary(undefined as unknown as any[]);
++      const summaryEmpty = getPanelDataSummary([]);
++
++      expect(summaryUndefined.rowCountTotal).toBe(summaryEmpty.rowCountTotal);
++      expect(summaryUndefined.frameCount).toBe(summaryEmpty.frameCount);
++      expect(summaryUndefined.fieldCount).toBe(summaryEmpty.fieldCount);
++      expect(summaryUndefined.hasData).toBe(summaryEmpty.hasData);
++    });
++  });
++
++  describe('when called with an explicit empty array', () => {
++    it('should return the same result as calling with no arguments', () => {
++      const summaryNoArgs = getPanelDataSummary();
++      const summaryEmptyArray = getPanelDataSummary([]);
++
++      expect(summaryEmptyArray.rowCountTotal).toBe(summaryNoArgs.rowCountTotal);
++      expect(summaryEmptyArray.frameCount).toBe(summaryNoArgs.frameCount);
++      expect(summaryEmptyArray.fieldCount).toBe(summaryNoArgs.fieldCount);
++      expect(summaryEmptyArray.hasData).toBe(summaryNoArgs.hasData);
++    });
++  });
++});

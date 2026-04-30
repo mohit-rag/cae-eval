@@ -1,0 +1,9 @@
+{
+  "task_id": "69b7c2a04b6f8ff9ed988139",
+  "repo": "netdata_netdata",
+  "base_commit": "17a0348d1cabd399408d1c1f6643b591f362fa6c",
+  "language": "C",
+  "mount_path": "/app",
+  "initial_complexity": "Very High",
+  "uid": "0f1a823e-3191-4800-a0ea-b9cfccb19f64"
+}

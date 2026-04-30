@@ -1,0 +1,7 @@
+The `Run()` method in `execution/scheduler.go` has grown into a monolith that handles VU initialization, executor setup, AND test execution all in one place. This is causing issues when initialization fails because we have to awkwardly clean up resources that already started within the same function.
+
+The lifecycle should be cleaner. Initialization and execution are conceptually separate phases, but they're tangled together right now. If initialization fails partway through, we need a proper way to clean up what was already started.
+
+Can you separate these concerns? The caller should be able to handle initialization and execution as distinct steps. `Run()` should just handle the actual test execution after initialization is complete. The initialization step should return a cleanup function that the caller can use to properly stop any resources that were started. Make sure `cmd/run.go` works with whatever changes you make.
+
+Do not modify the test files.

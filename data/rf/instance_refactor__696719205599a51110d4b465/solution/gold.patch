@@ -1,0 +1,274 @@
+diff --git a/.github/CODEOWNERS b/.github/CODEOWNERS
+index 462e7a39458..234789dfa4c 100644
+--- a/.github/CODEOWNERS
++++ b/.github/CODEOWNERS
+@@ -254,7 +254,6 @@
+ /devenv/dev-dashboards/all-panels.json @grafana/dataviz-squad
+ /devenv/dev-dashboards/dashboards.go @grafana/dataviz-squad
+ /devenv/dev-dashboards/home.json @grafana/dataviz-squad
+-
+ /devenv/dev-dashboards/datasource-elasticsearch/ @grafana/partner-datasources
+ /devenv/dev-dashboards/datasource-opentsdb/ @grafana/partner-datasources
+ /devenv/dev-dashboards/datasource-influxdb/ @grafana/partner-datasources
+@@ -550,6 +549,7 @@ i18next.config.ts @grafana/grafana-frontend-platform
+ /packages/grafana-data/src/geo/ @grafana/dataviz-squad
+ /packages/grafana-data/src/monaco/ @grafana/partner-datasources
+ /packages/grafana-data/src/panel/ @grafana/dashboards-squad
++/packages/grafana-data/src/panel/suggestions/ @grafana/dataviz-squad
+ /packages/grafana-data/src/query/ @grafana/grafana-datasources-core-services
+ /packages/grafana-data/src/rbac/ @grafana/access-squad
+ /packages/grafana-data/src/table/ @grafana/dataviz-squad
+diff --git a/packages/grafana-data/src/index.ts b/packages/grafana-data/src/index.ts
+index e058612a3c7..a3ef43c91e8 100644
+--- a/packages/grafana-data/src/index.ts
++++ b/packages/grafana-data/src/index.ts
+@@ -435,6 +435,7 @@ export {
+   isStandardFieldProp,
+   type OptionDefaults,
+ } from './panel/getPanelOptionsWithDefaults';
++export { type PanelDataSummary, getPanelDataSummary } from './panel/suggestions/getPanelDataSummary';
+ export { createFieldConfigRegistry } from './panel/registryFactories';
+ export { type QueryRunner, type QueryRunnerOptions } from './types/queryRunner';
+ export { type GroupingToMatrixTransformerOptions } from './transformations/transformers/groupingToMatrix';
+@@ -651,7 +652,6 @@ export {
+   type AngularPanelMenuItem,
+   type PanelPluginDataSupport,
+   type VisualizationSuggestion,
+-  type PanelDataSummary,
+   type VisualizationSuggestionsSupplier,
+   VizOrientation,
+   VisualizationSuggestionScore,
+diff --git a/packages/grafana-data/src/panel/suggestions/getPanelDataSummary.ts b/packages/grafana-data/src/panel/suggestions/getPanelDataSummary.ts
+new file mode 100644
+index 00000000000..ea97e1705d7
+--- /dev/null
++++ b/packages/grafana-data/src/panel/suggestions/getPanelDataSummary.ts
+@@ -0,0 +1,82 @@
++import { PreferredVisualisationType } from '../../types/data';
++import { DataFrame, FieldType } from '../../types/dataFrame';
++
++/**
++ * @alpha
++ */
++export interface PanelDataSummary {
++  hasData?: boolean;
++  rowCountTotal: number;
++  rowCountMax: number;
++  frameCount: number;
++  fieldCount: number;
++  fieldCountByType: (type: FieldType) => number;
++  hasFieldType: (type: FieldType) => boolean;
++  /** The first frame that set's this value */
++  preferredVisualisationType?: PreferredVisualisationType;
++
++  /* --- DEPRECATED FIELDS BELOW --- */
++  /** @deprecated use PanelDataSummary.fieldCountByType(FieldType.number) */
++  numberFieldCount: number;
++  /** @deprecated use PanelDataSummary.fieldCountByType(FieldType.time) */
++  timeFieldCount: number;
++  /** @deprecated use PanelDataSummary.fieldCountByType(FieldType.string) */
++  stringFieldCount: number;
++  /** @deprecated use PanelDataSummary.hasFieldType(FieldType.number) */
++  hasNumberField?: boolean;
++  /** @deprecated use PanelDataSummary.hasFieldType(FieldType.time) */
++  hasTimeField?: boolean;
++  /** @deprecated use PanelDataSummary.hasFieldType(FieldType.string) */
++  hasStringField?: boolean;
++}
++
++/**
++ * @alpha
++ * given a list of dataframes, summarize attributes of those frames for features like suggestions.
++ * @param frames - dataframes to summarize
++ * @returns summary of the dataframes
++ */
++export function getPanelDataSummary(frames: DataFrame[] = []): PanelDataSummary {
++  let rowCountTotal = 0;
++  let rowCountMax = 0;
++  let fieldCount = 0;
++  const countByType: Partial<Record<FieldType, number>> = {};
++  let preferredVisualisationType: PreferredVisualisationType | undefined;
++
++  for (const frame of frames) {
++    rowCountTotal += frame.length;
++
++    if (frame.meta?.preferredVisualisationType) {
++      preferredVisualisationType = frame.meta.preferredVisualisationType;
++    }
++
++    for (const field of frame.fields) {
++      fieldCount++;
++      countByType[field.type] = (countByType[field.type] || 0) + 1;
++    }
++
++    if (frame.length > rowCountMax) {
++      rowCountMax = frame.length;
++    }
++  }
++
++  const fieldCountByType = (f: FieldType) => countByType[f] ?? 0;
++
++  return {
++    rowCountTotal,
++    rowCountMax,
++    fieldCount,
++    preferredVisualisationType,
++    frameCount: frames.length,
++    hasData: rowCountTotal > 0,
++    hasFieldType: (f: FieldType) => fieldCountByType(f) > 0,
++    fieldCountByType,
++    // deprecated
++    numberFieldCount: fieldCountByType(FieldType.number),
++    timeFieldCount: fieldCountByType(FieldType.time),
++    stringFieldCount: fieldCountByType(FieldType.string),
++    hasTimeField: fieldCountByType(FieldType.time) > 0,
++    hasNumberField: fieldCountByType(FieldType.number) > 0,
++    hasStringField: fieldCountByType(FieldType.string) > 0,
++  };
++}
+diff --git a/packages/grafana-data/src/types/panel.ts b/packages/grafana-data/src/types/panel.ts
+index 91083493c83..426c52abadf 100644
+--- a/packages/grafana-data/src/types/panel.ts
++++ b/packages/grafana-data/src/types/panel.ts
+@@ -2,14 +2,15 @@ import { defaultsDeep } from 'lodash';
+ 
+ import { EventBus } from '../events/types';
+ import { StandardEditorProps } from '../field/standardFieldConfigEditorRegistry';
++import { PanelDataSummary, getPanelDataSummary } from '../panel/suggestions/getPanelDataSummary';
+ import { Registry } from '../utils/Registry';
+ 
+ import { OptionsEditorItem } from './OptionsUIRegistryBuilder';
+ import { ScopedVars } from './ScopedVars';
+ import { AlertStateInfo } from './alerts';
+ import { PanelModel } from './dashboard';
+-import { LoadingState, PreferredVisualisationType } from './data';
+-import { DataFrame, FieldType } from './dataFrame';
++import { LoadingState } from './data';
++import { DataFrame } from './dataFrame';
+ import { DataQueryError, DataQueryRequest, DataQueryTimings } from './datasource';
+ import { FieldConfigSource } from './fieldOverrides';
+ import { IconName } from './icon';
+@@ -258,25 +259,6 @@ export enum VisualizationSuggestionScore {
+   OK = 50,
+ }
+ 
+-/**
+- * @alpha
+- */
+-export interface PanelDataSummary {
+-  hasData?: boolean;
+-  rowCountTotal: number;
+-  rowCountMax: number;
+-  frameCount: number;
+-  fieldCount: number;
+-  numberFieldCount: number;
+-  timeFieldCount: number;
+-  stringFieldCount: number;
+-  hasNumberField?: boolean;
+-  hasTimeField?: boolean;
+-  hasStringField?: boolean;
+-  /** The first frame that set's this value */
+-  preferredVisualisationType?: PreferredVisualisationType;
+-}
+-
+ /**
+  * @alpha
+  */
+@@ -293,68 +275,13 @@ export class VisualizationSuggestionsBuilder {
+   constructor(data?: PanelData, panel?: PanelModel) {
+     this.data = data;
+     this.panel = panel;
+-    this.dataSummary = this.computeDataSummary();
++    this.dataSummary = getPanelDataSummary(this.data?.series);
+   }
+ 
+   getListAppender<TOptions, TFieldConfig>(defaults: VisualizationSuggestion<TOptions, TFieldConfig>) {
+     return new VisualizationSuggestionsListAppender<TOptions, TFieldConfig>(this.list, defaults);
+   }
+ 
+-  private computeDataSummary() {
+-    const frames = this.data?.series || [];
+-
+-    let numberFieldCount = 0;
+-    let timeFieldCount = 0;
+-    let stringFieldCount = 0;
+-    let rowCountTotal = 0;
+-    let rowCountMax = 0;
+-    let fieldCount = 0;
+-    let preferredVisualisationType: PreferredVisualisationType | undefined;
+-
+-    for (const frame of frames) {
+-      rowCountTotal += frame.length;
+-
+-      if (frame.meta?.preferredVisualisationType) {
+-        preferredVisualisationType = frame.meta.preferredVisualisationType;
+-      }
+-
+-      for (const field of frame.fields) {
+-        fieldCount++;
+-
+-        switch (field.type) {
+-          case FieldType.number:
+-            numberFieldCount += 1;
+-            break;
+-          case FieldType.time:
+-            timeFieldCount += 1;
+-            break;
+-          case FieldType.string:
+-            stringFieldCount += 1;
+-            break;
+-        }
+-      }
+-
+-      if (frame.length > rowCountMax) {
+-        rowCountMax = frame.length;
+-      }
+-    }
+-
+-    return {
+-      numberFieldCount,
+-      timeFieldCount,
+-      stringFieldCount,
+-      rowCountTotal,
+-      rowCountMax,
+-      fieldCount,
+-      preferredVisualisationType,
+-      frameCount: frames.length,
+-      hasData: rowCountTotal > 0,
+-      hasTimeField: timeFieldCount > 0,
+-      hasNumberField: numberFieldCount > 0,
+-      hasStringField: stringFieldCount > 0,
+-    };
+-  }
+-
+   getList() {
+     return this.list;
+   }
+diff --git a/public/app/features/panel/components/PanelDataErrorView.tsx b/public/app/features/panel/components/PanelDataErrorView.tsx
+index ba2ddcf7f8d..96b9299b3d8 100644
+--- a/public/app/features/panel/components/PanelDataErrorView.tsx
++++ b/public/app/features/panel/components/PanelDataErrorView.tsx
+@@ -1,12 +1,6 @@
+ import { css } from '@emotion/css';
+ 
+-import {
+-  CoreApp,
+-  GrafanaTheme2,
+-  PanelDataSummary,
+-  VisualizationSuggestionsBuilder,
+-  VisualizationSuggestion,
+-} from '@grafana/data';
++import { CoreApp, getPanelDataSummary, GrafanaTheme2, PanelDataSummary, VisualizationSuggestion } from '@grafana/data';
+ import { selectors } from '@grafana/e2e-selectors';
+ import { t, Trans } from '@grafana/i18n';
+ import { PanelDataErrorViewProps, locationService } from '@grafana/runtime';
+@@ -27,8 +21,7 @@ import { changePanelPlugin } from '../state/actions';
+ export function PanelDataErrorView(props: PanelDataErrorViewProps) {
+   const styles = useStyles2(getStyles);
+   const context = usePanelContext();
+-  const builder = new VisualizationSuggestionsBuilder(props.data);
+-  const { dataSummary } = builder;
++  const dataSummary = getPanelDataSummary(props.data.series);
+   const message = getMessageFor(props, dataSummary);
+   const dispatch = useDispatch();
+ 

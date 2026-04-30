@@ -1,0 +1,218 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "507daadb386afbb71117a08b54af8e0b",
+    "title": "1.1: Adds `IsNullish` import from `go.k6.io/k6/js/common` in all 7 files where `IsNullish` is called (including `browser_context_mapping.go`, `helpers.go`, `element_handle_options.go`, `frame_options.go`, `layout.go`, `mouse_options.go`, `page_options.go`)",
+    "annotations": {
+      "importance": "must have",
+      "description": "The js/common package must be imported in all 7 files where IsNullish is called: browser_context_mapping.go, browser/helpers.go, element_handle_options.go, frame_options.go, layout.go, mouse_options.go, page_options.go. Note that common/helpers.go only has function removal and requires no import since IsNullish is never called there.",
+      "evidence": "Reference patch adds imports to exactly 7 files where IsNullish is called: browser_context_mapping.go (line 9), browser/helpers.go (line 39), element_handle_options.go (line 155), frame_options.go (line 284), layout.go (line 403), mouse_options.go (line 424), page_options.go (line 472).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'Do this by reusing existent utilities from js/common if possible'. [3: Logical Necessity] To use the IsNullish utility, the package must be imported in each file where it is used. [5: Conclusion] Therefore, ANY correct answer must import the js/common package in all files where IsNullish is called.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "278fecbd184af93f623b6c7b4a6ec2a4",
+    "title": "1.2: Replaces `sobekValueExists` with `IsNullish` in all 4 functions (including `mergeWith`, `exportTo`, `exportArg`, `sobekEmptyString`) in `internal/js/modules/k6/browser/browser/helpers.go`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The helpers.go file must have no remaining sobekValueExists calls in all 4 functions (mergeWith, exportTo, exportArg, sobekEmptyString) - all should be replaced with IsNullish from js/common.",
+      "evidence": "Reference patch lines 47-48 show mergeWith function updated; lines 56-58 show exportTo function updated; lines 65-67 show exportArg function updated; lines 82-83 show sobekEmptyString function updated to use common.IsNullish.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications' using 'utilities from js/common'. [2: Implicit Code Base Constraint] The helpers.go file contains sobekValueExists calls that constitute duplicated verification. [5: Conclusion] Therefore, ANY correct answer must eliminate all sobekValueExists usages in this file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "162f6cf70f55783752c7949b6a1a57ba",
+    "title": "1.3: Replaces null/undefined patterns with `IsNullish` in all 13 functions (including `ElementHandleBaseOptions.Parse`, `ElementHandleBasePointerOptions.Parse`, `ElementHandleClickOptions.Parse`, ...) in `internal/js/modules/k6/browser/common/element_handle_options.go`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The element_handle_options.go file must have no remaining sobekValueExists calls AND no remaining inline patterns such as `opts != nil && !sobek.IsUndefined(opts) && !sobek.IsNull(opts)` in all 13 functions: ElementHandleBaseOptions.Parse, ElementHandleBasePointerOptions.Parse, Files.addFile, Files.Parse, ElementHandleClickOptions.Parse, ElementHandleDblclickOptions.Parse, ElementHandleHoverOptions.Parse, ElementHandlePressOptions.Parse, ElementHandleScreenshotOptions.Parse, ElementHandleSetCheckedOptions.Parse, ElementHandleTapOptions.Parse, ElementHandleTypeOptions.Parse, ElementHandleWaitForElementStateOptions.Parse.",
+      "evidence": "Reference patch lines 163-166 show ElementHandleBaseOptions.Parse updated; lines 173-174 show ElementHandleBasePointerOptions.Parse updated; lines 181-183 show Files.addFile updated; lines 190-192 show Files.Parse updated; lines 199-201 show ElementHandleClickOptions.Parse updated; lines 269-272 show ElementHandleWaitForElementStateOptions.Parse updated; and similar updates throughout lines 147-276.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications' using 'utilities from js/common'. [2: Implicit Code Base Constraint] The element_handle_options.go file has multiple duplicated null/undefined checks. [5: Conclusion] Therefore, ANY correct answer must eliminate all such patterns in this file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "49991627b0dfb4047ad6c8256f82bcd1",
+    "title": "1.4: Replaces null/undefined patterns with `IsNullish` in all 10 functions (including `FrameBaseOptions.Parse`, `FrameGotoOptions.Parse`, `FrameWaitForFunctionOptions.Parse`, ...) in `internal/js/modules/k6/browser/common/frame_options.go`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The frame_options.go file must have no remaining sobekValueExists calls AND no remaining inline patterns such as `opts != nil && !sobek.IsUndefined(opts) && !sobek.IsNull(opts)` in all 10 functions: FrameBaseOptions.Parse, FrameGotoOptions.Parse, FrameSetContentOptions.Parse, FrameTapOptions.Parse, FrameWaitForFunctionOptions.Parse, FrameWaitForLoadStateOptions.Parse, FrameWaitForNavigationOptions.Parse, FrameWaitForSelectorOptions.Parse, parseStrict, FrameWaitForURLOptions.Parse.",
+      "evidence": "Reference patch lines 292-294 show FrameBaseOptions.Parse updated; lines 301-303 show FrameGotoOptions.Parse updated; lines 310-312 show FrameSetContentOptions.Parse updated; lines 319-321 show FrameTapOptions.Parse updated; lines 328-330 show FrameWaitForFunctionOptions.Parse updated; and similar updates throughout lines 276-377.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications' using 'utilities from js/common'. [2: Implicit Code Base Constraint] The frame_options.go file has multiple duplicated null/undefined checks. [5: Conclusion] Therefore, ANY correct answer must eliminate all such patterns in this file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a57d89c808b3166bd67e0cebbaa9710f",
+    "title": "1.5: Replaces `sobekValueExists` with `IsNullish` in all 4 functions (including `parseContinueOptions`, `parseFulfillOptions`, `parseHeaders`, `parseWaitForResponseOptions`) in `internal/js/modules/k6/browser/browser/route_mapping.go`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The route_mapping.go file must have no remaining sobekValueExists calls in all 4 functions (parseContinueOptions, parseFulfillOptions, parseHeaders, parseWaitForResponseOptions) - all should be replaced with IsNullish.",
+      "evidence": "Reference patch lines 115-117 show parseContinueOptions updated; lines 124-126 show parseFulfillOptions updated; lines 133-135 show parseHeaders updated; lines 142-144 show parseWaitForResponseOptions updated.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications' using 'utilities from js/common'. [2: Implicit Code Base Constraint] The route_mapping.go file uses sobekValueExists for null/undefined checks. [5: Conclusion] Therefore, ANY correct answer must eliminate all sobekValueExists usages in this file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "53a388110163bfe37d444594179f4ca9",
+    "title": "1.6: Replaces `sobekValueExists` with `IsNullish` in both functions (`addInitScript`, `parseWaitForEventOptions`) in `internal/js/modules/k6/browser/browser/browser_context_mapping.go`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The browser_context_mapping.go file must have no remaining sobekValueExists calls in both functions (addInitScript, parseWaitForEventOptions) - all should be replaced with IsNullish.",
+      "evidence": "Reference patch lines 17-21 show addInitScript function updated to use jsCommon.IsNullish; lines 27-29 show parseWaitForEventOptions function updated.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications' using 'utilities from js/common'. [2: Implicit Code Base Constraint] The browser_context_mapping.go file uses sobekValueExists for null/undefined checks. [5: Conclusion] Therefore, ANY correct answer must eliminate all sobekValueExists usages in this file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "5cd17ee34d3ce44f9dbfddf75a69cd72",
+    "title": "1.7: Replaces inline null/undefined patterns with `IsNullish` in all 4 functions (including `MouseClickOptions.Parse`, `MouseDblClickOptions.Parse`, `MouseDownUpOptions.Parse`, `MouseMoveOptions.Parse`) in `internal/js/modules/k6/browser/common/mouse_options.go`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The mouse_options.go file must have no remaining inline patterns such as `opts != nil && !sobek.IsUndefined(opts) && !sobek.IsNull(opts)` in all 4 functions: MouseClickOptions.Parse, MouseDblClickOptions.Parse, MouseDownUpOptions.Parse, MouseMoveOptions.Parse.",
+      "evidence": "Reference patch lines 432-434 show MouseClickOptions.Parse updated; lines 441-443 show MouseDblClickOptions.Parse updated; lines 450-452 show MouseDownUpOptions.Parse updated; lines 459-461 show MouseMoveOptions.Parse updated.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications' using 'utilities from js/common'. [2: Implicit Code Base Constraint] The mouse_options.go file has inline null/undefined checks. [5: Conclusion] Therefore, ANY correct answer must eliminate all such patterns in this file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "cb83c7abf573eb908df2c79a75ef00a4",
+    "title": "1.8: Replaces `sobekValueExists` with `IsNullish` in both functions (`parseGetByRoleOptions`, `parseGetByBaseOptions`) in `internal/js/modules/k6/browser/browser/page_mapping.go`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The page_mapping.go file must have no remaining sobekValueExists calls in both functions (parseGetByRoleOptions, parseGetByBaseOptions) - all should be replaced with IsNullish.",
+      "evidence": "Reference patch lines 93-96 show parseGetByRoleOptions function updated to use k6common.IsNullish; lines 102-104 show parseGetByBaseOptions function updated.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications' using 'utilities from js/common'. [2: Implicit Code Base Constraint] The page_mapping.go file uses sobekValueExists for null/undefined checks. [5: Conclusion] Therefore, ANY correct answer must eliminate all sobekValueExists usages in this file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "5d143977e98dbad459d862878650d77d",
+    "title": "1.9: Replaces inline null/undefined pattern with `IsNullish` in `Size.Parse` function in `internal/js/modules/k6/browser/common/layout.go`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The layout.go file must have no remaining inline patterns such as `viewport != nil && !sobek.IsUndefined(viewport) && !sobek.IsNull(viewport)` in the Size.Parse function - must be replaced with IsNullish.",
+      "evidence": "Reference patch lines 410-413 show Size.Parse function updated to use common.IsNullish instead of inline 'viewport != nil && !sobek.IsUndefined(viewport) && !sobek.IsNull(viewport)' check.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications' using 'utilities from js/common'. [2: Implicit Code Base Constraint] The layout.go file has an inline null/undefined check. [5: Conclusion] Therefore, ANY correct answer must eliminate this pattern in this file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d55e8e20481f3d8bb0d7ecb1b339e705",
+    "title": "1.10: Replaces null/undefined patterns with `IsNullish` in all 3 functions (including `PageEmulateMediaOptions.Parse`, `PageReloadOptions.Parse`, `PageScreenshotOptions.Parse`) in `internal/js/modules/k6/browser/common/page_options.go`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The page_options.go file must have no remaining sobekValueExists calls AND no remaining inline patterns such as `opts != nil && !sobek.IsUndefined(opts) && !sobek.IsNull(opts)` in all 3 functions: PageEmulateMediaOptions.Parse, PageReloadOptions.Parse, PageScreenshotOptions.Parse.",
+      "evidence": "Reference patch lines 480-482 show PageEmulateMediaOptions.Parse updated; lines 489-491 show PageReloadOptions.Parse updated; lines 498-500 show PageScreenshotOptions.Parse updated to use common.IsNullish.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications' using 'utilities from js/common'. [2: Implicit Code Base Constraint] The page_options.go file has duplicated null/undefined checks. [5: Conclusion] Therefore, ANY correct answer must eliminate all such patterns in this file.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "fb85c1ccdf7213c85044c97150ac36b8",
+    "title": "3.1: Removes `sobekValueExists` function definition from `internal/js/modules/k6/browser/browser/helpers.go`",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "The local sobekValueExists function definition in browser/helpers.go should be removed since it is replaced by the common IsNullish utility.",
+      "evidence": "Reference patch lines 74-79 show removal of the sobekValueExists function: '-// sobekValueExists returns true if a given value is not nil and exists' followed by the function body deletion.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications'. [3: Logical Necessity] Once all usages are replaced with IsNullish, the local function becomes dead code and its continued presence contradicts the elimination goal. [5: Conclusion] Therefore, ANY correct answer must remove the sobekValueExists function from browser/helpers.go.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "3030481a2ed7a327af89863289b63488",
+    "title": "3.2: Removes `sobekValueExists` function definition from `internal/js/modules/k6/browser/common/helpers.go`",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "The local sobekValueExists function definition in common/helpers.go should be removed since it is replaced by the common IsNullish utility.",
+      "evidence": "Reference patch lines 386-391 show removal of the sobekValueExists function from common/helpers.go: '-// sobekValueExists returns true if a given value is not nil and exists' followed by the function body deletion.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications'. [3: Logical Necessity] Once all usages are replaced with IsNullish, the local function becomes dead code and its continued presence contradicts the elimination goal. [5: Conclusion] Therefore, ANY correct answer must remove the sobekValueExists function from common/helpers.go.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "1163319d2daacc4d827a34ac04b0ec36",
+    "title": "4.1: Removes null/undefined verification checks without replacing them with equivalent functionality",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that null/undefined verification is preserved by replacing old checks with IsNullish, not simply removing them.",
+      "evidence": "Reference patch replaces every sobekValueExists call and inline check with corresponding IsNullish call throughout all modified files (lines 17-29, 47-83, 93-104, 115-144, 163-276, 292-377, 410-413, 432-461, 480-500).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications', not remove verification entirely. [3: Logical Necessity] The verification logic is needed for correct runtime behavior. [5: Conclusion] Therefore, ANY correct answer must replace, not remove, the verification checks.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "4bf98f552400131654a005a0da25798d",
+    "title": "4.2: Modifies files outside the browser module scope, such as the `js/common` package implementation",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the refactoring only affects the browser module and does not modify the existing js/common utility implementation.",
+      "evidence": "Reference patch only modifies files within internal/js/modules/k6/browser/ directory (browser_context_mapping.go, helpers.go, page_mapping.go, route_mapping.go, element_handle_options.go, frame_options.go, common/helpers.go, layout.go, mouse_options.go, page_options.go), leaving js/common unchanged.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt specifically mentions 'the browser module' and 'reusing existent utilities from js/common'. [3: Logical Necessity] The js/common.IsNullish utility already exists and should be reused, not modified. [5: Conclusion] Therefore, ANY correct answer must not modify the js/common package implementation.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

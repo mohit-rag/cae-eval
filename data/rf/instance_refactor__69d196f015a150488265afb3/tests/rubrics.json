@@ -1,0 +1,146 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "51b37d97cfb56db670f4856df63e9fc0",
+    "title": "1.1: Creates AliasRecipientName @dataclass in app/alias_utils.py with both fields (name: str and message: Optional[str] defaulting to None)",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the AliasRecipientName class exists in app/alias_utils.py as a @dataclass with the fields specified in the interface.",
+      "evidence": "Gold patch: app/alias_utils.py adds @dataclass class AliasRecipientName with name: str and message: Optional[str] = None (diff lines 27-30)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires extracting name resolution into a utility that returns the resolved address along with an optional note. [2: Implicit Codebase Constraint] The interface specifies AliasRecipientName as a @dataclass in app/alias_utils.py with exact field signatures. [5: Conclusion] Therefore, any correct answer must create the AliasRecipientName @dataclass in app/alias_utils.py with the specified fields."
+    }
+  },
+  {
+    "id": "ffa4bc0a47a828da09865c10f593626c",
+    "title": "1.2: Creates get_alias_recipient_name(alias: Alias) -> AliasRecipientName function in app/alias_utils.py",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that get_alias_recipient_name exists in app/alias_utils.py with the signature specified in the interface.",
+      "evidence": "Gold patch: app/alias_utils.py adds def get_alias_recipient_name(alias: Alias) -> AliasRecipientName (diff line 33)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires a dedicated utility in app/alias_utils.py that accepts an alias and returns the resolved result. [2: Implicit Codebase Constraint] The interface specifies the exact function name, input type, and output type. [5: Conclusion] Therefore, any correct answer must create get_alias_recipient_name(alias: Alias) -> AliasRecipientName in app/alias_utils.py."
+    }
+  },
+  {
+    "id": "99bbcc33b4b1def443b931d9341fa464",
+    "title": "1.3: Returns the alias's own name formatted alongside the alias email in standard email address format with a name-source note from get_alias_recipient_name() when the alias has a name",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that when an alias has a name set, get_alias_recipient_name returns the name formatted alongside the email in standard email address format as the name field, and a non-None message describing the name source.",
+      "evidence": "Gold patch: app/alias_utils.py lines 40-43 \u2014 if alias.name: return AliasRecipientName with sl_formataddr and message",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the alias's own name takes precedence' and 'formatted with the name alongside the email in standard email address format' with 'an optional note describing which name source was applied'. [2: Implicit Codebase Constraint] The interface specifies that the name field is 'the formatted email address string for the From header \u2014 either RFC 5322 DisplayName <email> format or a plain email address' and message is 'a human-readable note about which name source was used'. [5: Conclusion] Therefore, any correct answer must return the alias's own name formatted alongside the alias email with a name-source note when the alias has a name."
+    }
+  },
+  {
+    "id": "02878179c4ac166a2388f994bf2017de",
+    "title": "1.4: Returns the custom domain's name formatted alongside the alias email in standard email address format with a name-source note from get_alias_recipient_name() when the alias has no name but its domain has one",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that when an alias has no name but belongs to a custom domain with a name, get_alias_recipient_name returns the domain name formatted alongside the alias email with a non-None message describing the name source.",
+      "evidence": "Gold patch: app/alias_utils.py lines 45-49 \u2014 elif alias.custom_domain: if alias.custom_domain.name: return AliasRecipientName with domain name",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'if the alias has no name but belongs to a custom domain that has a name, the domain's name is used instead', 'formatted with the name alongside the email in standard email address format', with 'an optional note describing which name source was applied'. [2: Implicit Codebase Constraint] The interface specifies that the name field is 'the formatted email address string for the From header \u2014 either RFC 5322 DisplayName <email> format or a plain email address' and message is 'a human-readable note about which name source was used'. [5: Conclusion] Therefore, any correct answer must return the custom domain's name formatted alongside the alias email with a name-source note."
+    }
+  },
+  {
+    "id": "3e87c7107318f6b62a739ce99552ea6b",
+    "title": "1.5: Returns AliasRecipientName(name=alias.email, message=None) from get_alias_recipient_name() for aliases with falsy alias.name, when alias.custom_domain is also falsy",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that when alias.name is falsy and alias.custom_domain is falsy (no custom domain set), get_alias_recipient_name returns AliasRecipientName with name=alias.email and message=None. This criterion only evaluates the else-branch fallback where no custom domain is associated with the alias.",
+      "evidence": "Gold patch: app/alias_utils.py lines 51-52 \u2014 else: return AliasRecipientName(name=alias.email)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'if neither is available, the plain email address is used as-is' and 'when no display name is used, there should be no note to report'. [2: Implicit Codebase Constraint] The interface specifies that message is 'None if no display name was applied'. [5: Conclusion] Therefore, any correct answer must return AliasRecipientName(name=alias.email, message=None) when alias.name and alias.custom_domain are both falsy."
+    }
+  },
+  {
+    "id": "a88c0061ff1493f09231eebfd025e0cc",
+    "title": "1.6: Updates handle_reply in email_handler.py to use get_alias_recipient_name() for setting the From header instead of inline logic",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that handle_reply in email_handler.py calls get_alias_recipient_name() and uses the returned name to set the From header, replacing the previous inline if/elif/else logic.",
+      "evidence": "Gold patch: email_handler.py lines 91-95 \u2014 recipient_name = get_alias_recipient_name(alias); add_or_replace_header(msg, headers.FROM, recipient_name.name)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Update handle_reply in email_handler.py to use the new utility instead of the inline logic'. [3: Logical Necessity] The caller must be updated to use the extracted utility for the refactor to be complete. [5: Conclusion] Therefore, any correct answer must update handle_reply to call get_alias_recipient_name() and use its result for the From header."
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "68f19699f57664af3c6938df52c4c75d",
+    "title": "3.1: Removes the inline From header name-resolution logic from handle_reply in email_handler.py",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the inline From header name-resolution logic in handle_reply is removed after extraction to get_alias_recipient_name().",
+      "evidence": "Gold patch: email_handler.py lines 74-90 \u2014 the inline if/elif block that resolved the From header display name is replaced by a call to get_alias_recipient_name()",
+      "justification": "[4: Quality Necessity] After extraction to get_alias_recipient_name(), the inline name-resolution logic in handle_reply is dead code replaced by the new utility. [5: Conclusion] Therefore, any correct answer should remove the inline From header name-resolution logic from handle_reply."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "aa37c98f97699f0c9fd88ec69f798850",
+    "title": "4.1: Alters the display name priority order when resolving the From header in handle_reply",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactoring changes the priority order for selecting the display name: alias name must take precedence over custom domain name, which must take precedence over the plain email fallback.",
+      "evidence": "Gold patch: get_alias_recipient_name checks alias.name first, then alias.custom_domain.name, then falls back to alias.email \u2014 this order must be preserved",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Do not change the existing reply behavior' and describes the priority as alias name > custom domain name > plain email. [3: Logical Necessity] Reordering the priority would change which display name appears in outgoing replies. [5: Conclusion] Therefore, any correct answer must NOT alter the display name priority order."
+    }
+  },
+  {
+    "id": "7fcdd12c2e7502dc2339fc4078f95ab0",
+    "title": "4.2: Modifies logic in email_handler.py beyond the From header resolution in handle_reply",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the agent over-scopes the refactoring by modifying parts of email_handler.py unrelated to the From header name resolution in handle_reply.",
+      "evidence": "Gold patch: only the From header resolution block in handle_reply is modified in email_handler.py \u2014 no other functions or logic are touched",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Do not change the existing reply behavior' and scopes the change to the From header name resolution. [3: Logical Necessity] Modifying unrelated logic in email_handler.py could break email forwarding, bouncing, or other critical flows. [5: Conclusion] Therefore, any correct answer must NOT modify logic in email_handler.py beyond the From header resolution in handle_reply."
+    }
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "files": [
+    {
+      "name": "src/go/pkg/daemonstatus/daemonstatus.go"
+    },
+    {
+      "name": "src/go/pkg/daemonstatus/daemonstatus_test.go"
+    }
+  ]
+}

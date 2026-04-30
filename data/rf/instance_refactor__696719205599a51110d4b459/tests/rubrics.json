@@ -1,0 +1,242 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "description": "N/A: No Description Required.         ",
+      "evidence": "N/A: No Evidence Required.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "N/A: No Justification Required.",
+      "type": "high level intent"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+    "title": "1.1: Removes the --useoldmanifestkinds flag from the Makefile generate command",
+    "annotations": {
+      "description": "The generate target in apps/investigations/Makefile must not pass --useoldmanifestkinds to grafana-app-sdk generate. This deprecated flag is incompatible with the current App SDK manifest format.",
+      "evidence": "Gold patch Makefile diff: line 11 removes '--useoldmanifestkinds' from the generate command.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the Makefile 'needs to stop using the deprecated --useoldmanifestkinds flag.' [2: Implicit Codebase Constraint] apps/investigations/Makefile currently passes --useoldmanifestkinds to the SDK generate command, which forces the old manifest format. [5: Conclusion] Any correct solution must remove --useoldmanifestkinds from the Makefile generate command.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6",
+    "title": "1.2: Adds --genoperatorstate=false to the Makefile generate command",
+    "annotations": {
+      "description": "The generate target in apps/investigations/Makefile must pass --genoperatorstate=false to grafana-app-sdk generate. This flag suppresses automatic generation of operator state status types for kinds that do not use them.",
+      "evidence": "Gold patch Makefile diff: line 16 adds '--genoperatorstate=false' to the generate command.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'operator state evaluation is not needed for these resources' and the Makefile should 'use the current App SDK generation approach.' [2: Implicit Codebase Constraint] In the Grafana App SDK, --genoperatorstate=false is the mechanism to prevent re-generation of operator status types during code generation. Without this flag, running make generate would recreate the removed status files. [3: Logical Necessity] Removing status types from generated code requires also preventing their re-generation on the next code generation run. [5: Conclusion] Any correct solution must add --genoperatorstate=false to the Makefile generate command.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "title": "1.3: Restructures manifest.cue to organize kinds under a versions block",
+    "annotations": {
+      "description": "The apps/investigations/kinds/manifest.cue file must define a versions block (e.g., versions: { \"v0alpha1\": { kinds: [...] } }) instead of the current flat kinds array. Codegen settings should be specified within the version block.",
+      "evidence": "Gold patch manifest.cue diff: lines 133-149 replace the flat 'kinds: [...]' array with a 'versions: { \"v0alpha1\": { codegen: {...}, kinds: [...] } }' structure.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the manifest takes ownership of versioning, codegen settings, and organizing the kinds under their respective versions.' [2: Implicit Codebase Constraint] The current manifest.cue uses a flat kinds array with no version structure, which is the deprecated old manifest format. Other apps in the codebase (e.g., playlist, alerting/notifications) already use the versions block pattern. [5: Conclusion] Any correct solution must restructure manifest.cue to organize kinds under a versions block.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+    "title": "1.4: Removes the nested versions block from the Investigation kind in investigation.cue",
+    "annotations": {
+      "description": "The Investigation kind definition in apps/investigations/kinds/investigation.cue must not contain a nested versions block with codegen options. The schema should be defined directly under the kind, not nested inside versions/v0alpha1/schema. Fields like group, apiResource, current, and codegen that belong to the manifest should also be removed.",
+      "evidence": "Gold patch investigation.cue diff: lines 27-60 remove the nested 'versions: { \"v0alpha1\": { codegen: {...}, schema: {...} } }' structure, and lines 61-71 show the spec schema directly under the kind definition.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'each kind file only declares what is unique to it, its kind name, plural name, and schema.' [2: Implicit Codebase Constraint] investigation.cue currently nests the schema inside versions/v0alpha1/schema and includes group, apiResource, current, and codegen settings that are not unique to the kind. [5: Conclusion] Any correct solution must remove the nested versions block so the kind file only contains kind-specific declarations.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
+    "title": "1.5: Removes the nested versions block from the InvestigationIndex kind in investigationindex.cue",
+    "annotations": {
+      "description": "The InvestigationIndex kind definition in apps/investigations/kinds/investigationindex.cue must not contain a nested versions block with codegen options. The schema should be defined directly under the kind, not nested inside versions/v0alpha1/schema. Fields like group, apiResource, current, and codegen that belong to the manifest should also be removed.",
+      "evidence": "Gold patch investigationindex.cue diff: lines 81-101 remove the nested 'versions: { \"v0alpha1\": { codegen: {...}, schema: {...} } }' structure, and lines 106-121 show the spec schema directly under the kind definition.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'each kind file only declares what is unique to it, its kind name, plural name, and schema.' [2: Implicit Codebase Constraint] investigationindex.cue currently nests the schema inside versions/v0alpha1/schema and includes group, apiResource, current, and codegen settings that are not unique to the kind. [5: Conclusion] Any correct solution must remove the nested versions block so the kind file only contains kind-specific declarations.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7",
+    "title": "1.6: Renames the Investigation kind identifier to be version-aware in investigation.cue",
+    "annotations": {
+      "description": "The CUE identifier for the Investigation kind in apps/investigations/kinds/investigation.cue must include a version suffix (e.g., investigationV0alpha1 or investigationv0alpha1) so the manifest can reference it unambiguously under a specific version.",
+      "evidence": "Gold patch investigation.cue diff: line 28 renames the identifier from 'investigation' to 'investigationV0alpha1'.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the kind identifiers should be version aware so the manifest can reference them unambiguously.' [2: Implicit Codebase Constraint] Other apps in the codebase (e.g., alerting/notifications) use version-aware identifiers like receiverv0alpha1 in their kind CUE files. [5: Conclusion] Any correct solution must rename the Investigation kind identifier to include version information.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8",
+    "title": "1.7: Renames the InvestigationIndex kind identifier to be version-aware in investigationindex.cue",
+    "annotations": {
+      "description": "The CUE identifier for the InvestigationIndex kind in apps/investigations/kinds/investigationindex.cue must include a version suffix (e.g., investigationIndexV0alpha1 or investigationIndexv0alpha1) so the manifest can reference it unambiguously under a specific version.",
+      "evidence": "Gold patch investigationindex.cue diff: line 82 renames the identifier from 'investigationIndex' to 'investigationIndexV0alpha1'.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the kind identifiers should be version aware so the manifest can reference them unambiguously.' [2: Implicit Codebase Constraint] Other apps in the codebase (e.g., alerting/notifications) use version-aware identifiers like receiverv0alpha1 in their kind CUE files. [5: Conclusion] Any correct solution must rename the InvestigationIndex kind identifier to include version information.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+    "title": "1.8: Removes the Status field from the Investigation struct in investigation_object_gen.go",
+    "annotations": {
+      "description": "The Investigation Go struct in apps/investigations/pkg/apis/investigations/v0alpha1/investigation_object_gen.go must not contain a Status field (e.g., 'Status InvestigationStatus').",
+      "evidence": "Gold patch investigation_object_gen.go diff: lines 197-198 remove 'Status InvestigationStatus `json:\"status\" yaml:\"status\"`' from the Investigation struct.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'all status related machinery should be cleaned up across the generated Go code.' [2: Implicit Codebase Constraint] The Investigation struct currently has a Status InvestigationStatus field that is unused \u2014 no operator evaluates status for this resource. [5: Conclusion] Any correct solution must remove the Status field from the Investigation struct.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
+    "title": "1.9: Removes the Status field from the InvestigationIndex struct in investigationindex_object_gen.go",
+    "annotations": {
+      "description": "The InvestigationIndex Go struct in apps/investigations/pkg/apis/investigations/v0alpha1/investigationindex_object_gen.go must not contain a Status field (e.g., 'Status InvestigationIndexStatus').",
+      "evidence": "Gold patch investigationindex_object_gen.go diff: lines 364-365 remove 'Status InvestigationIndexStatus `json:\"status\" yaml:\"status\"`' from the InvestigationIndex struct.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'all status related machinery should be cleaned up across the generated Go code.' [2: Implicit Codebase Constraint] The InvestigationIndex struct currently has a Status InvestigationIndexStatus field that is unused \u2014 no operator evaluates status for this resource. [5: Conclusion] Any correct solution must remove the Status field from the InvestigationIndex struct.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+    "title": "1.10: Removes the UpdateStatus method from investigation_client_gen.go",
+    "annotations": {
+      "description": "The InvestigationClient in apps/investigations/pkg/apis/investigations/v0alpha1/investigation_client_gen.go must not have an UpdateStatus method.",
+      "evidence": "Gold patch investigation_client_gen.go diff: lines 168-184 remove the entire UpdateStatus method from InvestigationClient.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'all status related machinery should be cleaned up across the generated Go code.' [3: Logical Necessity] The UpdateStatus method depends on the InvestigationStatus type and the Status field on the struct. Removing the Status field requires removing UpdateStatus to avoid compilation errors. [5: Conclusion] Any correct solution must remove the UpdateStatus method from InvestigationClient.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+    "title": "1.11: Removes the UpdateStatus method from investigationindex_client_gen.go",
+    "annotations": {
+      "description": "The InvestigationIndexClient in apps/investigations/pkg/apis/investigations/v0alpha1/investigationindex_client_gen.go must not have an UpdateStatus method.",
+      "evidence": "Gold patch investigationindex_client_gen.go diff: lines 335-351 remove the entire UpdateStatus method from InvestigationIndexClient.",
+      "hli_category": "Code Maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'all status related machinery should be cleaned up across the generated Go code.' [3: Logical Necessity] The UpdateStatus method depends on the InvestigationIndexStatus type and the Status field on the struct. Removing the Status field requires removing UpdateStatus to avoid compilation errors. [5: Conclusion] Any correct solution must remove the UpdateStatus method from InvestigationIndexClient.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "description": "N/A: No Description Required.         ",
+      "evidence": "N/A: No Evidence Required.",
+      "hli_category": "Documentation Maintainability",
+      "importance": "nice to have",
+      "justification": "N/A: No Justification Required.",
+      "type": "high level intent"
+    }
+  },
+  {
+    "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "description": "N/A: No Description Required.          ",
+      "evidence": "N/A: No Evidence Required.",
+      "hli_category": "Artifact Cleanup",
+      "importance": "nice to have",
+      "justification": "N/A: No Justification Required.",
+      "type": "high level intent"
+    }
+  },
+  {
+    "id": "a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8",
+    "title": "3.1: Deletes the investigation_status_gen.go file",
+    "annotations": {
+      "description": "The file apps/investigations/pkg/apis/investigations/v0alpha1/investigation_status_gen.go should be deleted. It defines InvestigationStatus, InvestigationstatusOperatorState, and related types that are no longer referenced after status removal.",
+      "evidence": "Gold patch investigation_status_gen.go diff: shows 'deleted file mode 100644', removing all 44 lines.",
+      "hli_category": "Artifact Cleanup",
+      "importance": "nice to have",
+      "justification": "[3: Logical Necessity] After removing the Status field from the Investigation struct and the UpdateStatus method from InvestigationClient, the types defined in investigation_status_gen.go (InvestigationStatus, InvestigationstatusOperatorState, etc.) become dead code. [4: Qualitative Requirement] Leaving orphaned type definitions increases maintenance burden and could cause confusion. [5: Conclusion] Any correct solution should delete investigation_status_gen.go.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
+    "title": "3.2: Removes status subresource handling from GetSubresources in investigation_object_gen.go",
+    "annotations": {
+      "description": "The GetSubresources method on Investigation in apps/investigations/pkg/apis/investigations/v0alpha1/investigation_object_gen.go should return an empty map instead of including a 'status' entry.",
+      "evidence": "Gold patch investigation_object_gen.go diff: lines 206-209 update GetSubresources from returning a map with 'status': o.Status to returning an empty map[string]any{}.",
+      "hli_category": "Artifact Cleanup",
+      "importance": "nice to have",
+      "justification": "[3: Logical Necessity] After removing the Status field from the Investigation struct, the GetSubresources method cannot reference o.Status without a compilation error. [4: Qualitative Requirement] Subresource accessors should accurately reflect the resource's actual subresources. [5: Conclusion] Any correct solution should update GetSubresources to return an empty map.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+    "title": "3.3: Removes status subresource handling from GetSubresources in investigationindex_object_gen.go",
+    "annotations": {
+      "description": "The GetSubresources method on InvestigationIndex in apps/investigations/pkg/apis/investigations/v0alpha1/investigationindex_object_gen.go should return an empty map instead of including a 'status' entry.",
+      "evidence": "Gold patch investigationindex_object_gen.go diff: lines 372-376 update GetSubresources from returning a map with 'status': o.Status to returning an empty map[string]any{}.",
+      "hli_category": "Artifact Cleanup",
+      "importance": "nice to have",
+      "justification": "[3: Logical Necessity] After removing the Status field from the InvestigationIndex struct, the GetSubresources method cannot reference o.Status without a compilation error. [4: Qualitative Requirement] Subresource accessors should accurately reflect the resource's actual subresources. [5: Conclusion] Any correct solution should update GetSubresources to return an empty map.",
+      "type": "positive hli verifier"
+    }
+  },
+  {
+    "id": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "description": "N/A: No Description Required.     ",
+      "evidence": "N/A: No Evidence Required.",
+      "hli_category": "Negative Rubrics",
+      "importance": "must have",
+      "justification": "N/A: No Justification Required.",
+      "type": "high level intent"
+    }
+  },
+  {
+    "id": "f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3",
+    "title": "4.1: Removes spec schema content from investigation.cue",
+    "annotations": {
+      "description": "Checks that the solution does NOT delete the spec schema fields (such as title, createdByProfile, hasCustomName, collectables, viewMode) from the Investigation kind definition in apps/investigations/kinds/investigation.cue. A 'Yes' rating means the agent incorrectly removed the data model.",
+      "evidence": "Gold patch investigation.cue diff: lines 61-71 preserve all spec fields (title, createdByProfile, hasCustomName, isFavorite, overviewNote, overviewNoteUpdatedAt, collectables, viewMode) after the restructuring.",
+      "hli_category": "Negative Rubrics",
+      "importance": "must have",
+      "justification": "[2: Implicit Codebase Constraint] The spec schema in investigation.cue defines the Investigation API data model used by both the frontend plugin and backend services. These fields represent the API contract for Investigation resources. [4: Qualitative Requirement] The refactor is structural (moving versioning to the manifest) \u2014 it must not alter the data model itself. [5: Conclusion] Any correct solution must NOT remove spec schema fields from investigation.cue.",
+      "type": "negative hli verifier"
+    }
+  },
+  {
+    "id": "a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+    "title": "4.2: Removes spec schema content from investigationindex.cue",
+    "annotations": {
+      "description": "Checks that the solution does NOT delete the spec schema fields (such as title, owner, investigationSummaries) from the InvestigationIndex kind definition in apps/investigations/kinds/investigationindex.cue. A 'Yes' rating means the agent incorrectly removed the data model.",
+      "evidence": "Gold patch investigationindex.cue diff: lines 106-121 preserve all spec fields (title, owner, investigationSummaries) after the restructuring.",
+      "hli_category": "Negative Rubrics",
+      "importance": "must have",
+      "justification": "[2: Implicit Codebase Constraint] The spec schema in investigationindex.cue defines the InvestigationIndex API data model used by both the frontend plugin and backend services. These fields represent the API contract for InvestigationIndex resources. [4: Qualitative Requirement] The refactor is structural (moving versioning to the manifest) \u2014 it must not alter the data model itself. [5: Conclusion] Any correct solution must NOT remove spec schema fields from investigationindex.cue.",
+      "type": "negative hli verifier"
+    }
+  }
+]

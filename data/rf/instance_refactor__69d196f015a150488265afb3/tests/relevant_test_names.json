@@ -1,0 +1,25 @@
+{
+  "tests": [
+    {
+      "name": "tests/test_alias_utils.py::test_alias_recipient_name_default_message"
+    },
+    {
+      "name": "tests/test_alias_utils.py::test_alias_recipient_name_with_message"
+    },
+    {
+      "name": "tests/test_alias_utils.py::test_get_alias_recipient_alias_with_name_and_custom_domain_name"
+    },
+    {
+      "name": "tests/test_alias_utils.py::test_get_alias_recipient_alias_without_name_and_custom_domain_name"
+    },
+    {
+      "name": "tests/test_alias_utils.py::test_get_alias_recipient_name_alias_name"
+    },
+    {
+      "name": "tests/test_alias_utils.py::test_get_alias_recipient_name_no_overrides"
+    },
+    {
+      "name": "tests/test_email_handler.py::test_reply_from_header_uses_alias_name"
+    }
+  ]
+}

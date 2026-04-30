@@ -1,0 +1,242 @@
+[
+  {
+    "id": "7a8f3c91d2e4b5067890abcdef123456",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "2b9c4d8e1f0a3567890bcdef12345678",
+    "title": "1.1: Creates a public `Scheduler.Init` method in execution/scheduler.go that is separate from the `Run` method",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that initialization is separated into its own callable method named Init on the Scheduler type, distinct from Run. The method must be public (exported) so callers can invoke it before Run.",
+      "evidence": "gold.patch lines 38-66: introduces `func (e *Scheduler) Init(runCtx context.Context, samplesOut chan<- metrics.SampleContainer) (stopVUEmission func(), err error)` as a new public method.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The lifecycle should be cleaner. Initialization and execution are conceptually separate phases' and 'The caller should be able to handle initialization and execution as distinct steps.' [2: Implicit Codebase Constraint] The existing Scheduler type has a single Run() method that couples both phases, located in execution/scheduler.go. [3: Logical Necessity] For the caller to handle phases as distinct steps, there must be separate callable methods for each phase. [5: Conclusion] Therefore, any correct answer must introduce a separate public Init method on the Scheduler."
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1.2: Implements `Scheduler.Init` to accept a context and sample channel as input and return a cleanup function and an error",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the Init method accepts a run context (context.Context) and a sample output channel (chan<- metrics.SampleContainer) as parameters, and returns a cleanup function (func()) along with an error value.",
+      "evidence": "gold.patch lines 41-44: `func (e *Scheduler) Init(runCtx context.Context, samplesOut chan<- metrics.SampleContainer) (stopVUEmission func(), err error)`",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the initialization step should return a cleanup function. [2: Implicit Codebase Constraint] The existing Run method accepts the same context and sample channel parameters; Init needs the same inputs to perform initialization. [3: Logical Necessity] Returning an error allows callers to handle initialization failures; returning a cleanup function allows callers to stop resources. [5: Conclusion] Therefore, any correct answer must implement Init with these input parameters and return values."
+    }
+  },
+  {
+    "id": "3c0d5e9f2a1b4678901cdef123456789",
+    "title": "1.3: Returns a cleanup function from `Scheduler.Init` that allows callers to stop resources started during initialization",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the Init method returns a cleanup function that callers can invoke to stop resources that were started during initialization, including metric emission that Init started.",
+      "evidence": "gold.patch lines 48-52: Init returns `stopVUEmission` function that stops the metrics emission context and waits for completion.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The initialization step should return a cleanup function that the caller can use to properly stop any resources that were started.' [2: Implicit Codebase Constraint] The existing Run() method starts resources that require cleanup via context cancellation. [3: Logical Necessity] Since initialization starts long-running processes, callers need a mechanism to stop them when done or on error. [5: Conclusion] Therefore, any correct answer must return a cleanup function from Init."
+    }
+  },
+  {
+    "id": "4d1e6f0a3b2c5789012def0123456789",
+    "title": "1.4: Moves VU and executor initialization logic from `Run` to `Scheduler.Init` in execution/scheduler.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that VU and executor initialization is performed within the Init method, not in Run, completing the separation of initialization from execution.",
+      "evidence": "gold.patch line 66: Init calls initVUsAndExecutors; gold.patch lines 87-90: removes initVUsAndExecutors call from Run.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'it handles VU initialization, executor setup' as part of what should be separated from Run. [2: Implicit Codebase Constraint] The current Run() method calls initVUsAndExecutors which is initialization logic, not execution. [3: Logical Necessity] VU and executor initialization are prerequisites for test execution and belong in the init phase. [5: Conclusion] Therefore, any correct answer must move VU/executor initialization to Init and remove it from Run."
+    }
+  },
+  {
+    "id": "5e2f7a1b4c3d6890123ef01234567890",
+    "title": "1.5: Moves metrics emission startup from `Run` to `Scheduler.Init` in execution/scheduler.go",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that metrics emission startup is performed within the Init method, not in Run, so it can be properly cleaned up if initialization fails.",
+      "evidence": "gold.patch lines 46-47: Init starts metrics emission; gold.patch lines 75-78: removes metrics emission startup from Run.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'This is causing issues when initialization fails because we have to awkwardly clean up resources that already started.' [2: Implicit Codebase Constraint] The existing Run() method starts metrics emission before any test execution logic. [3: Logical Necessity] Metrics emission must start during initialization so it can be properly cleaned up if initialization fails. [5: Conclusion] Therefore, any correct answer must move metrics emission startup to Init."
+    }
+  },
+  {
+    "id": "6f3a8b2c5d4e7901234f012345678901",
+    "title": "1.6: Refactors `Run` method in execution/scheduler.go to only handle test execution after initialization is complete",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the Run method no longer performs initialization tasks and only handles actual test execution.",
+      "evidence": "gold.patch lines 71-112: Run method no longer contains initialization logic (context creation for metrics, emitVUsAndVUsMax call, initVUsAndExecutors call).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Run() should just handle the actual test execution after initialization is complete.' [2: Implicit Codebase Constraint] The current Run() method contains both initialization and execution logic. [3: Logical Necessity] For proper separation of concerns, Run must only contain execution logic. [5: Conclusion] Therefore, any correct answer must refactor Run to only handle execution."
+    }
+  },
+  {
+    "id": "8b5c0d4e7f6a9123456b01234567890c",
+    "title": "1.7: Updates cmd/run.go to call `Scheduler.Init` before calling `Run`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the main CLI command is updated to use the separated initialization and execution flow by calling Init before Run.",
+      "evidence": "gold.patch lines 9-14: adds `stopVUEmission, err := execScheduler.Init(runCtx, samples)` with error check and `defer stopVUEmission()` in cmd/run.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Make sure cmd/run.go works with whatever changes you make.' [2: Implicit Codebase Constraint] The file cmd/run.go is the primary caller of execScheduler.Run() for CLI test execution. [3: Logical Necessity] With initialization separated from Run, callers must be updated to call both methods in sequence. [5: Conclusion] Therefore, any correct answer must update cmd/run.go to call Init before Run."
+    }
+  },
+  {
+    "id": "9c6d1e5f8a7b0234567c012345678901",
+    "title": "1.8: Handles initialization errors in cmd/run.go by returning early when `Scheduler.Init` fails",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that initialization errors are properly checked before attempting to run the test.",
+      "evidence": "gold.patch lines 11-13: adds `if err != nil { return err }` after calling Init in cmd/run.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'This is causing issues when initialization fails' indicating initialization errors need proper handling. [2: Implicit Codebase Constraint] Go convention requires checking and handling returned errors. [3: Logical Necessity] If initialization fails, Run should not be called as the system is not ready. [5: Conclusion] Therefore, any correct answer must check initialization errors and return early on failure."
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+    "title": "1.9: Ensures the cleanup function returned by `Scheduler.Init` is invoked from cmd/run.go after successful Init so teardown runs for the CLI execution path",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the cleanup function returned by Init is properly invoked to stop resources when execution completes or on error.",
+      "evidence": "gold.patch line 14: adds `defer stopVUEmission()` in cmd/run.go after successful Init.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The initialization step should return a cleanup function that the caller can use to properly stop any resources that were started.' [2: Implicit Codebase Constraint] Go's defer pattern ensures cleanup runs even on error paths. [3: Logical Necessity] Without calling the cleanup function, resources started during initialization would leak. [5: Conclusion] Therefore, any correct answer must ensure the cleanup function is called appropriately."
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+    "title": "1.10: Ensures `Scheduler.Init` runs the cleanup function before returning a non-nil error when initialization fails",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that Init tears down resources it already started (including metric emission) by invoking the cleanup callback when initialization fails, so callers that only propagate the error do not leave background work running.",
+      "evidence": "gold.patch lines 54-65: deferred logic calls `stopVUEmission()` when `err != nil` after `initVUsAndExecutors` completes, before returning the error to the caller.",
+      "justification": "[1: Explicit Prompt Requirement] The interface in combined_prompt.md states that Init 'Automatically calls the cleanup function if initialization fails.' [2: Implicit Codebase Constraint] Init starts metrics emission before `initVUsAndExecutors` runs; a failure partway through requires the same teardown the cleanup function performs. [3: Logical Necessity] If Init returned a non-nil error without running cleanup, started emission and related state could leak when the caller returns early without invoking the returned cleanup function. [5: Conclusion] Therefore, any correct answer must ensure Init invokes the cleanup function on the initialization-failure path."
+    }
+  },
+  {
+    "id": "1e8f3a7b0c9d2456789e01234567890f",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "2f9a4b8c1d0e3567890f012345678901",
+    "title": "2.1: Adds a Go doc comment for the `Scheduler.Init` method explaining its behavior",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "Verifies that the new public Init method has an appropriate Go documentation comment explaining what it does.",
+      "evidence": "gold.patch lines 38-41: adds `// Init concurrently initializes all of the planned VUs and then sequentially // initializes all of the configured executors. It also starts the measurement // and emission of the vus and vus_max metrics.`",
+      "justification": "[2: Implicit Codebase Constraint] The existing Run method has a documentation comment; Go convention expects public methods to be documented. [3: Logical Necessity] A new public API requires documentation for users to understand its purpose and return values. [4: Quality Necessity] Good documentation improves code maintainability. [5: Conclusion] Therefore, any correct answer should document the new Init method."
+    }
+  },
+  {
+    "id": "3a0b5c9d2e1f4678901a012345678902",
+    "title": "2.2: Updates comments in cmd/run.go to reflect that initialization is now separate from execution",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "Verifies that existing comments are updated to match the new behavior after refactoring.",
+      "evidence": "gold.patch lines 23-26: changes comment from `// Initialize VUs and start the test!` to `// Start the test!` in cmd/run.go.",
+      "justification": "[2: Implicit Codebase Constraint] The existing comment mentions 'Initialize VUs' which is no longer accurate after the refactoring. [3: Logical Necessity] Documentation must match implementation to avoid misleading developers. [4: Quality Necessity] Accurate comments improve code maintainability. [5: Conclusion] Therefore, any correct answer should update comments that reference the old behavior."
+    }
+  },
+  {
+    "id": "4b1c6d0e3f2a5789012b0123456789a3",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "6d3e8f2a5b4c7901234d012345678901",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "7e4f9a3b6c5d8012345e0123456789f0",
+    "title": "4.1: Deletes the `Run` method from the Scheduler type entirely",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Checks whether the refactoring accidentally removes the Run method instead of modifying it.",
+      "evidence": "gold.patch lines 68-112: Run method is preserved with modifications, signature remains `func (e *Scheduler) Run(globalCtx, runCtx context.Context, samplesOut chan<- metrics.SampleContainer) (err error)`.",
+      "justification": "[2: Implicit Codebase Constraint] The Run method is the primary execution entry point used by cmd/run.go and all tests after initialization. [3: Logical Necessity] Without Run, there is no way to execute tests after initialization completes. [5: Conclusion] Therefore, any correct answer must NOT delete the Run method."
+    }
+  },
+  {
+    "id": "8f5a0b4c7d6e9123456f01234567890a",
+    "title": "4.2: Changes the method signature of the existing `Run` method",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Checks whether Run's method signature was altered, which would break existing callers.",
+      "evidence": "gold.patch line 72: Run retains original signature `func (e *Scheduler) Run(globalCtx, runCtx context.Context, samplesOut chan<- metrics.SampleContainer) (err error)`.",
+      "justification": "[2: Implicit Codebase Constraint] Multiple callers including cmd/run.go and test files depend on the existing Run signature. [3: Logical Necessity] Changing the signature would require modifying all callers and could introduce compilation errors. [5: Conclusion] Therefore, any correct answer must NOT change the Run method signature."
+    }
+  },
+  {
+    "id": "9a6b1c5d8e7f0234567a012345678901",
+    "title": "4.3: Duplicates initialization logic in both `Run` and `Scheduler.Init` instead of moving it",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Checks whether initialization logic appears in both methods instead of being cleanly moved from Run to Init.",
+      "evidence": "gold.patch line 66 adds initVUsAndExecutors to Init; lines 87-90 remove it from Run - no duplication.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'separate these concerns' - separation means moving, not copying. [3: Logical Necessity] Duplicate initialization would cause double resource allocation, errors, or undefined behavior. [4: Quality Necessity] DRY principle prevents code duplication. [5: Conclusion] Therefore, any correct answer must NOT duplicate initialization in both methods."
+    }
+  },
+  {
+    "id": "c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
+    "title": "4.4: Modifies test files",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Checks whether the solution incorrectly modifies test files, which the prompt explicitly forbids.",
+      "evidence": "gold.patch only modifies cmd/run.go and execution/scheduler.go - no test files.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Do not modify the test files.' [3: Logical Necessity] Test files are out of scope for this refactoring task. [5: Conclusion] Therefore, any correct answer must NOT modify test files."
+    }
+  }
+]

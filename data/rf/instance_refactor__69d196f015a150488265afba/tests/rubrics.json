@@ -1,0 +1,182 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "236ae529b57155a28f814836e58f24e6",
+    "title": "1.1: Exports createNodeGraphFrames as a named function from packages/grafana-o11y-ds-frontend/src/createNodeGraphFrames.ts",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that createNodeGraphFrames exists as a named export in the interface-specified file within the shared @grafana/o11y-ds-frontend package.",
+      "evidence": "Gold patch: createNodeGraphFrames.ts (renamed from utils.ts) adds `export function createNodeGraphFrames(data: DataFrame): DataFrame[]` (diff line 30)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the core function 'is still stuck in the Tempo plugin' and asks to 'refactor this so the trace to node graph conversion is properly shared through the @grafana/o11y-ds-frontend package with clear, descriptive naming.' [2: Implicit Code Base Constraint] The interface specifies the exact path as packages/grafana-o11y-ds-frontend/src/createNodeGraphFrames.ts and the name as createNodeGraphFrames. [5: Conclusion] Therefore, any correct answer must export createNodeGraphFrames from the interface-specified path."
+    }
+  },
+  {
+    "id": "581cefe7213f320026a3b7c31cfa9637",
+    "title": "1.2: Defines createNodeGraphFrames to accept a DataFrame parameter and return DataFrame[]",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the createNodeGraphFrames function signature matches the interface specification: accepts a single DataFrame input and returns DataFrame[].",
+      "evidence": "Gold patch: createNodeGraphFrames.ts defines `export function createNodeGraphFrames(data: DataFrame): DataFrame[]` (diff line 30)",
+      "justification": "[2: Implicit Code Base Constraint] The interface specifies the input as `data: DataFrame` and the output as `DataFrame[]`. The original createGraphFrames in graphTransform.ts had the same signature. [3: Logical Necessity] The function must accept trace data as a DataFrame and return node and edge frames as DataFrame[] to be compatible with existing callers in resultTransformer.ts. [5: Conclusion] Therefore, any correct answer must define createNodeGraphFrames with this exact signature."
+    }
+  },
+  {
+    "id": "39c618fb4f07fd7ab6e57fb6060da613",
+    "title": "1.3: Includes trace-to-graph conversion logic that maps span data to node entries with standard node graph fields (id, title, subTitle, mainStat, secondaryStat, color) within the shared package",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the createNodeGraphFrames implementation in the shared package constructs node entries using the standard NodeGraphDataFrameFieldNames: id, title, subTitle, mainStat, secondaryStat, and color.",
+      "evidence": "Gold patch: createNodeGraphFrames.ts builds node entries with `[Fields.id]: row.spanID`, `[Fields.title]: row.serviceName`, `[Fields.subTitle]: row.operationName`, `[Fields.mainStat]: stats.main`, `[Fields.secondaryStat]: stats.secondary`, `[Fields.color]: selfDuration / traceDuration` (diff lines 74-81)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the function 'converts trace span data into node graph frames' and must be moved to the shared package. [3: Logical Necessity] Node graph visualization in Grafana requires nodes with these specific fields (id, title, subTitle, mainStat, secondaryStat, color) as defined by NodeGraphDataFrameFieldNames. Any implementation that omits fields would break the node graph rendering. [5: Conclusion] Therefore, any correct answer must produce node entries with all six standard node graph fields."
+    }
+  },
+  {
+    "id": "b3af8492d893dc36e04d2ee1c65bff18",
+    "title": "1.4: Includes trace-to-graph conversion logic that maps parent-child span relationships to edge entries with standard edge fields (id, source, target) within the shared package",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the createNodeGraphFrames implementation in the shared package constructs edge entries using the standard NodeGraphDataFrameFieldNames: id, source, and target, linking parent spans to child spans.",
+      "evidence": "Gold patch: createNodeGraphFrames.ts builds edge entries with `[Fields.id]: row.parentSpanID + '--' + row.spanID`, `[Fields.target]: row.spanID`, `[Fields.source]: row.parentSpanID` when the parent span exists (diff lines 84-90)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt describes the function as converting 'trace span data into node graph frames,' which inherently includes edges representing span relationships. [3: Logical Necessity] Node graph visualization requires edges linking parent and child nodes. Without edge entries, the graph would show isolated nodes with no relationships. [5: Conclusion] Therefore, any correct answer must produce edge entries with id, source, and target fields linking parent-child spans."
+    }
+  },
+  {
+    "id": "a084cfa771133b65521db6eaea64b1bc",
+    "title": "1.5: Updates the barrel export in packages/grafana-o11y-ds-frontend/src/index.ts to re-export from the module containing createNodeGraphFrames",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the package barrel export (index.ts) is updated so that createNodeGraphFrames is importable via `@grafana/o11y-ds-frontend`.",
+      "evidence": "Gold patch: index.ts changes `export * from './utils'` to `export * from './createNodeGraphFrames'` (diff lines 167-168)",
+      "justification": "[3: Logical Necessity] The barrel export in index.ts is the entry point for the @grafana/o11y-ds-frontend package. If it still references the old module path, consumers importing createNodeGraphFrames from the package would get a module resolution error. [2: Implicit Code Base Constraint] The existing barrel export references './utils', which will not resolve to the new file if the file is renamed. [5: Conclusion] Therefore, any correct answer must update the barrel export in index.ts to reference the module containing createNodeGraphFrames."
+    }
+  },
+  {
+    "id": "fc516b4679165aa01bb89c35df01cb39",
+    "title": "1.6: Updates the import in public/app/plugins/datasource/tempo/resultTransformer.ts to import createNodeGraphFrames from @grafana/o11y-ds-frontend",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that resultTransformer.ts imports createNodeGraphFrames from the shared @grafana/o11y-ds-frontend package rather than importing createGraphFrames from the local ./graphTransform module.",
+      "evidence": "Gold patch: resultTransformer.ts changes `import { TraceToProfilesData } from '@grafana/o11y-ds-frontend'` to `import { createNodeGraphFrames, TraceToProfilesData } from '@grafana/o11y-ds-frontend'` and removes `import { createGraphFrames } from './graphTransform'` (diff lines 310-315)",
+      "justification": "[3: Logical Necessity] After the function is moved to the shared package and removed from graphTransform.ts, the old import path will no longer resolve. The consumer must import from the new location. [1: Explicit Prompt Requirement] The prompt asks to make the function 'properly shared through the @grafana/o11y-ds-frontend package,' which implies consumers should import from that package. [5: Conclusion] Therefore, any correct answer must update resultTransformer.ts to import createNodeGraphFrames from @grafana/o11y-ds-frontend."
+    }
+  },
+  {
+    "id": "92638bd852ba9bbfef6a864101e41607",
+    "title": "1.7: Replaces both createGraphFrames invocations in resultTransformer.ts with createNodeGraphFrames in the transformFromOTLP and transformTrace functions",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that both call sites in resultTransformer.ts that previously called createGraphFrames now call createNodeGraphFrames: one in transformFromOTLP and one in transformTrace.",
+      "evidence": "Gold patch: resultTransformer.ts changes `createGraphFrames(frame)` to `createNodeGraphFrames(frame)` in transformFromOTLP (diff lines 323-324) and `createGraphFrames(toDataFrame(frame))` to `createNodeGraphFrames(toDataFrame(frame))` in transformTrace (diff lines 332-333)",
+      "justification": "[3: Logical Necessity] After the function is renamed from createGraphFrames to createNodeGraphFrames, all call sites must be updated to use the new name. resultTransformer.ts has exactly two call sites: one in transformFromOTLP and one in transformTrace. Leaving either call site with the old name would cause a runtime error. [5: Conclusion] Therefore, any correct answer must replace both createGraphFrames calls with createNodeGraphFrames in resultTransformer.ts."
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "c25a9d52304d630dd816f2192b8e8283",
+    "title": "3.1: Removes the createGraphFrames function definition and its private helpers (convertTraceToGraph, findTraceDuration) and associated type definitions (Row, Node, Edge) from graphTransform.ts",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the createGraphFrames function body, its private helper functions (convertTraceToGraph, findTraceDuration), and the associated type definitions (Row, Node, Edge interfaces) are removed from public/app/plugins/datasource/tempo/graphTransform.ts after being moved to the shared package.",
+      "evidence": "Gold patch: graphTransform.ts removes the Row interface (diff lines 183-194), Node interface (diff lines 196-203), Edge interface (diff lines 205-209), createGraphFrames function (diff lines 211-223), convertTraceToGraph function (diff lines 225-275), and findTraceDuration function (diff lines 277-298)",
+      "justification": "[4: Quality Necessity] After the trace-to-graph conversion logic is moved to the shared package, keeping the old function definitions in graphTransform.ts would create dead code. The code would be duplicated across two locations, which contradicts the goal of eliminating duplication. [1: Explicit Prompt Requirement] The prompt describes the problem as logic being 'stuck in the Tempo plugin,' implying it should be removed from there once moved. [5: Conclusion] Therefore, any correct answer should remove the old createGraphFrames function, its helpers, and type definitions from graphTransform.ts."
+    }
+  },
+  {
+    "id": "b931066868fa1553d2a96f2f06b5bc1a",
+    "title": "3.2: Removes the unused import of helper functions (getNonOverlappingDuration, getStats, makeFrames, makeSpanMap) from @grafana/o11y-ds-frontend in graphTransform.ts",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the import statement for getNonOverlappingDuration, getStats, makeFrames, and makeSpanMap from @grafana/o11y-ds-frontend is removed from graphTransform.ts, since these were only used by the now-removed createGraphFrames function.",
+      "evidence": "Gold patch: graphTransform.ts removes `import { getNonOverlappingDuration, getStats, makeFrames, makeSpanMap } from '@grafana/o11y-ds-frontend'` (diff line 178)",
+      "justification": "[4: Quality Necessity] After removing createGraphFrames and its helpers from graphTransform.ts, these four imports become unused. Unused imports are dead code that clutters the file and may trigger linter warnings. The remaining code in graphTransform.ts (mapPromMetricsToServiceMap and metric constants) does not use any of these helpers. [5: Conclusion] Therefore, any correct answer should remove the now-unused helper imports from graphTransform.ts."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "241694042374609b7cb75ae4b9bcf3ba",
+    "title": "4.1: Removes or modifies the mapPromMetricsToServiceMap function or its related metric constants in graphTransform.ts",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactoring accidentally removes or alters the mapPromMetricsToServiceMap function or any of its related metric constant exports (secondsMetric, totalsMetric, failedMetric, histogramMetric, rateMetric, errorRateMetric, durationMetric, defaultTableFilter, serviceMapMetrics) in graphTransform.ts.",
+      "evidence": "Gold patch: graphTransform.ts retains all exports from line 135 onward unchanged, including secondsMetric, totalsMetric, failedMetric, histogramMetric, rateMetric, errorRateMetric, durationMetric, defaultTableFilter, serviceMapMetrics, and mapPromMetricsToServiceMap",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to move createGraphFrames to the shared package. The mapPromMetricsToServiceMap function and the Prometheus service map metric constants are unrelated to the trace-to-graph conversion being extracted. [3: Logical Necessity] Other parts of the Tempo plugin depend on mapPromMetricsToServiceMap and these constants for service map functionality. Removing or modifying them would break service map features, which is a regression unrelated to the refactoring. [5: Conclusion] Therefore, any correct answer must NOT remove or modify mapPromMetricsToServiceMap or its related metric constants."
+    }
+  },
+  {
+    "id": "4e65b1bd8317adae1b4bce52f32e18f0",
+    "title": "4.2: Modifies any file with a .test.ts or .test.tsx extension",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the agent modifies any test file (files ending in .test.ts or .test.tsx), violating the explicit constraint in the prompt.",
+      "evidence": "Gold patch: does not modify any .test.ts or .test.tsx file. The test changes (createNodeGraphFrames.test.ts, graphTransform.test.ts) are handled separately in the test patch, not in the agent's source-only patch.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.' [5: Conclusion] Therefore, any correct answer must NOT modify any .test.ts or .test.tsx file."
+    }
+  },
+  {
+    "id": "276171f5e77220cc4d145f2969b5eb74",
+    "title": "4.3: Alters the function signatures or exported behavior of existing shared utilities (getNonOverlappingDuration, getStats, makeFrames, makeSpanMap) in the @grafana/o11y-ds-frontend package",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the agent modifies the signatures, parameters, return types, or internal logic of the existing exported utility functions (getNonOverlappingDuration, getStats, makeFrames, makeSpanMap) in the shared package, which would break other consumers.",
+      "evidence": "Gold patch: the existing utility functions in the renamed createNodeGraphFrames.ts retain their original signatures and logic unchanged. Only new code is added above them; their implementations are preserved identically.",
+      "justification": "[3: Logical Necessity] These four utility functions are part of the public API of @grafana/o11y-ds-frontend and may be used by other packages and plugins beyond the Tempo datasource. Changing their signatures or behavior would be a breaking change to the shared package's API. [1: Explicit Prompt Requirement] The prompt asks to move the core function into the shared package, not to rewrite the existing utilities. [5: Conclusion] Therefore, any correct answer must NOT alter the signatures or behavior of existing shared utilities."
+    }
+  }
+]

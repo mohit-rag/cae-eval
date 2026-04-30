@@ -1,0 +1,7 @@
+{
+  "files": [
+    {
+      "name": "apps/dashboard/pkg/apis/dashboard/v0alpha1/types_removal_test.go"
+    }
+  ]
+}

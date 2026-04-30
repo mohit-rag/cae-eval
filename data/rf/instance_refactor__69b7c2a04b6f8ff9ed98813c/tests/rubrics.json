@@ -1,0 +1,302 @@
+[
+  {
+    "id": "a1000000000000000000000000000001",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Code Maintainability",
+      "description": "The refactoring extracts memory management code from the monolithic libnetdata.c into separate modules under src/libnetdata/memory/.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000002",
+    "title": "1.1: Creates dedicated source file for memory allocation wrappers under src/libnetdata/memory/",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The memory allocation wrapper implementations (such as mallocz, callocz, freez) are moved from src/libnetdata/libnetdata.c into a new .c source file under src/libnetdata/memory/.",
+      "evidence": "gold.patch line 1112: diff --git a/src/libnetdata/memory/nd-mallocz.c (new file with 452 lines of allocation wrapper implementations)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to split memory management into proper modules under src/libnetdata/memory/ with allocation wrappers getting their own source files. [5: Conclusion] Any valid solution must create a dedicated source file for these wrappers in that directory."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000102",
+    "title": "1.2: Creates dedicated header file for memory allocation wrapper declarations under src/libnetdata/memory/",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The memory allocation wrapper declarations (such as mallocz, callocz, freez function prototypes) are moved from src/libnetdata/libnetdata.h into a new .h header file under src/libnetdata/memory/.",
+      "evidence": "gold.patch line 1570: diff --git a/src/libnetdata/memory/nd-mallocz.h (new file with 65 lines of declarations and macros)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks allocation wrappers to get their own header files under src/libnetdata/memory/. [3: Logical Necessity] Separating implementations requires a corresponding header for declarations. [5: Conclusion] Any valid solution must create a dedicated header for these wrappers."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000003",
+    "title": "1.3: Creates dedicated source file for mmap related code under src/libnetdata/memory/",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The mmap/munmap functions, madvise helpers, and related globals are moved from src/libnetdata/libnetdata.c into a new .c source file under src/libnetdata/memory/.",
+      "evidence": "gold.patch line 1641: diff --git a/src/libnetdata/memory/nd-mmap.c (new file with 216 lines of mmap/munmap/madvise implementations)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks the mmap related code, including helpers like the madvise wrappers, to get their own source files under src/libnetdata/memory/. [5: Conclusion] Any valid solution must place mmap code in a dedicated source file in that directory."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000004",
+    "title": "1.4: Provides `nd_mmap` function accepting `void *addr, size_t len, int prot, int flags, int fd, off_t offset` returning `void *`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A new nd_mmap function exists that wraps the system mmap() call. It accepts void *addr, size_t len, int prot, int flags, int fd, off_t offset as parameters. It returns void *.",
+      "evidence": "gold.patch line 1889: +void *nd_mmap(void *addr, size_t len, int prot, int flags, int fd, off_t offset);",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to introduce a new thin nd_mmap wrapper around the system mmap(). [2: Implicit Code Base Constraint] The interface specifies the exact signature with these six parameters. [5: Conclusion] Any valid solution must provide this function with this exact signature."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000005",
+    "title": "1.5: Tracks active mapping count in `nd_mmap` by incrementing a counter on successful mmap",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The nd_mmap function increments a counter tracking the number of active memory mappings when the underlying mmap() succeeds. The interface describes this as atomically incrementing the active mapping count on success.",
+      "evidence": "gold.patch line 1780: +__atomic_add_fetch(&nd_mmap_count, 1, __ATOMIC_RELAXED);",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states nd_mmap should track the number of active mappings. [5: Conclusion] Any valid solution must increment a mapping counter on successful mmap."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000105",
+    "title": "1.6: Tracks total mapped size in `nd_mmap` by incrementing a size counter on successful mmap",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The nd_mmap function increments a counter tracking the total mapped size in bytes when the underlying mmap() succeeds. The interface describes this as atomically incrementing the total mapped size on success.",
+      "evidence": "gold.patch line 1781: +__atomic_add_fetch(&nd_mmap_size, len, __ATOMIC_RELAXED);",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states nd_mmap should track total mapped size. [5: Conclusion] Any valid solution must increment a size counter on successful mmap."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000006",
+    "title": "1.7: Renames `netdata_mmap` to `nd_mmap_advanced` accepting `const char *filename, size_t size, int flags, int ksm, bool read_only, bool dont_dump, int *open_fd`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The existing netdata_mmap function is renamed to nd_mmap_advanced. It accepts const char *filename, size_t size, int flags, int ksm, bool read_only, bool dont_dump, int *open_fd as parameters. It returns void *.",
+      "evidence": "gold.patch line 1888: +void *nd_mmap_advanced(const char *filename, size_t size, int flags, int ksm, bool read_only, bool dont_dump, int *open_fd);",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to rename netdata_mmap to nd_mmap_advanced. [2: Implicit Code Base Constraint] The interface specifies the exact signature. [5: Conclusion] Any valid solution must use this name with this signature."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000007",
+    "title": "1.8: Renames `netdata_munmap` to `nd_munmap` accepting `void *ptr, size_t size` returning `int`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The existing netdata_munmap function is renamed to nd_munmap. It accepts void *ptr, size_t size as parameters. It returns int.",
+      "evidence": "gold.patch line 1890: +int nd_munmap(void *ptr, size_t size);",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to rename netdata_munmap to nd_munmap. [2: Implicit Code Base Constraint] The interface specifies the exact signature. [5: Conclusion] Any valid solution must use this name with this signature."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000008",
+    "title": "1.9: Replaces direct `mmap()` calls in collector source files with `nd_mmap()`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Call sites that previously called the system mmap() directly in collector source files (such as cgroup-discovery.c, ebpf_cgroup.c) now use nd_mmap() instead.",
+      "evidence": "gold.patch line 31: +nd_mmap(NULL, length, ...) in cgroup-discovery.c; line 62: +value = nd_mmap(NULL, length, ...) in ebpf_cgroup.c",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states all direct mmap() calls across the codebase should go through the new wrappers. [5: Conclusion] Any valid solution must replace direct mmap() calls in collector files."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000108",
+    "title": "1.10: Replaces direct `munmap()` calls across the codebase with `nd_munmap()`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Call sites that previously called the system munmap() directly (such as in cgroup-discovery.c, ebpf_cgroup.c, journalfile.c) now use nd_munmap() instead.",
+      "evidence": "gold.patch line 40: +nd_munmap(...) in cgroup-discovery.c; line 71: +nd_munmap(...) in ebpf_cgroup.c; line 124: +nd_munmap(...) in journalfile.c",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states all direct munmap() calls across the codebase should go through the new wrappers. [5: Conclusion] Any valid solution must replace direct munmap() calls."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000009",
+    "title": "1.11: Creates unified `memory_alignment` function accepting `size_t size, size_t alignment` returning `size_t` in a header under src/libnetdata/memory/",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A memory_alignment function is provided in a header under src/libnetdata/memory/ that accepts size_t size, size_t alignment as parameters, returns size_t, rounding the given size up to the specified alignment boundary.",
+      "evidence": "gold.patch line 1100: +static inline size_t memory_alignment(size_t size, size_t alignment) in src/libnetdata/memory/alignment.h",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to consolidate duplicated alignment implementations into a single header providing unified memory_alignment(). [2: Implicit Code Base Constraint] The interface specifies the exact signature. [5: Conclusion] Any valid solution must provide this function."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000109",
+    "title": "1.12: Creates unified `natural_alignment` function accepting `size_t size` returning `size_t` in a header under src/libnetdata/memory/",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A natural_alignment function is provided in a header under src/libnetdata/memory/ that accepts size_t size as a parameter, returns size_t, rounding the given size up to the system's natural alignment boundary.",
+      "evidence": "gold.patch line 1106: +static inline size_t natural_alignment(size_t size) in src/libnetdata/memory/alignment.h",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to consolidate duplicated alignment implementations providing unified natural_alignment() that replaces struct_natural_alignment(). [2: Implicit Code Base Constraint] The interface specifies the exact signature. [5: Conclusion] Any valid solution must provide this function."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000010",
+    "title": "1.13: Updates call sites using `struct_natural_alignment()` to use `natural_alignment()` instead",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Call sites that previously used struct_natural_alignment() (such as in src/database/engine/rrdengineapi.c) are updated to call the new unified natural_alignment() function.",
+      "evidence": "gold.patch line 183: +natural_alignment(sizeof(struct rrdengine_datafile)) in src/database/engine/rrdengineapi.c",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks the unified functions to replace struct_natural_alignment() and the other variants. [3: Logical Necessity] If alignment is consolidated, callers must use the new function name. [5: Conclusion] Any valid solution must update these call sites."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000011",
+    "title": "1.14: Creates `os_get_system_page_size()` function under `src/libnetdata/os/` accepting `void` returning `size_t`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "A centralized os_get_system_page_size function is created under src/libnetdata/os/. It accepts void as input, returns size_t, replacing the ad-hoc sysconf calls that existed in aral.c and onewayalloc.c.",
+      "evidence": "gold.patch line 1968: +size_t os_get_system_page_size(void) { in src/libnetdata/os/get_system_pagesize.c",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to create a centralized os_get_system_page_size() under src/libnetdata/os/ to replace the ad-hoc sysconf calls. [2: Implicit Code Base Constraint] The interface specifies the exact signature. [5: Conclusion] Any valid solution must provide this function at this location."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000012",
+    "title": "1.15: Adds Windows support in `os_get_system_page_size()` using GetSystemInfo or equivalent",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The os_get_system_page_size function includes a Windows implementation (e.g. using GetSystemInfo) in addition to the POSIX sysconf path, typically guarded by a platform conditional such as #if defined(OS_WINDOWS).",
+      "evidence": "gold.patch line 1965: +#if defined(OS_WINDOWS) and line 1973: +GetSystemInfo(&sys_info); in src/libnetdata/os/get_system_pagesize.c",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to add Windows support for page size retrieval. [5: Conclusion] Any valid solution must include a Windows-compatible code path."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000013",
+    "title": "1.16: Updates `CMakeLists.txt` to register the new source files in the build system",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The new source files created under src/libnetdata/memory/ and src/libnetdata/os/ are added to the build system in CMakeLists.txt (e.g. to the LIBNETDATA_FILES list) so they are compiled as part of the library.",
+      "evidence": "gold.patch lines 9-15: new files added to LIBNETDATA_FILES in CMakeLists.txt",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to wire everything into CMakeLists.txt. [3: Logical Necessity] New source files must be registered in the build system or they will not be compiled. [5: Conclusion] Any valid solution must update CMakeLists.txt."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000014",
+    "title": "1.17: Updates `libnetdata.h` to include the new memory module headers",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The libnetdata.h header is updated to #include the new memory module headers (for allocation wrappers, mmap code, alignment) so the rest of the codebase can access the relocated functions without changing their own includes.",
+      "evidence": "gold.patch lines 969-971: +#include memory/alignment.h, +#include memory/nd-mallocz.h, +#include memory/nd-mmap.h in src/libnetdata/libnetdata.h",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to wire everything into the include chain through libnetdata.h. [3: Logical Necessity] Without these includes, existing code that includes libnetdata.h cannot access the relocated functions. [5: Conclusion] Any valid solution must update libnetdata.h."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000015",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "Artifact Cleanup",
+      "description": "Obsolete implementations are removed from their original locations after being consolidated into the new modules.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000016",
+    "title": "3.1: Removes the local alignment macro definitions from `aral.c`",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "The local SYSTEM_REQUIRED_ALIGNMENT macro definition and the static memory_alignment function that existed inside src/libnetdata/aral/aral.c are removed, as they are now provided by the consolidated alignment header.",
+      "evidence": "gold.patch line 219: -#define SYSTEM_REQUIRED_ALIGNMENT and line 231: -static inline size_t memory_alignment removed from aral.c",
+      "justification": "[4: Qualitative Requirement] Leaving duplicate alignment definitions in aral.c after consolidation creates maintenance burden and risks divergence. [5: Conclusion] A high-quality solution removes the now-redundant local copies."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000116",
+    "title": "3.2: Removes the local alignment definitions from `onewayalloc.c`",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "The local OWA_NATURAL_ALIGNMENT macro definition and the static natural_alignment function that existed inside src/libnetdata/onewayalloc/onewayalloc.c are removed, as they are now provided by the consolidated alignment header.",
+      "evidence": "gold.patch line 1901: -#define OWA_NATURAL_ALIGNMENT and lines 1912-1917: -static inline size_t natural_alignment removed from onewayalloc.c",
+      "justification": "[4: Qualitative Requirement] Leaving duplicate alignment definitions in onewayalloc.c after consolidation creates maintenance burden and risks divergence. [5: Conclusion] A high-quality solution removes the now-redundant local copies."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000018",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Negative Rubrics",
+      "description": "The refactoring does not introduce breaking changes, regressions, or common anti-patterns.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000019",
+    "title": "4.1: Modifies test files or testing logic in the repository",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "The solution modifies, adds, or removes any test files (files matching patterns such as *_test.c, test_*.c, *-unittest.c, or files under tests/ directories) or alters test logic. The prompt states: Do NOT modify any test files or testing logic in any way.",
+      "evidence": "The prompt contains the explicit constraint: Do NOT modify any test files or testing logic in any way.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt contains a direct constraint against modifying test files. This is a specific agent anti-pattern where models add or update tests despite being told not to. [5: Conclusion] Any solution that touches test files violates the prompt constraint."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000020",
+    "title": "4.2: Deletes exported memory allocation functions (such as mallocz, callocz, freez) from the codebase instead of relocating them",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "The solution removes the implementations of exported memory allocation functions (such as mallocz, callocz, freez, strdupz, strndupz) from libnetdata.c but fails to place them in a new file under src/libnetdata/memory/, effectively deleting them.",
+      "evidence": "gold.patch lines 1506-1558 show these functions relocated to src/libnetdata/memory/nd-mallocz.c",
+      "justification": "[2: Implicit Code Base Constraint] Hundreds of call sites across the netdata codebase depend on mallocz, callocz, freez. Deleting them instead of relocating them would break the entire build. [5: Conclusion] Any solution that removes these functions without relocating them is incorrect."
+    }
+  },
+  {
+    "id": "a1000000000000000000000000000021",
+    "title": "4.3: Leaves stale `netdata_mmap` or `netdata_munmap` references in call sites after renaming",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "The solution renames the functions to nd_mmap_advanced and nd_munmap but leaves some call sites still referencing the old names netdata_mmap or netdata_munmap, causing linker errors or undefined symbol failures.",
+      "evidence": "gold.patch line 160: +nd_mmap_advanced in journalfile.c; line 197: +nd_mmap_advanced in rrddim.c; line 253: +nd_mmap_advanced in aral.c; line 1942: +nd_mmap_advanced in onewayalloc.c",
+      "justification": "[3: Logical Necessity] Renaming a function requires updating every call site that references the old name. Leaving stale references is a common agent error that causes build failures. [5: Conclusion] Any solution that renames the functions but misses call sites is incomplete."
+    }
+  }
+]

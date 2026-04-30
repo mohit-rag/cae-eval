@@ -1,0 +1,16 @@
+{
+  "files": [
+    {
+      "name": "apps/help-center/__tests__/config.test.js"
+    },
+    {
+      "name": "packages/help-center/src/__tests__/help-center-context.test.ts"
+    },
+    {
+      "name": "packages/odie-client/src/__tests__/bot-slug-hooks.test.ts"
+    },
+    {
+      "name": "packages/odie-client/src/__tests__/bot-slug-refactor.test.ts"
+    }
+  ]
+}

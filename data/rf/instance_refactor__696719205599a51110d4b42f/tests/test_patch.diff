@@ -1,0 +1,456 @@
+diff --git a/apps/help-center/__tests__/config.test.js b/apps/help-center/__tests__/config.test.js
+new file mode 100644
+index 00000000000..348a239056a
+--- /dev/null
++++ b/apps/help-center/__tests__/config.test.js
+@@ -0,0 +1,64 @@
++const fs = require( 'fs' );
++const path = require( 'path' );
++
++describe( 'Help Center config', () => {
++	let configContent;
++
++	beforeAll( () => {
++		configContent = fs.readFileSync(
++			path.join( __dirname, '..', 'config.js' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'includes an i18n default locale slug', () => {
++		expect( configContent ).toContain( 'i18n_default_locale_slug' );
++	} );
++} );
++
++describe( 'Help Center entry points pass bot configuration', () => {
++	let gutenbergContent;
++	let wpAdminContent;
++
++	beforeAll( () => {
++		gutenbergContent = fs.readFileSync(
++			path.join( __dirname, '..', 'help-center-gutenberg.js' ),
++			'utf-8'
++		);
++		wpAdminContent = fs.readFileSync(
++			path.join( __dirname, '..', 'help-center-wp-admin.js' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'gutenberg entry point determines bot based on Commerce Garden', () => {
++		expect( gutenbergContent ).toContain( 'isCommerceGarden' );
++		expect( gutenbergContent ).toContain( 'botNameSlug' );
++	} );
++
++	it( 'gutenberg entry point passes bot configuration to HelpCenter', () => {
++		const pattern = /<HelpCenter[\s\n]/g;
++		let match;
++		while ( ( match = pattern.exec( gutenbergContent ) ) !== null ) {
++			const afterTag = gutenbergContent.substring( match.index );
++			const closingIndex = afterTag.indexOf( '/>' );
++			const usage = afterTag.substring( 0, closingIndex );
++			const hasBotProp = usage.includes( 'botNameSlug' ) || usage.includes( 'botProps' );
++			expect( hasBotProp ).toBe( true );
++		}
++	} );
++
++	it( 'wp-admin entry point determines bot based on Commerce Garden', () => {
++		expect( wpAdminContent ).toContain( 'isCommerceGarden' );
++		expect( wpAdminContent ).toContain( 'botNameSlug' );
++	} );
++
++	it( 'wp-admin entry point passes bot configuration to HelpCenter', () => {
++		const helpCenterUsages = wpAdminContent.split( '<HelpCenter' );
++		for ( let i = 1; i < helpCenterUsages.length; i++ ) {
++			const usage = helpCenterUsages[ i ].split( '/>' )[ 0 ];
++			const hasBotProp = usage.includes( 'botNameSlug' ) || usage.includes( 'botProps' );
++			expect( hasBotProp ).toBe( true );
++		}
++	} );
++} );
+diff --git a/packages/help-center/src/__tests__/help-center-context.test.ts b/packages/help-center/src/__tests__/help-center-context.test.ts
+new file mode 100644
+index 00000000000..72552b40d1e
+--- /dev/null
++++ b/packages/help-center/src/__tests__/help-center-context.test.ts
+@@ -0,0 +1,60 @@
++import fs from 'fs';
++import path from 'path';
++import type { HelpCenterRequiredInformation } from '../contexts/HelpCenterContext';
++
++describe( 'HelpCenterRequiredInformation type', () => {
++	it( 'includes botNameSlug as a required field', () => {
++		const context: HelpCenterRequiredInformation = {
++			botNameSlug: 'wpcom-support-chat',
++			locale: 'en',
++			sectionName: 'test',
++			currentUser: {
++				ID: 1,
++				display_name: 'Test',
++				username: 'test',
++				email: 'test@test.com',
++				language: 'en',
++				localeSlug: 'en',
++				locale_variant: '',
++				localeVariant: '',
++				site_count: 1,
++			},
++			site: null,
++			hasPurchases: false,
++			primarySiteId: 0,
++			googleMailServiceFamily: '',
++			onboardingUrl: '',
++			isCommerceGarden: false,
++		};
++		expect( context.botNameSlug ).toBe( 'wpcom-support-chat' );
++	} );
++
++	it( 'allows different bot slug values in the context', () => {
++		const context: Partial< HelpCenterRequiredInformation > = {
++			botNameSlug: 'ciab-workflow-support_chat',
++			isCommerceGarden: true,
++		};
++		expect( context.botNameSlug ).toBe( 'ciab-workflow-support_chat' );
++	} );
++} );
++
++describe( 'HelpCenterContext default includes botNameSlug', () => {
++	let contextSource: string;
++
++	beforeAll( () => {
++		contextSource = fs.readFileSync(
++			path.join( __dirname, '..', 'contexts', 'HelpCenterContext.tsx' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'default context object includes a botNameSlug value', () => {
++		const defaultContextMatch = contextSource.match(
++			/const\s+defaultContext[\s\S]*?=\s*\{([\s\S]*?)\};/
++		);
++		expect( defaultContextMatch ).toBeTruthy();
++		if ( defaultContextMatch ) {
++			expect( defaultContextMatch[ 1 ] ).toContain( 'botNameSlug' );
++		}
++	} );
++} );
+diff --git a/packages/odie-client/src/__tests__/bot-slug-hooks.test.ts b/packages/odie-client/src/__tests__/bot-slug-hooks.test.ts
+new file mode 100644
+index 00000000000..0cc3301b102
+--- /dev/null
++++ b/packages/odie-client/src/__tests__/bot-slug-hooks.test.ts
+@@ -0,0 +1,258 @@
++import fs from 'fs';
++import path from 'path';
++
++describe( 'OdieAssistantProvider accepts caller bot slug', () => {
++	let providerSource: string;
++
++	beforeAll( () => {
++		providerSource = fs.readFileSync(
++			path.join( __dirname, '..', 'context', 'index.tsx' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'accepts a default bot slug prop from the caller', () => {
++		expect( providerSource ).toContain( 'defaultBotNameSlug' );
++	} );
++
++	it( 'does not hardcode wpcom-support-chat as the fallback for bot slug resolution', () => {
++		const providerFnMatch = providerSource.match(
++			/OdieAssistantProvider[\s\S]*?\(\s*\{([\s\S]*?)\}\s*\)\s*=>\s*\{([\s\S]*?)\n\treturn/
++		);
++		if ( providerFnMatch ) {
++			const providerBody = providerFnMatch[ 2 ];
++			expect( providerBody ).not.toContain( "'wpcom-support-chat'" );
++			expect( providerBody ).not.toContain( '"wpcom-support-chat"' );
++		}
++	} );
++
++	it( 'uses the caller-provided default bot slug value somewhere in the provider logic', () => {
++		const afterDestructure = providerSource.split( 'defaultBotNameSlug' );
++		expect( afterDestructure.length ).toBeGreaterThan( 2 );
++	} );
++} );
++
++describe( 'useOdieChat does not use context botNameSlug for API calls', () => {
++	let hookSource: string;
++
++	beforeAll( () => {
++		hookSource = fs.readFileSync(
++			path.join( __dirname, '..', 'data', 'use-odie-chat.ts' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'references bot_slug from a support interaction', () => {
++		expect( hookSource ).toContain( 'bot_slug' );
++	} );
++
++	it( 'does not use botNameSlug in any API path', () => {
++		const lines = hookSource.split( '\n' );
++		const pathLines = lines.filter( ( l ) => l.includes( '/odie/chat/' ) );
++		for ( const line of pathLines ) {
++			expect( line ).not.toContain( 'botNameSlug' );
++		}
++	} );
++
++	it( 'does not use botNameSlug in the query key', () => {
++		const queryKeyLines = hookSource.split( '\n' ).filter( ( l ) => l.includes( 'queryKey' ) );
++		for ( const line of queryKeyLines ) {
++			expect( line ).not.toContain( 'botNameSlug' );
++		}
++	} );
++} );
++
++describe( 'useSendOdieMessage does not use context botNameSlug for API calls', () => {
++	let hookSource: string;
++
++	beforeAll( () => {
++		hookSource = fs.readFileSync(
++			path.join( __dirname, '..', 'data', 'use-send-odie-message.ts' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'references bot_slug from a support interaction', () => {
++		expect( hookSource ).toContain( 'bot_slug' );
++	} );
++
++	it( 'does not use botNameSlug in any API path', () => {
++		const lines = hookSource.split( '\n' );
++		const pathLines = lines.filter( ( l ) => l.includes( '/odie/chat/' ) );
++		for ( const line of pathLines ) {
++			expect( line ).not.toContain( 'botNameSlug' );
++		}
++	} );
++
++	it( 'does not use botNameSlug in query cache invalidation', () => {
++		const lines = hookSource.split( '\n' );
++		const invalidateLines = lines.filter( ( l ) => l.includes( 'invalidateQueries' ) || l.includes( 'queryKey' ) );
++		for ( const line of invalidateLines ) {
++			expect( line ).not.toContain( 'botNameSlug' );
++		}
++	} );
++} );
++
++describe( 'useSendOdieFeedback does not use context botNameSlug for API calls', () => {
++	let hookSource: string;
++
++	beforeAll( () => {
++		hookSource = fs.readFileSync(
++			path.join( __dirname, '..', 'data', 'use-send-odie-feedback.ts' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'references bot_slug from a support interaction', () => {
++		expect( hookSource ).toContain( 'bot_slug' );
++	} );
++
++	it( 'does not use botNameSlug in the feedback API path', () => {
++		const lines = hookSource.split( '\n' );
++		const pathLines = lines.filter( ( l ) => l.includes( '/odie/chat/' ) || l.includes( 'feedback' ) );
++		for ( const line of pathLines ) {
++			expect( line ).not.toContain( 'botNameSlug' );
++		}
++	} );
++
++	it( 'does not use botNameSlug in any query key', () => {
++		const lines = hookSource.split( '\n' );
++		const queryKeyLines = lines.filter( ( l ) => l.includes( 'queryKey' ) );
++		for ( const line of queryKeyLines ) {
++			expect( line ).not.toContain( 'botNameSlug' );
++		}
++	} );
++} );
++
++describe( 'useGetOdieConversations accepts support interactions', () => {
++	let hookSource: string;
++
++	beforeAll( () => {
++		hookSource = fs.readFileSync(
++			path.join( __dirname, '..', 'data', 'use-get-odie-conversations.ts' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'accepts support interactions as a parameter', () => {
++		const signatureMatch = hookSource.match(
++			/useGetOdieConversations\s*[\s\S]*?\(/
++		);
++		expect( signatureMatch ).toBeTruthy();
++		expect( hookSource ).toContain( 'SupportInteraction' );
++	} );
++
++	it( 'references bot_slug from interactions', () => {
++		expect( hookSource ).toContain( 'bot_slug' );
++	} );
++
++	it( 'does not use botNameSlug in any API path', () => {
++		const lines = hookSource.split( '\n' );
++		const pathLines = lines.filter( ( l ) => l.includes( '/odie/conversations/' ) );
++		for ( const line of pathLines ) {
++			expect( line ).not.toContain( 'botNameSlug' );
++		}
++	} );
++
++	it( 'does not use botNameSlug in the query key', () => {
++		const lines = hookSource.split( '\n' );
++		const queryKeyLines = lines.filter( ( l ) => l.includes( 'queryKey' ) );
++		for ( const line of queryKeyLines ) {
++			expect( line ).not.toContain( 'botNameSlug' );
++		}
++	} );
++} );
++
++describe( 'MessagesContainer uses interaction bot_slug for initial message', () => {
++	let containerSource: string;
++
++	beforeAll( () => {
++		containerSource = fs.readFileSync(
++			path.join( __dirname, '..', 'components', 'message', 'messages-container.tsx' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'does not pass botNameSlug to getOdieInitialMessage', () => {
++		const lines = containerSource.split( '\n' );
++		const initialMsgLines = lines.filter( ( l ) => l.includes( 'getOdieInitialMessage' ) );
++		for ( const line of initialMsgLines ) {
++			expect( line ).not.toContain( 'botNameSlug' );
++		}
++	} );
++
++	it( 'references bot_slug somewhere for the initial message', () => {
++		expect( containerSource ).toContain( 'bot_slug' );
++	} );
++} );
++
++describe( 'OdieAssistantContext default does not hardcode the old bot slug', () => {
++	let contextSource: string;
++
++	beforeAll( () => {
++		contextSource = fs.readFileSync(
++			path.join( __dirname, '..', 'context', 'index.tsx' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'default context botNameSlug is not the old hardcoded value', () => {
++		const createContextMatch = contextSource.match(
++			/createContext[\s\S]*?\(\s*\{([\s\S]*?)\}\s*\)/
++		);
++		expect( createContextMatch ).toBeTruthy();
++		if ( createContextMatch ) {
++			const defaultObj = createContextMatch[ 1 ];
++			const slugLine = defaultObj.match( /botNameSlug\s*:\s*([^\n,]+)/ );
++			if ( slugLine ) {
++				expect( slugLine[ 1 ] ).not.toContain( "'wpcom-support-chat'" );
++			}
++		}
++	} );
++} );
++
++describe( 'HelpCenterChat forwards bot slug to the provider', () => {
++	let chatSource: string;
++
++	beforeAll( () => {
++		chatSource = fs.readFileSync(
++			path.resolve( process.cwd(), 'packages', 'help-center', 'src', 'components', 'help-center-chat.tsx' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'reads botNameSlug from the HelpCenter context', () => {
++		expect( chatSource ).toContain( 'botNameSlug' );
++		expect( chatSource ).toContain( 'useHelpCenterContext' );
++	} );
++
++	it( 'passes a bot slug prop to OdieAssistantProvider', () => {
++		const lines = chatSource.split( '\n' );
++		const providerLine = lines.findIndex( ( l ) => l.includes( '<OdieAssistantProvider' ) );
++		expect( providerLine ).toBeGreaterThan( -1 );
++		const providerBlock = lines.slice( providerLine, providerLine + 20 ).join( '\n' );
++		const hasBotSlug = providerBlock.includes( 'botNameSlug' ) || providerBlock.includes( 'BotNameSlug' );
++		expect( hasBotSlug ).toBe( true );
++	} );
++} );
++
++describe( 'useGetHistoryChats passes interactions to conversation listing', () => {
++	let historySource: string;
++
++	beforeAll( () => {
++		historySource = fs.readFileSync(
++			path.resolve( process.cwd(), 'packages', 'help-center', 'src', 'hooks', 'use-get-history-chats.ts' ),
++			'utf-8'
++		);
++	} );
++
++	it( 'passes arguments to useGetOdieConversations', () => {
++		const callMatch = historySource.match(
++			/useGetOdieConversations\s*\(([^)]*)\)/
++		);
++		expect( callMatch ).toBeTruthy();
++		if ( callMatch ) {
++			expect( callMatch[ 1 ].trim() ).not.toBe( '' );
++		}
++	} );
++} );
+diff --git a/packages/odie-client/src/__tests__/bot-slug-refactor.test.ts b/packages/odie-client/src/__tests__/bot-slug-refactor.test.ts
+new file mode 100644
+index 00000000000..133b4d64740
+--- /dev/null
++++ b/packages/odie-client/src/__tests__/bot-slug-refactor.test.ts
+@@ -0,0 +1,50 @@
++import type { OdieAssistantProviderProps, SupportInteraction } from '../types';
++
++describe( 'SupportInteraction type', () => {
++	it( 'includes a bot_slug field', () => {
++		const interaction: SupportInteraction = {
++			bot_slug: 'wpcom-support-chat',
++			uuid: 'test-uuid',
++			status: 'open',
++			start_date: '2025-01-01',
++			last_updated: '2025-01-01',
++			users: [],
++			events: [],
++			environment: 'production',
++		};
++		expect( interaction.bot_slug ).toBe( 'wpcom-support-chat' );
++	} );
++
++	it( 'accepts different bot_slug values', () => {
++		const interaction: SupportInteraction = {
++			bot_slug: 'ciab-workflow-support_chat',
++			uuid: 'test-uuid-2',
++			status: 'open',
++			start_date: '2025-01-01',
++			last_updated: '2025-01-01',
++			users: [],
++			events: [],
++			environment: 'staging',
++		};
++		expect( interaction.bot_slug ).toBe( 'ciab-workflow-support_chat' );
++	} );
++} );
++
++describe( 'OdieAssistantProviderProps type', () => {
++	it( 'requires defaultBotNameSlug as a mandatory prop', () => {
++		const props: OdieAssistantProviderProps = {
++			defaultBotNameSlug: 'wpcom-support-chat',
++			currentUser: { display_name: 'Test User' },
++		};
++		expect( props.defaultBotNameSlug ).toBe( 'wpcom-support-chat' );
++	} );
++
++	it( 'does not have an optional botNameSlug prop', () => {
++		const props: OdieAssistantProviderProps = {
++			defaultBotNameSlug: 'wpcom-support-chat',
++			currentUser: { display_name: 'Test User' },
++		};
++		expect( 'botNameSlug' in props ).toBe( false );
++		expect( props ).not.toHaveProperty( 'botNameSlug' );
++	} );
++} );

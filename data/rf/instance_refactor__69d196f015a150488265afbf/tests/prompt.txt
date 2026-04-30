@@ -1,0 +1,11 @@
+# Problem Statement
+
+The InnoDB and RocksDB storage engine code in MariaDB has accumulated a lot of unnecessary indirection when interacting with the server's THD (thread handle) object. The code goes through C-style thd_*() service API wrapper functions for things like getting the thread ID, accessing the charset, acquiring MDL context, marking transactions for rollback, checking strict mode, and many other basic operations. These service API wrappers exist for out of process plugins, but since InnoDB and RocksDB compile as part of the server, the extra layer just adds noise and obscures what the code is actually doing.
+
+On top of the service API wrappers, InnoDB has its own second layer of helper functions in ha_innodb.cc like thd_trx_is_read_only() and thd_trx_is_auto_commit() that just delegate to other service calls, with declarations scattered across ha_innodb.h and ha_prototypes.h. The thd_mdl_context() usage throughout the code is also overly defensive, casting and null checking a context that is always present on any valid THD. The thread ID handling uses the wrong type in several places, leading to mismatched format specifiers in debug and log output. There are also a few switch statements on enum values in the handler code that are missing default cases, which produces compiler warnings.
+
+Can you clean up this indirection throughout the InnoDB and RocksDB storage engine code so that THD access is more direct and readable, unnecessary wrappers and their declarations are removed, and the type mismatches for thread identifiers are corrected?
+
+## Constraint
+
+I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.

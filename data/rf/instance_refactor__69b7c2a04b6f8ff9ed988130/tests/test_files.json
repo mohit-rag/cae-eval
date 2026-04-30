@@ -1,0 +1,13 @@
+{
+  "files": [
+    {
+      "name": "src/tests/detect-engine-analyzer.c"
+    },
+    {
+      "name": "src/Makefile.am"
+    },
+    {
+      "name": "src/runmode-unittests.c"
+    }
+  ]
+}

@@ -1,0 +1,254 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "040f7ffed1abbddbc0cfad72c92024e6",
+    "title": "1.1: Adds fil_space_t::defragment() method for system tablespace defragmentation",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the fil_space_t::defragment() method is added to handle system tablespace defragmentation, callable during server operations.",
+      "evidence": "Gold patch adds fil_space_t::defragment() method declaration in fil0fil.h and implementation in fsp0fsp.cc",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires adding defragmentation support for the InnoDB system tablespace. [5: Conclusion] An entry point for defragmentation is required to trigger the consolidation process."
+    }
+  },
+  {
+    "id": "b69ac02f81fe8db7aa3e7b762ab588f9",
+    "title": "1.2: Performs each page move atomically within a single mini-transaction",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that page moves (allocation, content copy, reference updates, deallocation) are performed atomically within a single mini-transaction so that a crash at any point leaves the tablespace in a consistent state.",
+      "evidence": "Gold patch implements PageOperator class with prepare/complete pattern, executing all steps within one mtr before committing",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Each page move must be atomic'. [5: Conclusion] Atomic operations within a single mini-transaction ensure data integrity on crash."
+    }
+  },
+  {
+    "id": "a3f7c91d2e4b8a06d5c1e9f3b7d24a81",
+    "title": "1.3: Restores original page state on failure during page relocation",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that if an error occurs during page relocation, the implementation restores the original page state and discards modifications to maintain data integrity.",
+      "evidence": "Gold patch implements save_old_page() to snapshot pages before modification and restore_old_pages() to revert them on error, followed by mtr->discard_modifications()",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Handle errors gracefully with rollback capability if something fails mid-operation'. [5: Conclusion] Rollback prevents partial updates from corrupting tablespace metadata."
+    }
+  },
+  {
+    "id": "6728da86b45fd61acc21d984c1104a8f",
+    "title": "1.4: Updates all 3 B-tree references (parent child pointer, left sibling next pointer, right sibling previous pointer) when relocating a page",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that when a B-tree page is relocated to a new page number, all 3 references to it are updated: the parent page's child pointer, the left sibling's FIL_PAGE_NEXT, and the right sibling's FIL_PAGE_PREV.",
+      "evidence": "Gold patch implements AssociatedPages class with prepare() and complete() methods to fetch and update left/right/parent block references",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Relocate B-tree pages atomically, updating all references (parent, left sibling, right sibling)'. [5: Conclusion] All three reference types must be updated to maintain B-tree integrity."
+    }
+  },
+  {
+    "id": "60e4e624a7270363fae5c068ab5cb252",
+    "title": "1.5: Invokes defragmentation during server restart, not shutdown",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that defragmentation is triggered during server restart (startup) and not during shutdown, as explicitly required by the prompt.",
+      "evidence": "Gold patch modifies fsp_system_tablespace_truncate() to call defragment() only when !shutdown parameter is true",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'Move data from later extents to earlier free extents during server restart (not during shutdown)'. [5: Conclusion] The timing constraint must be enforced."
+    }
+  },
+  {
+    "id": "f2862d6cfdcef86f0ce6581c5c457615",
+    "title": "1.6: Skips defragmentation when user tables exist in system tablespace",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that defragmentation is skipped if user tables exist in the system tablespace, and an informational message is logged suggesting to move them first.",
+      "evidence": "Gold patch adds user_tables_exists() function and fil_space_t::defragment() returns early with sql_print_information message when user tables are found",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Skip defragmentation if user tables exist in the system tablespace (log a message suggesting to move them first)'. [5: Conclusion] User table detection and skip logic is required."
+    }
+  },
+  {
+    "id": "c7f9db24188ac20a79502f9563578636",
+    "title": "1.7: Defragments all 7 system dictionary tables (SYS_TABLES, SYS_COLUMNS, SYS_INDEXES, SYS_FIELDS, SYS_FOREIGN, SYS_FOREIGN_COLS, SYS_VIRTUAL)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that defragmentation processes all 7 system dictionary tables.",
+      "evidence": "Gold patch defragment_system_tables() method explicitly calls defragment_table() on dict_sys.sys_tables, dict_sys.sys_columns, dict_sys.sys_indexes, dict_sys.sys_fields, dict_sys.sys_foreign, dict_sys.sys_foreign_cols, and dict_sys.sys_virtual",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Only defragment system dictionary tables, not user tables'. [5: Conclusion] The scope must be limited to the 7 dictionary tables."
+    }
+  },
+  {
+    "id": "ac7eda1652d2f14c8f10131e98e77bfc",
+    "title": "1.8: Modifies flst_validate() to return dberr_t error codes instead of using assertions",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that flst_validate() is modified to return dberr_t error codes (e.g., DB_CORRUPTION) instead of using ut_ad assertions, enabling graceful error handling in production.",
+      "evidence": "Gold patch modifies flst_validate() signature to return dberr_t and replaces ut_ad assertions with return DB_CORRUPTION statements",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'return error codes instead of using assertions'. [5: Conclusion] Error codes enable proper error handling in release builds."
+    }
+  },
+  {
+    "id": "05a2da7449e7ec518a66cfd5c169b5be",
+    "title": "1.9: Makes flst_validate() available in release builds by removing debug-only guards",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that flst_validate() is available in release builds, not just debug builds, by removing the #ifdef UNIV_DEBUG / #endif guards around its declaration and definition.",
+      "evidence": "Gold patch removes #ifdef UNIV_DEBUG and #endif guards around flst_validate in fut0lst.cc and fut0lst.h",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Make the existing list validation function available in release builds (not just debug)'. [5: Conclusion] Debug guards must be removed for release availability."
+    }
+  },
+  {
+    "id": "d0fd30bd80a59e1cd27cc8113caf7955",
+    "title": "1.10: Calls fsp_tablespace_validate() to validate tablespace free-space lists during the defragmentation flow",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that fsp_tablespace_validate() is called within the defragmentation code path to validate the FSP header lists (FSP_FREE, FSP_FREE_FRAG, FSP_FULL_FRAG, FSP_SEG_INODES_FULL, FSP_SEG_INODES_FREE) and ensure tablespace integrity.",
+      "evidence": "Gold patch calls fsp_tablespace_validate() within defragment_level() to validate these structures after page relocations",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Must validate data structures before and after operations'. [5: Conclusion] fsp_tablespace_validate() must be called in the defragmentation flow to ensure free-space list integrity."
+    }
+  },
+  {
+    "id": "e7a3b19c4d2f8e56a0c1d9f4b7e32a85",
+    "title": "1.11: Validates index segment inode lists before and after defragmentation operations",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the segment inode lists (FSEG_FREE, FSEG_NOT_FULL, FSEG_FULL) are validated before and after defragmentation operations to ensure index segment integrity.",
+      "evidence": "Gold patch calls fseg_validate_low() at key points during defragmentation to validate segment inode structures",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Must validate data structures before and after operations'. [5: Conclusion] Validation of segment inode lists ensures index operations maintain data integrity."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "935142da7bafab0edf2854e22014dcc2",
+    "title": "3.1: Refactors xdes_get_state() to use uint32_t with combined declaration-assignment for the state variable",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that xdes_get_state() is modernized: the separate 'ulint state; ... state = mach_read_from_4(...)' pattern is replaced with 'uint32_t state = mach_read_from_4(...)' \u2014 combining declaration with assignment while updating the type.",
+      "evidence": "Gold patch changes 'ulint state; ... state = mach_read_from_4(...)' to 'uint32_t state = mach_read_from_4(...)' with matching return type",
+      "justification": "[4: Qualitative Requirement] Cleaner code patterns improve readability. [5: Conclusion] Refactoring is an opportunity to clean up touched code."
+    }
+  },
+  {
+    "id": "2f523aef8c6c83245b75294f10626988",
+    "title": "3.2: Tracks extent state to identify free and used extents",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that a mechanism exists to track extent information (e.g., free vs used state) to identify which later extents can be moved to earlier free extents.",
+      "evidence": "Gold patch implements SpaceDefragmenter class with m_extent_info map tracking extent states and m_extent_map for old-to-new extent mapping",
+      "justification": "[3: Logical Necessity] The prompt requires moving data from later extents to earlier free extents; tracking extent state is required to identify which extents are free and which are used. [5: Conclusion] Extent state tracking enables the defragmentation algorithm."
+    }
+  },
+  {
+    "id": "e18f718e8a308efcba757a48c8d9b11e",
+    "title": "3.3: Traverses B-tree levels to relocate pages",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that the implementation traverses B-tree index levels and relocates pages from later extents to earlier free extents while maintaining tree structure.",
+      "evidence": "Gold patch implements IndexDefragmenter class with defragment_level() method that iterates through B-tree levels and relocates pages",
+      "justification": "[3: Logical Necessity] The prompt requires relocating B-tree pages; traversing B-tree levels is required to find and move pages systematically. [5: Conclusion] Level-by-level traversal ensures all pages are considered for relocation."
+    }
+  },
+  {
+    "id": "2a9a4051a3a8c21680f4c81814bd08f0",
+    "title": "3.4: Adds dict_sys_t::is_sys_table() to distinguish system tables from user tables",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that dict_sys_t::is_sys_table() is added to distinguish system dictionary tables from user tables when checking for user table presence.",
+      "evidence": "Gold patch adds is_sys_table() method to dict_sys_t that checks table_id ranges",
+      "justification": "[3: Logical Necessity] The user_tables_exists() check needs to distinguish system tables from user tables to implement the skip logic. [5: Conclusion] System table identification is required for the user table check."
+    }
+  },
+  {
+    "id": "05bd955acc57a670a4b174c9e1814c08",
+    "title": "3.5: Implements atomic list manipulation for extent descriptor operations",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that list manipulation operations (e.g., removing from one list, adding to another) for extent descriptors are performed atomically to ensure tablespace metadata consistency.",
+      "evidence": "Gold patch implements flst namespace with remove_prepare/complete and append_prepare/complete functions",
+      "justification": "[3: Logical Necessity] The prompt requires atomic page moves; extent descriptor list operations must also be atomic to maintain tablespace metadata consistency during relocation. [5: Conclusion] Atomic list operations prevent partial updates."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "d8e4b12c7f9a3e56c0d1f8a4b6e29c73",
+    "title": "4.1: Breaks existing tablespace truncation logic in fsp_system_tablespace_truncate()",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the implementation damages the existing tablespace truncation flow when adding defragmentation. The defragmentation must be integrated without breaking the existing shrink path.",
+      "evidence": "Gold patch preserves the full existing garbage_collect() and truncation logic in fsp_system_tablespace_truncate(), adding defragment() as an additional step between garbage collection and extent traversal",
+      "justification": "[3: Logical Necessity] The prompt asks to add defragmentation to improve the effectiveness of existing tablespace truncation. Breaking the existing truncation flow would be a regression. [5: Conclusion] Existing functionality must be preserved while adding defragmentation."
+    }
+  }
+]

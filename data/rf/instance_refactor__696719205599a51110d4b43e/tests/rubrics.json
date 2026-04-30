@@ -1,0 +1,218 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "da233a07b6db4041099aea24cd0206bf",
+    "title": "1.1: Renames the wrapped field in parsingState struct in js/compiler/compiler.go to indicate CommonJS module wrapping",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the wrapped field in parsingState is renamed to explicitly indicate it refers to CommonJS module wrapping. Valid names include commonJSWrapped, isCommonJS, cjsWrapped, or similar descriptive alternatives.",
+      "evidence": "gold.patch line 68 shows one valid approach: renaming wrapped bool to commonJSWrapped bool.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the parsing state has 'confusingly generic names like wrap and wrapped that don't indicate they're specifically for CommonJS module wrapping' and asks to 'clean this up'. [2: Implicit Codebase Constraint] The parsingState struct in js/compiler/compiler.go has a wrapped field that tracks CommonJS wrapping state. [5: Conclusion] Therefore, any correct answer must rename the struct field to indicate CommonJS wrapping.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "bc338a135de74b572f86aef34f53402c",
+    "title": "1.2: Renames the wrap parameter in Parse function in js/compiler/compiler.go to indicate CommonJS module wrapping",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the wrap parameter in Parse function is renamed to explicitly indicate CommonJS wrapping. Valid names include commonJSWrap, wrapAsCommonJS, cjsWrap, or similar descriptive alternatives.",
+      "evidence": "gold.patch line 79 shows one valid approach: renaming wrap bool to commonJSWrap bool.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the parsing state has 'confusingly generic names like wrap and wrapped that don't indicate they're specifically for CommonJS module wrapping'. [3: Logical Necessity] The Parse function parameter sets the struct field, so it should use consistent naming. [5: Conclusion] Therefore, any correct answer must rename the Parse parameter to indicate CommonJS wrapping.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "6d781901a870016c13aeb022163e9468",
+    "title": "1.3: Renames the wrap parameter in parseImpl function in js/compiler/compiler.go to indicate CommonJS module wrapping",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the wrap parameter in parseImpl function is renamed to explicitly indicate CommonJS wrapping for internal consistency. Valid names include commonJSWrap, wrapAsCommonJS, cjsWrap, or similar descriptive alternatives.",
+      "evidence": "gold.patch line 121 shows one valid approach: renaming wrap bool to commonJSWrap bool.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the parsing state has 'confusingly generic names like wrap and wrapped that don't indicate they're specifically for CommonJS module wrapping'. [3: Logical Necessity] Internal functions should use consistent naming with the public API. [5: Conclusion] Therefore, any correct answer must rename the parseImpl parameter to indicate CommonJS wrapping.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e8ddc417b8cb7613c243f15d9d04a249",
+    "title": "1.4: Removes the unused Strict field from the Options struct in js/compiler/compiler.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the unused Strict configuration option is removed from the compiler Options struct.",
+      "evidence": "gold.patch line 56 removes Strict bool from the Options struct.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests cleanup of 'unused configuration options'. [2: Implicit Codebase Constraint] The Options struct contains a Strict field no longer used after Babel removal. [5: Conclusion] Therefore, any correct answer must remove the unused Strict field from the Options struct.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7119ce8ead1c92d7d790ff63bc22a009",
+    "title": "1.5: Removes the Strict field usage from compiler Options instantiation in js/bundle.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the Strict: true usage is removed from the compiler Options instantiation in js/bundle.go so the code compiles after the Strict field is removed from the struct.",
+      "evidence": "gold.patch line 25 removes Strict: true from js/bundle.go.",
+      "justification": "[2: Implicit Codebase Constraint] In Go, removing a struct field causes compilation errors for any code that references it. [3: Logical Necessity] Removing the Strict field from the Options struct requires removing its usage in js/bundle.go for the code to compile. [5: Conclusion] Therefore, any correct answer must remove the Strict field usage from js/bundle.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e38daf11f8ebd661041b41f0ce881b1d",
+    "title": "1.6: Renames the sourceMapURLFromBabel constant in js/compiler/compiler.go to remove the Babel reference",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the sourceMapURLFromBabel constant is renamed to remove the Babel reference. Valid names include internalSourceMapURL, sourceMapURL, generatedSourceMapURL, or similar non-Babel alternatives.",
+      "evidence": "gold.patch line 168 shows one valid approach: renaming to internalSourceMapURL.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests removal of 'references to Babel' so 'the codebase accurately reflects our current architecture'. [2: Implicit Codebase Constraint] The constant sourceMapURLFromBabel explicitly references Babel in its identifier. [5: Conclusion] Therefore, any correct answer must rename the sourceMapURLFromBabel constant to remove the Babel reference.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "8049bc94f7977d9665967ceaba4b391b",
+    "title": "1.7: Removes the Babel reference from user-facing compatibility mode help text in cmd/runtime_options.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that user-facing help text about compatibility modes no longer mentions Babel transpilation.",
+      "evidence": "gold.patch lines 9-13 show removal of Babel references from cmd/runtime_options.go help text.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests removal of 'references to Babel' so 'the codebase accurately reflects our current architecture without the Babel legacy'. [5: Conclusion] Therefore, any correct answer must update the help text to remove Babel references.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d6e4cdfb1e406839d234709fd9a267c7",
+    "title": "1.8: Removes both Babel references from the package documentation in js/compiler/compiler.go (package doc comment, sourceMapLoader comment)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the package-level documentation in js/compiler/compiler.go reflects current architecture without Babel references.",
+      "evidence": "gold.patch lines 35-36 show removal of 'transpiling through babel' from package comment.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests removal of 'references to Babel' so 'the codebase accurately reflects our current architecture without the Babel legacy'. [5: Conclusion] Therefore, any correct answer must update the package documentation to remove Babel references.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e8821eb2214270dba1a1f16267421841",
+    "title": "1.9: Removes both Babel references from compatibility mode comments in lib/runtime_options.go (CompatibilityModeExtended comment, RuntimeOptions CompatibilityMode comment)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that code comments describing compatibility modes no longer reference Babel.",
+      "evidence": "gold.patch lines 238-239 and 250-251 show removal of Babel references from lib/runtime_options.go comments.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests removal of 'references to Babel' so 'the codebase accurately reflects our current architecture without the Babel legacy'. [5: Conclusion] Therefore, any correct answer must update the compatibility mode comments to remove Babel references.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "51d5c14f7ed5d9910c57efa08eddb968",
+    "title": "1.10: Removes both Babel references from js/tc39/README.md (\"Sobek+babel\" in introduction, \"k6 add babel to the mix\" in last paragraph)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the TC39 testing documentation is updated to remove references to Babel.",
+      "evidence": "gold.patch lines 208-209 and 226-227 update js/tc39/README.md to remove Babel references.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests removal of 'references to Babel' so 'the codebase accurately reflects our current architecture without the Babel legacy'. [5: Conclusion] Therefore, any correct answer must update the README to remove Babel references.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "6f0ccf8539336116c5f288d2e83d126d",
+    "title": "3.1: Removes the redundant logger field from parsingState struct in js/compiler/compiler.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that the redundant logger field is removed from parsingState since it can be accessed via the compiler reference instead.",
+      "evidence": "gold.patch line 70 removes logger field from parsingState struct.",
+      "justification": "[2: Implicit Codebase Constraint] The parsingState struct stores a compiler reference which already contains the logger. [4: Quality Necessity] After refactoring, the logger can be accessed through ps.compiler.logger, making the separate logger field redundant. [5: Conclusion] Therefore, any correct answer should remove the redundant logger field.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "e5332e0324c95d2f19a9db58c80bc576",
+    "title": "4.1: Deletes the Parse function from js/compiler/compiler.go entirely",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the public Parse function still exists after refactoring. The function should be preserved with renamed parameters, not deleted.",
+      "evidence": "gold.patch preserves the Parse function while only renaming its parameter (line 79).",
+      "justification": "[2: Implicit Codebase Constraint] The Parse function is the main public API called by other modules. [3: Logical Necessity] Refactoring for naming clarity should not delete core functionality. [5: Conclusion] Therefore, any correct answer must NOT delete the Parse function.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "25388e1a2d468f0189a05d02b0acef6b",
+    "title": "4.2: Deletes the sourceMapLoader method from js/compiler/compiler.go entirely",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that source map loading functionality still exists after refactoring. The method should be preserved with updated references, not deleted.",
+      "evidence": "gold.patch preserves the sourceMapLoader method, only updating internal constant references (lines 174-196).",
+      "justification": "[2: Implicit Codebase Constraint] The sourceMapLoader function enables source map support for debugging. [3: Logical Necessity] Renaming a constant should not cause deletion of the function that uses it. [5: Conclusion] Therefore, any correct answer must NOT delete the sourceMapLoader method.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "0d3ba8153dac24442bb25550ad8610b1",
+    "title": "4.3: Deletes the wrap method from js/compiler/compiler.go entirely",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that CommonJS wrapping functionality still exists after refactoring. The wrap method should be preserved, not deleted.",
+      "evidence": "gold.patch preserves the wrap method, keeping its functionality intact (lines 155-165).",
+      "justification": "[2: Implicit Codebase Constraint] The wrap method provides CommonJS module wrapping used by parseImpl. [3: Logical Necessity] Refactoring for naming clarity should not delete core functionality. [5: Conclusion] Therefore, any correct answer must NOT delete the wrap method.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

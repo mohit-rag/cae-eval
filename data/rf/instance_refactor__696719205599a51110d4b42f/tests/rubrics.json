@@ -1,0 +1,206 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "0b7e4f54ad8ba23e07f713fd0792c66c",
+    "title": "1.1: Adds a required defaultBotNameSlug prop of type OdieAllowedBots to OdieAssistantProviderProps",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that OdieAssistantProviderProps in packages/odie-client/src/types.ts includes a required defaultBotNameSlug: OdieAllowedBots field so that callers can provide the bot slug for new conversations.",
+      "evidence": "gold.patch lines 455-466 (packages/odie-client/src/types.ts): line 462 adds `defaultBotNameSlug: OdieAllowedBots` as a required field to OdieAssistantProviderProps, replacing the previous optional `botNameSlug?: OdieAllowedBots` removed at line 466.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the provider props should reflect that the bot slug for new conversations comes from the caller as a required value rather than being optional. [2: Implicit Codebase Constraint] The interface specifies defaultBotNameSlug: OdieAllowedBots as a required prop on OdieAssistantProvider. [5: Conclusion] Therefore, any correct answer must add defaultBotNameSlug as a required prop on OdieAssistantProviderProps."
+    }
+  },
+  {
+    "id": "69c027166310a438d4cab7e7c5f9a604",
+    "title": "1.2: Configures OdieAssistantProvider to use the caller-provided defaultBotNameSlug as its fallback instead of a hardcoded string",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that OdieAssistantProvider in packages/odie-client/src/context/index.tsx accepts the defaultBotNameSlug prop and uses it as the fallback bot slug when the help-center store does not have a valid bot set, instead of falling back to a hardcoded string like 'wpcom-support-chat'.",
+      "evidence": "gold.patch lines 205-258 (packages/odie-client/src/context/index.tsx): line 222 destructures `defaultBotNameSlug` from props, and lines 243-257 replace the hardcoded 'wpcom-support-chat' fallback with `defaultBotNameSlug` in the useSelect callback.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the provider's internal fallback should use whatever the caller provided instead of a hardcoded string. [2: Implicit Codebase Constraint] The interface describes OdieAssistantProvider as accepting a default bot slug from the caller and using it as the fallback. [5: Conclusion] Therefore, any correct answer must wire defaultBotNameSlug as the fallback in the provider's store resolution logic."
+    }
+  },
+  {
+    "id": "a41dd234930e87ba57e9a8d187e63eaa",
+    "title": "1.3: Adds a botNameSlug field to the HelpCenterRequiredInformation type so callers can pass bot configuration through the Help Center context",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that HelpCenterRequiredInformation in packages/help-center/src/contexts/HelpCenterContext.tsx includes a botNameSlug field, enabling callers to pass bot configuration into the context which is then forwarded to the odie-client provider.",
+      "evidence": "gold.patch lines 97-116 (packages/help-center/src/contexts/HelpCenterContext.tsx): line 105 adds `botNameSlug: string` to the HelpCenterRequiredInformation type, and line 113 sets the default value to 'wpcom-support-chat'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the bot slug for new conversations should be passed down through the Help Center context and into the odie-client provider. [3: Logical Necessity] For callers to pass a bot slug through the context, the context type must include the field. [5: Conclusion] Therefore, any correct answer must add a botNameSlug field to HelpCenterRequiredInformation."
+    }
+  },
+  {
+    "id": "77c5c16b27232e0d78af429dcb0f83bd",
+    "title": "1.4: Passes environment-appropriate bot configuration from all 3 Help Center entry points (HelpCenterContent, isNextAdmin block, AdminHelpCenterContent) to the HelpCenter component using the isCommerceGarden condition",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that all 3 Help Center entry points \u2014 HelpCenterContent component in help-center-gutenberg.js, the isNextAdmin block in help-center-gutenberg.js, and AdminHelpCenterContent in help-center-wp-admin.js \u2014 compute botProps by checking helpCenterData.isCommerceGarden and spread them into the HelpCenter component.",
+      "evidence": "gold.patch lines 11-52 (apps/help-center/help-center-gutenberg.js): HelpCenterContent and isNextAdmin block both compute botProps via helpCenterData.isCommerceGarden and spread into HelpCenter. gold.patch lines 53-75 (apps/help-center/help-center-wp-admin.js): AdminHelpCenterContent does the same.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states each Help Center entry point should be able to choose the appropriate bot based on its environment. [3: Logical Necessity] The entry points are the callers that know which environment they serve (e.g. Commerce Garden), so bot selection must happen there. [5: Conclusion] Therefore, any correct answer must have each of the 3 entry points pass the appropriate bot to HelpCenter based on the isCommerceGarden condition."
+    }
+  },
+  {
+    "id": "9effe1e2efa287f32742ae652f84f430",
+    "title": "1.5: Adds a bot_slug field to the SupportInteraction type",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the SupportInteraction type in packages/odie-client/src/types.ts includes a bot_slug field so the system can access the bot slug stored on existing interactions.",
+      "evidence": "gold.patch lines 470-477 (packages/odie-client/src/types.ts): line 474 adds `bot_slug: string` to the SupportInteraction type.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states the SupportInteraction type needs a bot_slug field. [3: Logical Necessity] To use the stored bot_slug from existing interactions, the type must declare this field for type safety. [5: Conclusion] Therefore, any correct answer must add bot_slug to the SupportInteraction type."
+    }
+  },
+  {
+    "id": "bd5cae17d88c0f3fdd1f68b0e6b8684e",
+    "title": "1.6: Updates useGetOdieConversations to derive bot slugs from support interactions passed as a parameter",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that useGetOdieConversations in packages/odie-client/src/data/use-get-odie-conversations.ts accepts supportInteractions: SupportInteraction[] as its first parameter, using the bot slugs from those interactions for the API path instead of reading a single botNameSlug from context.",
+      "evidence": "gold.patch lines 262-323 (packages/odie-client/src/data/use-get-odie-conversations.ts): lines 278-293 change the signature to accept supportInteractions: SupportInteraction[] and derive botSlugs from the interactions' bot_slug fields, and line 320 gates the query on supportInteractions.length > 0.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the conversation listing hook should derive the relevant bot slugs from the actual support interactions. [2: Implicit Codebase Constraint] The interface specifies the exact signature with supportInteractions as the first parameter. [5: Conclusion] Therefore, any correct answer must update useGetOdieConversations to derive slugs from the interactions parameter."
+    }
+  },
+  {
+    "id": "97b271dce20d831f7a7b184dd2b12ce8",
+    "title": "1.7: Updates useOdieChat to use the interaction's stored bot_slug instead of the context botNameSlug",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that useOdieChat in packages/odie-client/src/data/use-odie-chat.ts uses the bot_slug from the current support interaction rather than reading botNameSlug from the OdieAssistantContext for its API path and query key.",
+      "evidence": "gold.patch lines 324-375 (packages/odie-client/src/data/use-odie-chat.ts): lines 340-345 replace botNameSlug from context with supportInteraction?.bot_slug from useCurrentSupportInteraction, and lines 349-363 use botSlug in the API path and query key.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states for existing conversations, fetching a single chat should use the bot_slug stored on the support interaction rather than reading from the context. [5: Conclusion] Therefore, any correct answer must update useOdieChat to use the interaction's bot_slug."
+    }
+  },
+  {
+    "id": "2fe1a0c7a369fb0602a8e860d97a96bf",
+    "title": "1.8: Updates useSendOdieMessage to use the interaction's stored bot_slug instead of the context botNameSlug",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that useSendOdieMessage in packages/odie-client/src/data/use-send-odie-message.ts uses the bot_slug from the current support interaction rather than reading botNameSlug from the OdieAssistantContext for its API path and query cache invalidation.",
+      "evidence": "gold.patch lines 413-453 (packages/odie-client/src/data/use-send-odie-message.ts): lines 421-430 remove botNameSlug from the context destructure and use currentSupportInteraction?.bot_slug in the API paths and query cache invalidation.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states for existing conversations, sending messages should use the bot_slug stored on the support interaction rather than reading from the context. [5: Conclusion] Therefore, any correct answer must update useSendOdieMessage to use the interaction's bot_slug."
+    }
+  },
+  {
+    "id": "b8b0ffb6cbac3fd2f203620e4966224a",
+    "title": "1.9: Updates useSendOdieFeedback to use the interaction's stored bot_slug instead of the context botNameSlug",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that useSendOdieFeedback in packages/odie-client/src/data/use-send-odie-feedback.ts uses the bot_slug from the current support interaction rather than reading botNameSlug from the OdieAssistantContext for its API path and query cache key.",
+      "evidence": "gold.patch lines 376-412 (packages/odie-client/src/data/use-send-odie-feedback.ts): lines 392-394 replace botNameSlug from context with supportInteraction?.bot_slug from useCurrentSupportInteraction for the feedback API path and query key.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states for existing conversations, submitting feedback should use the bot_slug stored on the support interaction rather than reading from the context. [5: Conclusion] Therefore, any correct answer must update useSendOdieFeedback to use the interaction's bot_slug."
+    }
+  },
+  {
+    "id": "f28c778ff213bc8efd42d6ba51878791",
+    "title": "1.10: Updates the initial welcome message rendering to use the interaction's bot_slug instead of the context botNameSlug",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the messages container component uses the bot_slug from the current support interaction when rendering the initial welcome message, instead of reading botNameSlug from the OdieAssistantContext.",
+      "evidence": "gold.patch lines 152-204 (packages/odie-client/src/components/message/messages-container.tsx): line 177 adds useCurrentSupportInteraction, lines 186-188 add a type guard, and lines 198-201 pass supportInteraction.bot_slug to getOdieInitialMessage instead of botNameSlug.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states for existing conversations, the initial welcome message should use the bot_slug stored on the support interaction. [3: Logical Necessity] Historical conversations were created with specific bots, so the welcome message must reflect the correct bot. [5: Conclusion] Therefore, any correct answer must update the initial message to use the interaction's bot_slug."
+    }
+  },
+  {
+    "id": "caeb76b661245051c723684e5b1ec287",
+    "title": "1.11: Adds a default locale slug to the Help Center config",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the Help Center config file at apps/help-center/config.js includes a default locale slug entry (e.g. i18n_default_locale_slug) so the environment has an i18n default available.",
+      "evidence": "gold.patch lines 1-10 (apps/help-center/config.js): line 9 adds `i18n_default_locale_slug: 'en'` to window.configData.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states to add a default locale slug to the Help Center config so the environment has an i18n default available. [5: Conclusion] Therefore, any correct answer must add an i18n locale default to the config."
+    }
+  },
+  {
+    "id": "f7266b7edf38bb5a79acb24100194ec6",
+    "title": "1.12: Updates useGetHistoryChats to pass the support interactions to useGetOdieConversations",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that useGetHistoryChats in packages/help-center/src/hooks/use-get-history-chats.ts passes the odie support interactions to useGetOdieConversations instead of calling it without arguments.",
+      "evidence": "gold.patch lines 117-129 (packages/help-center/src/hooks/use-get-history-chats.ts): line 126 changes `useGetOdieConversations()` to `useGetOdieConversations( odieSupportInteractions )`, passing the interactions as an argument.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the conversation listing hook should derive bot slugs from actual support interactions and only make the request once interactions are available. [3: Logical Necessity] useGetHistoryChats is the consumer of useGetOdieConversations and has access to the odie support interactions from useGetSupportInteractions. It must wire them together. [5: Conclusion] Therefore, any correct answer should update useGetHistoryChats to pass the interactions."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "2e4224899891e489d8280a3bfd5b81dd",
+    "title": "4.1: Centralizes bot selection logic inside help-center-chat.tsx instead of distributing it to the Help Center entry points (HelpCenterContent, isNextAdmin block, AdminHelpCenterContent)",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the solution computes the environment-based bot slug (e.g. checking isCommerceGarden) inside help-center-chat.tsx rather than at each Help Center entry point. This bypasses the intended architecture where entry points independently choose the bot for their environment and pass it down through the context.",
+      "evidence": "gold.patch lines 11-52 (apps/help-center/help-center-gutenberg.js) and lines 53-75 (apps/help-center/help-center-wp-admin.js): each entry point independently computes botProps from helpCenterData.isCommerceGarden and spreads them into the HelpCenter component, keeping bot selection at the caller level.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Each Help Center entry point should be able to choose the appropriate bot based on its environment.' [2: Implicit Codebase Constraint] The codebase has multiple independent entry points (HelpCenterContent, isNextAdmin block, AdminHelpCenterContent) that each render HelpCenter with their own props; bot selection belongs at this caller level, not deeper in the component tree. [3: Logical Necessity] Centralizing bot selection in help-center-chat.tsx means entry points lose the ability to independently choose bots, violating the prompt's per-entry-point requirement. [5: Conclusion] Therefore, a solution that centralizes bot selection in help-center-chat.tsx instead of the entry points fails the requested architecture."
+    }
+  },
+  {
+    "id": "e9dd129b8d800cfbc851d1d07702cc32",
+    "title": "4.2: Retains the botNameSlug variable name on API path lines in hooks that should exclusively use the interaction's bot_slug (useOdieChat, useSendOdieMessage, useSendOdieFeedback)",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the solution renames the context destructure (e.g. to contextBotSlug) but then reassigns to a local variable still named botNameSlug, causing the old identifier to appear on API path and query key lines. The hooks should use the interaction's bot_slug directly without reintroducing the botNameSlug name in API-facing code.",
+      "evidence": "gold.patch lines 324-375 (use-odie-chat.ts), lines 376-412 (use-send-odie-feedback.ts), lines 413-453 (use-send-odie-message.ts): each hook replaces botNameSlug with supportInteraction?.bot_slug or a derived botSlug variable in all API path and query key expressions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states hooks should 'use the bot_slug that is already stored on the support interaction rather than reading from the context.' [2: Implicit Codebase Constraint] The existing hooks (useOdieChat, useSendOdieMessage, useSendOdieFeedback) use botNameSlug from OdieAssistantContext in their API paths and query keys; the refactoring must replace this with the interaction's bot_slug, not just alias it. [3: Logical Necessity] Reassigning to a local variable still named botNameSlug that appears on API path lines means the context-derived value remains in the fallback chain, contradicting the prompt's instruction to use the interaction's value exclusively. [5: Conclusion] Therefore, a solution that retains botNameSlug on API path lines in these hooks fails to adopt the interaction's bot_slug as required."
+    }
+  },
+  {
+    "id": "89ca3ebacee807412ac1266332d50757",
+    "title": "4.3: Modifies use-get-combined-chat.ts to thread an interactionBotSlug parameter instead of having useOdieChat read the interaction internally via useCurrentSupportInteraction",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the solution adds an interactionBotSlug parameter to useOdieChat and threads it from use-get-combined-chat.ts, rather than having useOdieChat call useCurrentSupportInteraction internally to obtain the bot_slug. This unnecessarily modifies a file outside the intended scope and pushes interaction awareness to the caller.",
+      "evidence": "gold.patch lines 324-375 (packages/odie-client/src/data/use-odie-chat.ts): useOdieChat calls useCurrentSupportInteraction() internally and derives botSlug from supportInteraction?.bot_slug, keeping the interaction lookup self-contained within the hook.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states hooks should 'use the bot_slug that is already stored on the support interaction rather than reading from the context,' implying each hook obtains the interaction internally. [2: Implicit Codebase Constraint] The codebase provides useCurrentSupportInteraction as a shared hook that any consumer can call to access the current interaction; hooks like useSendOdieMessage and useSendOdieFeedback already follow this internal-access pattern. [3: Logical Necessity] Threading an interactionBotSlug parameter from use-get-combined-chat.ts pushes interaction awareness to a caller that should not need it, unnecessarily modifying a file outside the refactoring scope. [5: Conclusion] Therefore, a solution that modifies use-get-combined-chat.ts to pass interactionBotSlug instead of having useOdieChat read the interaction internally represents an incorrect architectural approach."
+    }
+  }
+]

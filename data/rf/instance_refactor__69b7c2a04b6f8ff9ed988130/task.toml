@@ -1,0 +1,25 @@
+[metadata]
+author_name = "ScaleAI"
+author_email = "unknown"
+difficulty = "hard"
+category = "refactoring"
+tags = ["refactoring", "master-validator", "rubric-graded", "C"]
+
+[verifier]
+timeout_sec = 7200
+
+[verifier.env]
+EVAL_API_KEY = "${OPENAI_API_KEY}"
+EVAL_BASE_URL = "${OPENAI_API_BASE}"
+EVAL_MODEL = "${EVAL_MODEL:-anthropic/claude-opus-4-5-20251101}"
+
+[agent]
+timeout_sec = 3600
+
+[environment]
+docker_image = "084828598639.dkr.ecr.us-west-2.amazonaws.com/caev-images/refactor:instance_charmender_v1.6_8130@sha256:e76c17e491cadd62993f687fd18277f562d91ea7d9a515829fce23708e60505f"
+build_timeout_sec = 1800
+allow_internet = true
+cpus = 2
+memory_mb = 4096
+storage_mb = 10240

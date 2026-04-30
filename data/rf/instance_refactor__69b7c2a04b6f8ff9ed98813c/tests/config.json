@@ -1,0 +1,9 @@
+{
+  "task_id": "69b7c2a04b6f8ff9ed98813c",
+  "repo": "netdata_netdata",
+  "base_commit": "291f2b8001de615ef1f4553d22a050e0bcd858c1",
+  "language": "C",
+  "mount_path": "/opt/netdata.git",
+  "initial_complexity": "Extreme",
+  "uid": "0f1a823e-3191-4800-a0ea-b9cfccb19f64"
+}

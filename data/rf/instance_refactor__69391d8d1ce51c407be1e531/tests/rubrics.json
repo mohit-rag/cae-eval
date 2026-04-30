@@ -1,0 +1,302 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "High-level intent category for code quality improvements related to refactoring duplicated buffer pool logic and in-memory content writer.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "769a5198100d362799aebcf055ca15e2",
+    "title": "1.1: Extracts the local buffer implementation from pkg/gitparse/gitparse.go into a shared package",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the local buffer implementation from gitparse.go has been extracted into a shared content writer package (such as pkg/writers/buffer_writer/) that both gitparse and BufferedFileWriter can use.",
+      "evidence": "gold.patch lines 17-65 show removal of the local buffer struct, state type, newBuffer function, and all buffer methods from pkg/gitparse/gitparse.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The gitparse package and BufferedFileWriter both implement their own buffer pool logic and in-memory content writer with similar functionality. Refactor this duplicated code into two shared packages.' [2: Implicit Codebase Constraint] The existing codebase has buffer and content writer logic embedded in pkg/gitparse/gitparse.go. [3: Logical Necessity] Given the request to refactor duplicated code into shared packages, the local buffer implementation in gitparse.go must be extracted. [4: Quality Necessity] Any good implementation must remove duplicated code from its original location when consolidating. [5: Conclusion] Therefore, ANY correct and good answer must extract the local buffer implementation from pkg/gitparse/gitparse.go into a shared package.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "2048cb8f2a5e170de8ff2300e09bcfe6",
+    "title": "1.2: Extracts buffer pool logic from pkg/writers/buffered_file_writer/bufferedfilewriter.go into a shared package",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the buffer pool logic from bufferedfilewriter.go has been extracted into a shared buffer pool package (such as pkg/writers/buffer/) that both gitparse and BufferedFileWriter can use.",
+      "evidence": "gold.patch lines 527-641 show removal of the bufferPool struct, buffer struct, bufPoolOpt type, newBufferPool function, and pool methods (get, growBufferWithSize, put) from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Refactor this duplicated code into two shared packages... that both components can use to reduce duplication and improve maintainability.' [2: Implicit Codebase Constraint] The existing codebase has buffer pool logic embedded in pkg/writers/buffered_file_writer/bufferedfilewriter.go. [3: Logical Necessity] Given the request to refactor duplicated code into shared packages, the buffer pool logic currently in bufferedfilewriter.go must be extracted. [4: Quality Necessity] Any good implementation must remove duplicated code from its original location when consolidating. [5: Conclusion] Therefore, ANY correct and good answer must extract the buffer pool logic from pkg/writers/buffered_file_writer/bufferedfilewriter.go into a shared package.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e38adea11ebdea6c0adf39fa24242c8f",
+    "title": "1.3: Creates buffer.go as a shared buffer pool package in pkg/writers/buffer/ containing the consolidated pool and buffer primitives",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that pkg/writers/buffer/buffer.go is created to house the consolidated buffer pool (Pool, Buffer, ReadCloser) so both gitparse and BufferedFileWriter can use it.",
+      "evidence": "gold.patch lines 98-286 show creation of pkg/writers/buffer/buffer.go with Pool struct, Buffer struct, NewBufferPool, Get, Put, Write, Grow, ReadCloser, and NewBuffer.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Refactor this duplicated code into two shared packages \u2014 one for the buffer pool and buffer primitives.' The interface specification designates the path as pkg/writers/buffer/buffer.go. [2: Implicit Codebase Constraint] The codebase organizes packages under pkg/writers/. [3: Logical Necessity] Given the request for a shared buffer pool package, a new package must be created to house the consolidated pool and buffer logic. [4: Quality Necessity] Any good implementation must create a dedicated location for shared code to enable reuse. [5: Conclusion] Therefore, ANY correct and good answer must create a shared buffer pool package at pkg/writers/buffer/ containing the consolidated pool and buffer primitives.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "38d25c6a90a11d23a820e814de78ff33",
+    "title": "1.4: Updates pkg/gitparse/gitparse.go to use the shared content writer implementation (such as bufferwriter.New) instead of its local buffer type",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that gitparse.go imports and uses the shared content writer implementation, replacing calls to newBuffer() with the shared implementation (such as bufferwriter.New).",
+      "evidence": "gold.patch lines 9, 75-76, 83-94 show gitparse.go importing bufferwriter and replacing newBuffer() calls with bufferwriter.New(ctx) in both newDiff and FromReader.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Update gitparse and BufferedFileWriter to use the new shared packages.' [2: Implicit Codebase Constraint] The existing codebase has gitparse.go calling newBuffer() in newDiff and FromReader. [3: Logical Necessity] Given the extraction of buffer logic to shared packages and the requirement that both components use them, gitparse.go must be updated to import and use the shared implementation. [4: Quality Necessity] Any good implementation must update all call sites to use the refactored shared code. [5: Conclusion] Therefore, ANY correct and good answer must update pkg/gitparse/gitparse.go to use the shared implementation instead of its local buffer type.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "80216f473acce2bd43e489346179133a",
+    "title": "1.5: Updates pkg/writers/buffered_file_writer/bufferedfilewriter.go to use the shared buffer pool implementation instead of its local bufferPool",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that bufferedfilewriter.go imports and uses the shared buffer pool, replacing sharedBufferPool type and local pool methods (get, put, growBufferWithSize) with the shared Pool methods (such as Get, Put) and buffer.ReadCloser.",
+      "evidence": "gold.patch lines 537, 605-606, 642, 652-653, 662-663, 718, 727, 739 show bufferedfilewriter.go importing the buffer package, replacing sharedBufferPool type with *buffer.Pool, and using buffer.Pool methods and buffer.ReadCloser.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Update gitparse and BufferedFileWriter to use the new shared packages.' [2: Implicit Codebase Constraint] The existing codebase has bufferedfilewriter.go using sharedBufferPool and calling local pool methods get() and put(). [3: Logical Necessity] Given the extraction of buffer pool logic to a shared package and the requirement that both components use it, bufferedfilewriter.go must be updated to use the shared implementation. [4: Quality Necessity] Any good implementation must update all call sites to use the refactored shared code. [5: Conclusion] Therefore, ANY correct and good answer must update pkg/writers/buffered_file_writer/bufferedfilewriter.go to use the shared buffer pool implementation instead of its local bufferPool.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "46e2e88b3ccbafce6f3c467a1685b2a1",
+    "title": "1.6: Removes the buffer struct type definition from pkg/gitparse/gitparse.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the buffer struct is removed from gitparse.go after extraction to shared package.",
+      "evidence": "gold.patch lines 27-33 show removal of the buffer struct type definition from pkg/gitparse/gitparse.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Make sure the old local implementations (buffer types, state management, pool structs, and helper functions) are fully removed from their original files.' The buffer struct is a local buffer type in gitparse.go. [2: Implicit Codebase Constraint] The existing codebase defines the buffer struct in gitparse.go as the local in-memory content writer wrapper around bytes.Buffer. [3: Logical Necessity] Since the buffer struct is a local buffer type and the prompt explicitly requires all local implementations to be removed, it must be deleted from gitparse.go. [5: Conclusion] Therefore, ANY correct and good answer must remove the buffer struct type definition from pkg/gitparse/gitparse.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "5e28c44bc68cc1131125c3175f44d916",
+    "title": "1.7: Removes the state type and its constants (state, writeOnly, readOnly) from pkg/gitparse/gitparse.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the state type (uint8) and its associated constants (writeOnly, readOnly) are removed from gitparse.go after extraction to the shared content writer package.",
+      "evidence": "gold.patch lines 17-25 show removal of the state type and associated constants from pkg/gitparse/gitparse.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Make sure the old local implementations (buffer types, state management, pool structs, and helper functions) are fully removed from their original files.' The state type and its constants are local state management in gitparse.go. [2: Implicit Codebase Constraint] The existing codebase defines the state type (uint8) and its constants (writeOnly, readOnly) in gitparse.go, used exclusively by the local buffer implementation. [3: Logical Necessity] Since the state type is local state management and the prompt explicitly requires all local implementations to be removed, it must be deleted from gitparse.go. [5: Conclusion] Therefore, ANY correct and good answer must remove the state type and its constants from pkg/gitparse/gitparse.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "07ccd6581aae49c916d5fe7fb5a0dabd",
+    "title": "1.8: Removes the newBuffer function from pkg/gitparse/gitparse.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the newBuffer function is removed from gitparse.go after extraction to shared package.",
+      "evidence": "gold.patch line 35 shows removal of the newBuffer function from pkg/gitparse/gitparse.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Make sure the old local implementations (buffer types, state management, pool structs, and helper functions) are fully removed from their original files.' The newBuffer function is a local helper function in gitparse.go. [2: Implicit Codebase Constraint] The existing codebase defines newBuffer in gitparse.go as the constructor for the local buffer struct. [3: Logical Necessity] Since newBuffer is a local helper function and the prompt explicitly requires all local implementations to be removed, it must be deleted from gitparse.go. [5: Conclusion] Therefore, ANY correct and good answer must remove the newBuffer function from pkg/gitparse/gitparse.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3b21ca23fdf8eae07adf2d70aa2afeaa",
+    "title": "1.9: Removes all 9 buffer pool definitions (bufferPoolMetrics struct, recordGrowth, recordShrink, recordCheckoutDuration, recordBufferRetrival, recordBufferReturn, bufPoolOpt, bufferPool struct, defaultBufferSize) from pkg/writers/buffered_file_writer/bufferedfilewriter.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that all 9 buffer pool definitions (bufferPoolMetrics struct, recordGrowth, recordShrink, recordCheckoutDuration, recordBufferRetrival, recordBufferReturn, bufPoolOpt type, bufferPool struct, defaultBufferSize constant) are removed from bufferedfilewriter.go after extraction to the shared buffer package.",
+      "evidence": "gold.patch lines 539-577 show removal of the bufferPoolMetrics struct and its methods (recordGrowth, recordShrink, recordCheckoutDuration, recordBufferRetrival, recordBufferReturn), bufPoolOpt type, bufferPool struct, and defaultBufferSize constant from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Make sure the old local implementations (buffer types, state management, pool structs, and helper functions) are fully removed from their original files.' The 9 definitions include pool structs (bufferPool, bufferPoolMetrics), helper functions (recordGrowth, recordShrink, recordCheckoutDuration, recordBufferRetrival, recordBufferReturn), a type (bufPoolOpt), and a constant (defaultBufferSize). [2: Implicit Codebase Constraint] The existing codebase defines these 9 items in bufferedfilewriter.go as the local buffer pool infrastructure. [3: Logical Necessity] Since these definitions are local pool structs, buffer types, and helper functions, and the prompt explicitly requires all local implementations to be removed, they must be deleted from bufferedfilewriter.go. [5: Conclusion] Therefore, ANY correct and good answer must remove all 9 buffer pool definitions from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "bf29db41796e7f3c3c8dcd198f75042a",
+    "title": "1.10: Removes the newBufferPool function from pkg/writers/buffered_file_writer/bufferedfilewriter.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the newBufferPool function is removed from bufferedfilewriter.go after extraction to shared package.",
+      "evidence": "gold.patch lines 578-592 show removal of the newBufferPool function from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Make sure the old local implementations (buffer types, state management, pool structs, and helper functions) are fully removed from their original files.' The newBufferPool function is a local helper function in bufferedfilewriter.go. [2: Implicit Codebase Constraint] The existing codebase defines newBufferPool in bufferedfilewriter.go as the constructor for the local bufferPool. [3: Logical Necessity] Since newBufferPool is a local helper function and the prompt explicitly requires all local implementations to be removed, it must be deleted from bufferedfilewriter.go. [5: Conclusion] Therefore, ANY correct and good answer must remove the newBufferPool function from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3cf1d2f312e2cb053c60b86d5ba0aadd",
+    "title": "1.11: Removes the bufferPool get method from pkg/writers/buffered_file_writer/bufferedfilewriter.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the bufferPool get method is removed from bufferedfilewriter.go after extraction to shared package.",
+      "evidence": "gold.patch lines 607-617 show removal of the bufferPool get method from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Make sure the old local implementations (buffer types, state management, pool structs, and helper functions) are fully removed from their original files.' The bufferPool get method is a local helper function in bufferedfilewriter.go. [2: Implicit Codebase Constraint] The existing codebase defines the get method on the local bufferPool struct in bufferedfilewriter.go. [3: Logical Necessity] Since get is a local helper function and the prompt explicitly requires all local implementations to be removed, it must be deleted from bufferedfilewriter.go. [5: Conclusion] Therefore, ANY correct and good answer must remove the bufferPool get method from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "070a2d3b8fdc3f75e7e08a079afc8b15",
+    "title": "1.12: Removes the bufferPool put method from pkg/writers/buffered_file_writer/bufferedfilewriter.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the bufferPool put method is removed from bufferedfilewriter.go after extraction to shared package.",
+      "evidence": "gold.patch lines 625-641 show removal of the bufferPool put method from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Make sure the old local implementations (buffer types, state management, pool structs, and helper functions) are fully removed from their original files.' The bufferPool put method is a local helper function in bufferedfilewriter.go. [2: Implicit Codebase Constraint] The existing codebase defines the put method on the local bufferPool struct in bufferedfilewriter.go. [3: Logical Necessity] Since put is a local helper function and the prompt explicitly requires all local implementations to be removed, it must be deleted from bufferedfilewriter.go. [5: Conclusion] Therefore, ANY correct and good answer must remove the bufferPool put method from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "5dd81a96399b7691318d9c12a4df9cee",
+    "title": "1.13: Removes the bufferPool growBufferWithSize method from pkg/writers/buffered_file_writer/bufferedfilewriter.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the bufferPool growBufferWithSize method is removed from bufferedfilewriter.go after extraction to shared package.",
+      "evidence": "gold.patch lines 619-623 show removal of the bufferPool growBufferWithSize method from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Make sure the old local implementations (buffer types, state management, pool structs, and helper functions) are fully removed from their original files.' The bufferPool growBufferWithSize method is a local helper function in bufferedfilewriter.go. [2: Implicit Codebase Constraint] The existing codebase defines the growBufferWithSize method on the local bufferPool struct in bufferedfilewriter.go. [3: Logical Necessity] Since growBufferWithSize is a local helper function and the prompt explicitly requires all local implementations to be removed, it must be deleted from bufferedfilewriter.go. [5: Conclusion] Therefore, ANY correct and good answer must remove the bufferPool growBufferWithSize method from pkg/writers/buffered_file_writer/bufferedfilewriter.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ca7191acaa92c860398fe1e5b4880f2c",
+    "title": "1.14: Adds context.Context as the first parameter to newDiff in pkg/gitparse/gitparse.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that newDiff gains context.Context as its first parameter and that callers (such as FromReader) pass ctx through accordingly.",
+      "evidence": "gold.patch line 75 shows newDiff gaining ctx context.Context as first parameter; lines 83-94 show FromReader passing ctx to newDiff.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Update gitparse and BufferedFileWriter to use the new shared packages, propagating context through the relevant functions.' [2: Implicit Codebase Constraint] The shared content writer's New(ctx) requires context.Context, and newDiff calls it to create the default contentWriter. [3: Logical Necessity] Given the shared content writer requires context.Context, newDiff must accept and pass context for the code to compile. [4: Quality Necessity] Any good implementation must ensure context is properly threaded through the call chain. [5: Conclusion] Therefore, ANY correct and good answer must add context.Context as the first parameter to newDiff.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "5ab21deaa24e3eb3f22c71bd89ee3871",
+    "title": "1.15: Consolidates all 11 buffer pool Prometheus metrics (including active_buffer_count, buffer_count, total_buffer_length, total_buffer_size, grow_count, grow_amount, shrink_count, shrink_amount, checkout_duration_total_us, checkout_duration_us, ...) into the new shared buffer package",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that buffer pool Prometheus metrics (such as active_buffer_count, buffer_count, grow_count, shrink_count, checkout_duration, checkout_count) are defined in the new shared buffer package's metrics file and removed from bufferedfilewriter/metrics.go.",
+      "evidence": "gold.patch lines 775-852 show removal of buffer pool metrics from pkg/writers/buffered_file_writer/metrics.go; lines 287-380 show creation of pkg/writers/buffer/metrics.go containing those metrics.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Move the buffer pool Prometheus metrics out of BufferedFileWriter into the new buffer package.' [2: Implicit Codebase Constraint] The buffer pool metrics were originally defined in bufferedfilewriter/metrics.go alongside write metrics, but now belong with the shared buffer pool logic. [3: Logical Necessity] Given the buffer pool logic has been extracted to a shared package, the associated metrics must move with it so they remain co-located with the code they instrument. [4: Quality Necessity] Any good implementation should keep metrics co-located with the code they measure. [5: Conclusion] Therefore, ANY correct and good answer must consolidate buffer pool Prometheus metrics into the new shared buffer package.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "51ec478c79699b7680a9f9c7ab10bb6b",
+    "title": "1.16: Prefixes the 2 remaining BufferedFileWriter metrics (total_write_size_bytes, total_write_duration_microseconds) to avoid naming conflicts with the new buffer writer package",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the 2 remaining Prometheus metrics in bufferedfilewriter/metrics.go (total_write_size_bytes \u2192 buffered_file_writer_total_write_size_bytes, total_write_duration_microseconds \u2192 buffered_file_writer_total_write_duration_microseconds) are prefixed to avoid naming conflicts with the new buffer_writer package metrics which use similar names.",
+      "evidence": "gold.patch lines 856-857 show total_write_size_bytes renamed to buffered_file_writer_total_write_size_bytes, and lines 864-865 show total_write_duration_microseconds renamed to buffered_file_writer_total_write_duration_microseconds.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'prefix the remaining BufferedFileWriter metrics to avoid naming conflicts.' [2: Implicit Codebase Constraint] The new buffer_writer package defines its own write metrics, which would conflict with the existing metric names. [3: Logical Necessity] Given two packages now define write metrics, the names must be distinct to avoid Prometheus registration panics. [4: Quality Necessity] Any good implementation must ensure metric names are unique across the application. [5: Conclusion] Therefore, ANY correct and good answer must prefix the remaining BufferedFileWriter metrics to avoid naming conflicts.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "216d78bab793af183c73c6bc60d1c608",
+    "title": "1.17: Creates bufferwriter.go as a shared content writer package in pkg/writers/buffer_writer/",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that pkg/writers/buffer_writer/bufferwriter.go is created for the in-memory content writer (BufferWriter) that implements the contentWriter interface using the shared buffer pool.",
+      "evidence": "gold.patch lines 381-492 show creation of pkg/writers/buffer_writer/bufferwriter.go with BufferWriter struct, New, Write, ReadCloser, CloseForWriting, String, and Len methods.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Refactor this duplicated code into two shared packages \u2014 one for the buffer pool and buffer primitives, and another for the in-memory content writer.' The interface specification designates the path as pkg/writers/buffer_writer/bufferwriter.go. [2: Implicit Codebase Constraint] The gitparse package contained a local buffer struct implementing contentWriter; this needs a dedicated shared package. [3: Logical Necessity] Given the request for a shared content writer package separate from the buffer pool package, a new package must be created. [4: Quality Necessity] Any good implementation must create a dedicated location for the shared content writer. [5: Conclusion] Therefore, ANY correct and good answer must create a shared content writer package at pkg/writers/buffer_writer/.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "6f3f99e4bf609e731852995c85718169",
+    "title": "1.18: Adds context.Context as the first parameter to New in pkg/writers/buffered_file_writer/bufferedfilewriter.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that bufferedfilewriter.New gains context.Context as its first parameter and that callers (such as FromReader in gitparse.go) pass ctx through accordingly.",
+      "evidence": "gold.patch line 662 shows bufferedfilewriter.New gaining ctx context.Context as first parameter; lines 93-94 show the call site in gitparse.go updated to bufferedfilewriter.New(ctx).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Update gitparse and BufferedFileWriter to use the new shared packages, propagating context through the relevant functions.' [2: Implicit Codebase Constraint] The shared buffer package's Pool.Get method requires context.Context for logging, and bufferedfilewriter.New needs to call it. [3: Logical Necessity] Given the shared pool's Get requires context.Context, bufferedfilewriter.New must accept and pass context for the code to compile. [4: Quality Necessity] Any good implementation must ensure context is properly threaded through the call chain. [5: Conclusion] Therefore, ANY correct and good answer must add context.Context as the first parameter to bufferedfilewriter.New.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "377c899c507dabee5260c8194cd46233",
+    "title": "1.19: Removes the sync import from pkg/writers/buffered_file_writer/bufferedfilewriter.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the sync import is removed from pkg/writers/buffered_file_writer/bufferedfilewriter.go, as it becomes unused after extracting the buffer pool (which used sync.Pool) to the shared package. Go treats unused imports as compilation errors.",
+      "evidence": "gold.patch line 531 shows removal of the sync import from pkg/writers/buffered_file_writer/bufferedfilewriter.go after buffer pool extraction.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Refactor this duplicated code into two shared packages.' The refactored code must compile. [2: Implicit Codebase Constraint] Go treats unused imports as compilation errors; the sync import was only used by the bufferPool struct (sync.Pool) which has been extracted. [3: Logical Necessity] Given the removal of buffer pool types and methods that referenced sync.Pool, the sync import becomes unused and will cause compilation failure if not removed. [4: Quality Necessity] Any good implementation must produce code that compiles. [5: Conclusion] Therefore, ANY correct and good answer must remove the sync import from bufferedfilewriter.go.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "High-level intent category for documentation updates tied to the refactoring.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "High-level intent category for cleanup of obsolete code and imports after refactoring.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "High-level intent category for penalties for regressions, breaking changes, and anti-patterns.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "26ea170f3553ad9942505382375b1f2f",
+    "title": "4.1: Changes the contentWriter interface method signatures (Write, ReadCloser, CloseForWriting, Len, String) in pkg/gitparse/gitparse.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the contentWriter interface methods maintain their original signatures after refactoring.",
+      "evidence": "gold.patch lines 13-15 show the contentWriter interface is preserved unchanged in pkg/gitparse/gitparse.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to refactor duplicated code, not change interfaces. [2: Implicit Codebase Constraint] The contentWriter interface has specific method signatures that existing implementations depend on. [3: Logical Necessity] Given that contentWriter is an interface with existing implementations, changing its method signatures would break all implementations and dependent code. [4: Quality Necessity] Any good implementation must preserve interface contracts during refactoring. [5: Conclusion] Therefore, changing contentWriter interface signatures is a harmful breaking change that ANY correct answer must avoid.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "79939e542f872014ac3e4b7c7d6d6d2e",
+    "title": "4.2: Changes the BufferedFileWriter.New signature in pkg/writers/buffered_file_writer/bufferedfilewriter.go without updating the bufferedfilewriter.New() call in pkg/gitparse/gitparse.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that if BufferedFileWriter public methods (such as New) have their signatures modified, all call sites (such as gitparse.go) are updated accordingly to prevent compilation failures.",
+      "evidence": "gold.patch line 662 shows bufferedfilewriter.New gaining a ctx parameter, and lines 91-94 show the call site in gitparse.go updated to bufferedfilewriter.New(ctx).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Update gitparse and BufferedFileWriter to use the new shared packages.' Components must remain usable, which requires call sites to be updated if signatures change. [2: Implicit Codebase Constraint] BufferedFileWriter public methods are used by dependent code (such as gitparse.go). [3: Logical Necessity] Given that public methods may be used by external code, changing their signatures requires updating all call sites to maintain functionality. [4: Quality Necessity] Any good implementation must ensure all call sites are updated when modifying public APIs. [5: Conclusion] Therefore, changing BufferedFileWriter public method signatures without updating call sites is a harmful breaking change that ANY correct answer must avoid.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

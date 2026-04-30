@@ -1,0 +1,218 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required       ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "8772fa284a206fbc339daa85c3647b26",
+    "title": "1.1: Removes the tiers-revamp key from all four A4A environment config JSON files",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the key 'tiers-revamp' does not exist in the features object of config/a8c-for-agencies-development.json, config/a8c-for-agencies-horizon.json, config/a8c-for-agencies-production.json, and config/a8c-for-agencies-stage.json.",
+      "evidence": "The codebase defines the tiers-revamp feature flag in four config files under config/a8c-for-agencies-*.json. Each contains '\"tiers-revamp\": true' in its features object.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests 'removing it from all A4A environment config files'. [2: Implicit Code Base Constraint] The flag is defined in exactly four A4A config files (development, horizon, production, stage). [5: Conclusion] Therefore, ANY correct solution must remove the tiers-revamp entry from all four files."
+    }
+  },
+  {
+    "id": "a2054b9ca6e428b09e1a5bdaeb56d995",
+    "title": "1.2: Eliminates all tiers-revamp feature flag checks from source code files",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that no .tsx or .ts source file under client/a8c-for-agencies/ contains calls to config.isEnabled('tiers-revamp') or isEnabled('tiers-revamp').",
+      "evidence": "The codebase contains tiers-revamp flag checks in use-main-menu-items.tsx (config.isEnabled), controller.tsx (isEnabled), and overview/sidebar/agency-tier/index.tsx (isEnabled). These gate conditional rendering between V1 and V2 code paths.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests 'eliminating all flag checks from the source code'. [3: Logical Necessity] If any flag check remains, conditional branching between V1 and V2 still exists. [5: Conclusion] Therefore, ANY correct solution must remove all tiers-revamp flag checks from source files."
+    }
+  },
+  {
+    "id": "a53606986d299ac30a446d1c0ce476f7",
+    "title": "1.3: Includes the Agency Tier menu item unconditionally in the sidebar menu",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that use-main-menu-items.tsx contains an Agency Tier menu item with link A4A_AGENCY_TIER_LINK as a direct object in the menu array, not wrapped in a conditional spread based on the feature flag.",
+      "evidence": "In use-main-menu-items.tsx, the Agency Tier menu item currently appears in two conditional spreads: one when the flag is enabled (near the top) and one when disabled (near the bottom). This results in duplicate conditional entries for the same menu item.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the sidebar menu 'conditionally renders the Agency Tier menu item in two different positions depending on the flag, resulting in duplicate entries' and asks to clean this up. [3: Logical Necessity] Removing the flag means removing the conditional, so the item must be included directly. [5: Conclusion] Therefore, ANY correct solution must include the Agency Tier menu item unconditionally."
+    }
+  },
+  {
+    "id": "98f733600b8116075700779bd1d15dc1",
+    "title": "1.4: Renders AgencyTierOverview directly in the controller without conditional component selection",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the agencyTierContext function in controller.tsx renders AgencyTierOverview without any ternary conditional choosing between AgencyTierOverview and AgencyTierOverviewV2.",
+      "evidence": "In controller.tsx, agencyTierContext currently checks isEnabled('tiers-revamp') and renders AgencyTierOverviewV2 when true or AgencyTierOverview when false. This is a conditional component selection gated by the feature flag.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests 'eliminating all flag checks from the source code' and that 'the V2 UI should become the only code path'. [3: Logical Necessity] Removing the flag means removing the ternary and rendering one component directly. [5: Conclusion] Therefore, ANY correct solution must render AgencyTierOverview directly without conditional selection."
+    }
+  },
+  {
+    "id": "9026574e3b30b42b83cde1c7d2067f82",
+    "title": "1.5: Renders AgencyTierProgressCard directly in the sidebar widget without conditional branching",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the OverviewSidebarAgencyTier component in overview/sidebar/agency-tier/index.tsx returns AgencyTierProgressCard without any ternary conditional choosing between the progress card and the old card based layout.",
+      "evidence": "In overview/sidebar/agency-tier/index.tsx, the component currently checks isEnabled('tiers-revamp') and renders AgencyTierProgressCard when true, or an old layout with FoldableCard, AgencyTierCelebrationModal, and an Explore button when false.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the sidebar widget 'switches between the new progress card and an old card based layout' and asks to clean up this conditional logic. [3: Logical Necessity] Removing the flag means removing the ternary, keeping only the V2 path. [5: Conclusion] Therefore, ANY correct solution must return AgencyTierProgressCard directly."
+    }
+  },
+  {
+    "id": "64113a7f952bd5c33a5a2d7a7cee7270",
+    "title": "1.6: Consolidates the V2 overview implementation into the original AgencyTierOverview component",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that AgencyTierOverview in agency-tier-overview/index.tsx renders the shared AgencyTierOverviewContent component (from the overview-content directory), replacing the old V1 inline implementation.",
+      "evidence": "The codebase has two overview components: AgencyTierOverview (V1, with inline tier badges and benefit cards) and AgencyTierOverviewV2 (which uses the shared AgencyTierOverviewContent component from ../../overview-content). The V2 component was gated behind the feature flag.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The V2 specific overview component that was gated behind the flag should be consolidated into the original overview component so there is only one implementation'. [3: Logical Necessity] Consolidation means moving the V2 approach (AgencyTierOverviewContent) into the original component. [5: Conclusion] Therefore, ANY correct solution must have AgencyTierOverview render AgencyTierOverviewContent."
+    }
+  },
+  {
+    "id": "d407ee9042e4f87807e72dcfeb5ad183",
+    "title": "1.7: Deletes the AgencyTierOverviewV2 component directory entirely",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the directory client/a8c-for-agencies/sections/agency-tier/primary/agency-tier-overview-v2/ no longer exists, including both index.tsx and style.scss.",
+      "evidence": "The codebase contains agency-tier-overview-v2/ with index.tsx (AgencyTierOverviewV2 component) and style.scss. This component exists solely as the V2 variant, gated behind the feature flag in controller.tsx.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'any component that exists solely as the V2 variant should be deleted'. [3: Logical Necessity] After consolidating V2 logic into the original component, the standalone V2 component is dead code. [5: Conclusion] Therefore, ANY correct solution must delete the entire agency-tier-overview-v2 directory."
+    }
+  },
+  {
+    "id": "b1a3e7f92d4c6a80e5f893021dcef4a8",
+    "title": "1.8: Updates the overview page title to reflect the V2 wording",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the page title in AgencyTierOverview uses the V2 wording 'Your agency tier and benefits' instead of the old V1 wording 'Agency tiers and benefits'.",
+      "evidence": "In the codebase, AgencyTierOverview (V1) uses translate('Agency tiers and benefits') while AgencyTierOverviewV2 uses translate('Your agency tier and benefits'). The V2 title is the current user-facing text.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The overview page title should reflect the V2 wording'. [3: Logical Necessity] Consolidating V2 into the original component means adopting the V2 title. [5: Conclusion] Therefore, ANY correct solution must use the V2 page title wording."
+    }
+  },
+  {
+    "id": "e8f42b163a7d59c0d2184e7fa9b10c3a",
+    "title": "1.9: Replaces the old V1 stylesheet with a minimal stylesheet for the V2 layout",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the stylesheet at agency-tier-overview/style.scss no longer contains the extensive V1 class selectors (.agency-tier-overview__top-content, .agency-tier-overview__benefit-card, .agency-tier-overview__current-tier-badge, etc.) and has been replaced with a minimal stylesheet.",
+      "evidence": "In the codebase, agency-tier-overview/style.scss contains approximately 400 lines of V1 custom SCSS for tier badges, benefit cards, and comparison UI. The V2 component (agency-tier-overview-v2/style.scss) only imports '@wordpress/dataviews/build-style/style.css'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The large V1 stylesheet that styled the old tier badges and benefit cards should be replaced with just the stylesheet import that the V2 layout needs'. [3: Logical Necessity] Since the V1 UI elements are removed, their styles become dead code. [5: Conclusion] Therefore, ANY correct solution must replace the V1 stylesheet with a minimal one for V2."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required           ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required        ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "3a1c9d7e85f240b6a9e3c7104dbeaf52",
+    "title": "3.1: Removes old V1 analytics tracking code from the overview and sidebar components",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that recordTracksEvent calls related to agency tier badge clicks and explore tier button clicks are no longer present in agency-tier-overview/index.tsx and overview/sidebar/agency-tier/index.tsx.",
+      "evidence": "In the codebase, agency-tier-overview/index.tsx dispatches recordTracksEvent('calypso_a4a_agency_tier_badge_learn_more_click') and overview/sidebar/agency-tier/index.tsx dispatches recordTracksEvent('calypso_a4a_agency_tier_explore_tiers_and_benefits_click'). Both are part of the old V1 UI.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the old V1 implementation including... their associated analytics tracking should be removed entirely'. [3: Logical Necessity] The analytics events are attached to V1 UI elements being removed. [5: Conclusion] Therefore, ANY correct solution should remove these tracking calls."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required         ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "ce10858643bd1ebbf8dc03aae8ba02c3",
+    "title": "4.1: Deletes the overview-content directory in the agency-tier section",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the directory client/a8c-for-agencies/sections/agency-tier/overview-content/ has been deleted. This directory contains the shared AgencyTierOverviewContent component that the consolidated overview must render.",
+      "evidence": "In the codebase, AgencyTierOverviewV2 imports AgencyTierOverviewContent from ../../overview-content. This is the V2 implementation that the prompt asks to consolidate into the original component.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'The V2 UI should become the only code path' and to consolidate V2 into the original. [2: Implicit Code Base Constraint] AgencyTierOverviewContent is the V2 implementation that must be preserved. [5: Conclusion] Therefore, ANY correct solution must not delete this directory."
+    }
+  },
+  {
+    "id": "033be0ee7521f5f4e82962804d09c6fd",
+    "title": "4.2: Retains tiers-revamp string references in any source or config file",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the string 'tiers-revamp' still appears in any .tsx, .ts, or .json file under client/a8c-for-agencies/ or config/a8c-for-agencies-*.json, indicating incomplete removal of the feature flag.",
+      "evidence": "In the codebase, the tiers-revamp flag is referenced in use-main-menu-items.tsx, controller.tsx, overview/sidebar/agency-tier/index.tsx, and four config JSON files. All references must be removed.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests 'removing it from all A4A environment config files and eliminating all flag checks from the source code'. [3: Logical Necessity] Any remaining reference means the cleanup is incomplete. [5: Conclusion] Therefore, ANY correct solution must not retain any tiers-revamp references."
+    }
+  },
+  {
+    "id": "519e143b82702c213f1ebaba4dfd4c9c",
+    "title": "4.3: Deletes the progress-card directory in the agency-tier section",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the directory client/a8c-for-agencies/sections/agency-tier/progress-card/ has been deleted. This component is used by the sidebar widget and must be preserved.",
+      "evidence": "In the codebase, overview/sidebar/agency-tier/index.tsx imports AgencyTierProgressCard from the progress-card directory. After the refactor, this import is retained since the sidebar always renders AgencyTierProgressCard.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says the sidebar should use 'the new progress card' as the only code path. [2: Implicit Code Base Constraint] AgencyTierProgressCard lives in the progress-card directory and is actively used. [5: Conclusion] Therefore, ANY correct solution must not delete this directory."
+    }
+  },
+  {
+    "id": "c924b70965775e56186dfa44e6430362",
+    "title": "4.4: Deletes the get-agency-tier-info utility used by the sidebar component",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the file at client/a8c-for-agencies/sections/agency-tier/lib/get-agency-tier-info has been deleted. This utility is still used by the sidebar component after the refactor.",
+      "evidence": "In the codebase, overview/sidebar/agency-tier/index.tsx imports getAgencyTierInfo from the lib/get-agency-tier-info module to validate whether the current tier has display info. This import is retained after removing the feature flag.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to clean up the feature flag, not to restructure unrelated utilities. [2: Implicit Code Base Constraint] The sidebar component depends on getAgencyTierInfo for its null-check logic. [5: Conclusion] Therefore, ANY correct solution must not delete this file."
+    }
+  }
+]

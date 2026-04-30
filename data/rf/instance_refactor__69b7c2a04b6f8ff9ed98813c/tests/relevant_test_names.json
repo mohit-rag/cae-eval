@@ -1,0 +1,163 @@
+{
+  "tests": [
+    {
+      "name": "test_callocz_returns_zeroed_memory"
+    },
+    {
+      "name": "test_callocz_single_element"
+    },
+    {
+      "name": "test_freez_null_is_safe"
+    },
+    {
+      "name": "test_madvise_dontdump_on_valid_mapping"
+    },
+    {
+      "name": "test_madvise_dontfork_on_valid_mapping"
+    },
+    {
+      "name": "test_madvise_dontneed_on_valid_mapping"
+    },
+    {
+      "name": "test_madvise_mergeable_on_valid_mapping"
+    },
+    {
+      "name": "test_madvise_random_on_valid_mapping"
+    },
+    {
+      "name": "test_madvise_sequential_on_valid_mapping"
+    },
+    {
+      "name": "test_madvise_willneed_on_valid_mapping"
+    },
+    {
+      "name": "test_mallocz_release_memory"
+    },
+    {
+      "name": "test_mallocz_returns_non_null"
+    },
+    {
+      "name": "test_mallocz_then_reallocz_then_freez"
+    },
+    {
+      "name": "test_mallocz_various_sizes"
+    },
+    {
+      "name": "test_memory_alignment_already_aligned"
+    },
+    {
+      "name": "test_memory_alignment_non_power_of_two"
+    },
+    {
+      "name": "test_memory_alignment_rounds_up"
+    },
+    {
+      "name": "test_memory_alignment_size_one"
+    },
+    {
+      "name": "test_memory_alignment_size_zero"
+    },
+    {
+      "name": "test_natural_alignment_zero"
+    },
+    {
+      "name": "test_nd_mmap_advanced_anonymous_private"
+    },
+    {
+      "name": "test_nd_mmap_advanced_dont_dump"
+    },
+    {
+      "name": "test_nd_mmap_advanced_file_backed_private"
+    },
+    {
+      "name": "test_nd_mmap_advanced_file_backed_read_only"
+    },
+    {
+      "name": "test_nd_mmap_advanced_file_backed_shared"
+    },
+    {
+      "name": "test_nd_mmap_advanced_ksm_disabled_globally"
+    },
+    {
+      "name": "test_nd_mmap_advanced_large_allocation"
+    },
+    {
+      "name": "test_nd_mmap_advanced_null_filename_no_fd"
+    },
+    {
+      "name": "test_nd_mmap_advanced_open_fd_returned"
+    },
+    {
+      "name": "test_nd_mmap_advanced_read_only"
+    },
+    {
+      "name": "test_nd_mmap_advanced_returns_null_not_map_failed"
+    },
+    {
+      "name": "test_nd_mmap_advanced_updates_counters"
+    },
+    {
+      "name": "test_nd_mmap_advanced_with_ksm"
+    },
+    {
+      "name": "test_nd_mmap_anonymous_succeeds"
+    },
+    {
+      "name": "test_nd_mmap_multiple_mappings"
+    },
+    {
+      "name": "test_nd_mmap_read_only"
+    },
+    {
+      "name": "test_nd_mmap_tracks_count"
+    },
+    {
+      "name": "test_nd_mmap_tracks_size"
+    },
+    {
+      "name": "test_nd_munmap_returns_zero_on_success"
+    },
+    {
+      "name": "test_page_size_is_at_least_4096"
+    },
+    {
+      "name": "test_page_size_is_consistent"
+    },
+    {
+      "name": "test_page_size_is_power_of_two"
+    },
+    {
+      "name": "test_page_size_matches_sysconf"
+    },
+    {
+      "name": "test_page_size_reasonable_upper_bound"
+    },
+    {
+      "name": "test_posix_memfree_non_null"
+    },
+    {
+      "name": "test_reallocz_grows_buffer"
+    },
+    {
+      "name": "test_reallocz_shrinks_buffer"
+    },
+    {
+      "name": "test_strdupz_duplicates_string"
+    },
+    {
+      "name": "test_strdupz_empty_string"
+    },
+    {
+      "name": "test_strndupz_full_length"
+    },
+    {
+      "name": "test_strndupz_partial_copy"
+    },
+    {
+      "name": "test_strndupz_zero_length"
+    },
+    {
+      "name": "test_system_required_alignment_is_valid"
+    }
+  ]
+}

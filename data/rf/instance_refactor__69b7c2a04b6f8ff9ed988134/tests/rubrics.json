@@ -1,0 +1,170 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "Evaluates all important refactors that improve code maintainability by splitting the tx logger system into per-protocol lists in src/output-tx.c.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a74fa9d3a269f91f209ee070df344d4f",
+    "title": "1.1: Converts the global tx logger list from a single flat structure to a per-application-protocol organization in `src/output-tx.c`",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the single global linked list of tx loggers is replaced with a per-protocol structure so each application protocol has its own logger chain.",
+      "evidence": "gold.patch shows the static `list` variable in src/output-tx.c changing from a single pointer to a per-protocol structure.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Refactor the tx logger storage so that loggers are organized per application protocol rather than stored in one flat list.' [2: Implicit Code Base Constraint] The existing codebase uses AppProto to identify application-layer protocols, so the per-protocol structure must be keyed by this type. [5: Conclusion] This is the core architectural change requested and any correct solution must replace the single flat list with a per-protocol organization."
+    }
+  },
+  {
+    "id": "1c7f23dd1fe49da0720a3ef33420ff60",
+    "title": "1.2: Updates `OutputRegisterTxLogger` to insert each logger into a per-protocol list indexed by its `alproto` parameter",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that logger registration places each new logger into the protocol-specific list rather than appending to a single global list.",
+      "evidence": "gold.patch shows the registration logic in OutputRegisterTxLogger switching from `list` to `list[alproto]` for insert and traversal.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Logger registration should insert each logger into the list that corresponds to its protocol.' [3: Logical Necessity] If the storage is per-protocol, registration must target the correct protocol's list or loggers will be misplaced. [5: Conclusion] Any correct solution must update the registration function to use the per-protocol structure."
+    }
+  },
+  {
+    "id": "46a5084149e3d611ec992e4a6570ed30",
+    "title": "1.3: Converts the per-thread logger store in `OutputLoggerThreadData` from a single chain to a per-protocol structure",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the per-thread store field in OutputLoggerThreadData is changed from a single chain to a per-protocol structure so that thread data remains aligned with its matching logger chain.",
+      "evidence": "gold.patch shows the `store` field in OutputLoggerThreadData_ changing from a single pointer to a per-protocol structure.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The per-thread logger store in OutputLoggerThreadData should follow the same per-protocol structure so that thread data stays aligned with its matching logger chain.' [3: Logical Necessity] The store must parallel the logger list structure; otherwise thread data would be misaligned with loggers during iteration. [5: Conclusion] Any correct solution must update the per-thread store to match the per-protocol logger organization."
+    }
+  },
+  {
+    "id": "ab936d6a4f72284cdaffc909adc1cccf",
+    "title": "1.4: Handles wildcard loggers (`ALPROTO_UNKNOWN`) separately from protocol-specific loggers in the `OutputTxLog` logging path",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that wildcard loggers (those registered with ALPROTO_UNKNOWN) are invoked for every transaction through a separate code path, independent of the protocol-specific logger loop.",
+      "evidence": "gold.patch introduces a dedicated function (OutputTxLogList0) that walks the ALPROTO_UNKNOWN logger chain before the protocol-specific loop in OutputTxLog.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Wildcard loggers (those registered with ALPROTO_UNKNOWN) need to be invoked for every transaction regardless of the flow's protocol. They should be handled separately from the protocol-specific loggers in the main logging path.' [3: Logical Necessity] With per-protocol lists, wildcard loggers no longer reside alongside protocol-specific loggers and must be invoked through their own path. [5: Conclusion] Any correct solution must ensure wildcard loggers are processed separately and still invoked for all transactions."
+    }
+  },
+  {
+    "id": "63cdb00fb64257ff74598e8dff27b8cc",
+    "title": "1.5: Skips to the next transaction after wildcard processing when protocol-specific loggers are absent for the current flow's protocol",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the main logging path avoids unnecessary protocol-specific logging setup when no protocol-specific loggers exist for the current flow's alproto, proceeding directly to the next transaction after any wildcard loggers have run.",
+      "evidence": "gold.patch adds a check after wildcard logger invocation that skips to next_tx if list[alproto] is NULL.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'After running any applicable wildcard loggers for a transaction, if there are no protocol-specific loggers for that flow's protocol, skip directly to the next transaction.' [4: Qualitative Requirement] Avoiding unnecessary work for protocols with no registered loggers is a direct performance benefit of the per-protocol split. [5: Conclusion] Any correct solution should avoid entering the protocol-specific logging path when no protocol-specific loggers exist."
+    }
+  },
+  {
+    "id": "92699c35f978adf5375782403ec20ada",
+    "title": "1.6: Simplifies the per-logger condition in the protocol-specific logging loop by removing the runtime protocol matching check",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the main logging loop no longer checks each logger's alproto at runtime to decide whether to invoke it, since the per-protocol structure guarantees all loggers in the loop match the current protocol.",
+      "evidence": "gold.patch simplifies the condition from checking logger->alproto == ALPROTO_UNKNOWN || logger->alproto == alproto to only checking whether the logger has already been invoked.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Since the protocol-specific loop now only contains loggers that match the current protocol, the runtime alproto check in the loop condition can be simplified, and marking a logger as having logged no longer needs a special case for wildcard loggers.' [3: Logical Necessity] When the loop only iterates protocol-matching loggers, per-logger protocol checks become redundant and the wildcard guard on tx_logged marking is unnecessary. [5: Conclusion] Any correct solution that structurally separates loggers by protocol should simplify these runtime checks."
+    }
+  },
+  {
+    "id": "0ef4e7089e28cd80c0b18a9e1838c50f",
+    "title": "1.7: Updates all 5 lifecycle functions (`OutputTxLogThreadInit`, `OutputTxLogThreadDeinit`, `OutputTxLogExitPrintStats`, `OutputTxLoggerGetActiveCount`, `OutputTxShutdown`) to iterate per-protocol logger lists",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that all supporting functions that previously traversed the single flat logger list are updated to iterate over the per-protocol structure. This includes thread initialization, thread deinitialization, exit stats printing, active logger counting, and shutdown cleanup.",
+      "evidence": "gold.patch wraps the existing while-loop logic in each of these 5 functions inside a loop over all protocol slots.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'All supporting functions that currently traverse the single logger list need to be updated for the per-protocol structure: thread initialization, thread deinitialization, exit stats printing, active logger counting, and shutdown cleanup.' [3: Logical Necessity] These functions maintain thread-local state, print stats, count loggers, and free memory; all must work with the new per-protocol structure or the system will malfunction or leak resources. [5: Conclusion] Any correct solution must update all 5 lifecycle functions to use the per-protocol organization."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "Evaluates updates for codebase and documentation alignment after the refactor.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "Evaluates removals of obsolete files, dead code, unused dependencies, and legacy artifacts after the refactor.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "Captures harmful practices that may be introduced during the refactoring, such as breaking changes, regressions, or removed functionality.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "1cb98f3436813ab2353628d1c76dbdbd",
+    "title": "4.1: Removes wildcard logger (`ALPROTO_UNKNOWN`) invocation from the transaction logging path",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Checks whether the refactor accidentally drops wildcard logger support. A common mistake when splitting per-protocol is to only handle protocol-specific loggers and forget that ALPROTO_UNKNOWN loggers must still be invoked for every transaction.",
+      "evidence": "The original code invokes ALPROTO_UNKNOWN loggers via the 'always invoke wild card tx loggers' branch in OutputTxLog. gold.patch preserves this by calling them through a separate path.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states wildcard loggers 'need to be invoked for every transaction regardless of the flow's protocol.' [2: Implicit Code Base Constraint] Existing callers register ALPROTO_UNKNOWN loggers (such as eve-log) and rely on them being invoked for all transactions. [5: Conclusion] Removing wildcard logger invocation would silently break logging for all wildcard-registered output modules."
+    }
+  },
+  {
+    "id": "9ef6a26fd19275bb4ce2704d53792d92",
+    "title": "4.2: Modifies any of the 3 public function signatures declared in `src/output-tx.h` (`OutputRegisterTxLogger`, `OutputTxLoggerRegister`, `OutputTxShutdown`)",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Checks whether the refactor changes public API signatures that other modules depend on. The refactor is purely internal to output-tx.c and should not alter any function signatures exposed in the header.",
+      "evidence": "gold.patch does not modify src/output-tx.h. All three public functions retain their original signatures.",
+      "justification": "[2: Implicit Code Base Constraint] OutputRegisterTxLogger is called by numerous output modules (eve-log, http-log, etc.) throughout the codebase. OutputTxShutdown and OutputTxLoggerRegister are called by the output subsystem initialization. [3: Logical Necessity] Changing these signatures would break all callers and prevent compilation. [5: Conclusion] The refactor must preserve the existing public API contract."
+    }
+  },
+  {
+    "id": "8bfe54f9b695b64c21e0fc039f9ce3d0",
+    "title": "4.3: Removes or breaks the `tx_logged` tracking that prevents duplicate logger invocations within a single transaction",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Checks whether the refactor accidentally removes or corrupts the tx_logged bitmask tracking that ensures each logger is only invoked once per transaction. When simplifying the loop conditions, an agent might inadvertently drop the tx_logged check or the tx_logged update.",
+      "evidence": "gold.patch preserves the tx_logged_old check and the tx_logged |= update; it only removes the ALPROTO_UNKNOWN guard that is no longer needed.",
+      "justification": "[2: Implicit Code Base Constraint] The tx_logged bitmask is read/written via AppLayerParserGetTxLogged and AppLayerParserSetTxLogged; it is the mechanism that prevents loggers from being called repeatedly on the same transaction across multiple calls to OutputTxLog. [3: Logical Necessity] Without this tracking, loggers would fire on every packet for the same transaction, producing duplicate log entries. [5: Conclusion] Removing or breaking this tracking would cause correctness regressions in all transaction logging."
+    }
+  }
+]

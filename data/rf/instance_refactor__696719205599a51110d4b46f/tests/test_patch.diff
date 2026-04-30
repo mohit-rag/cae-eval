@@ -1,0 +1,217 @@
+diff --git a/test/test_packaging_modernization.py b/test/test_packaging_modernization.py
+new file mode 100644
+index 00000000..151908b4
+--- /dev/null
++++ b/test/test_packaging_modernization.py
+@@ -0,0 +1,211 @@
++"""
++Tests for the setup.py modernization, legacy script removal,
++launcher refactoring, and UTscapy entry point compatibility.
++"""
++
++import ast
++import inspect
++import os
++import unittest
++
++
++REPO_ROOT = os.path.join(os.path.dirname(__file__), os.pardir)
++
++
++def _read_file(relpath):
++    fullpath = os.path.join(REPO_ROOT, relpath)
++    with open(fullpath, "r") as f:
++        return f.read()
++
++
++class TestSetupPyModernization(unittest.TestCase):
++    """setup.py should use modern setuptools, not distutils."""
++
++    def setUp(self):
++        self.content = _read_file("setup.py")
++        self.tree = ast.parse(self.content)
++
++    def test_no_distutils_import(self):
++        for node in ast.walk(self.tree):
++            if isinstance(node, ast.ImportFrom) and node.module:
++                self.assertFalse(
++                    node.module.startswith("distutils"),
++                    "setup.py should not import from distutils"
++                )
++            if isinstance(node, ast.Import):
++                for alias in node.names:
++                    self.assertFalse(
++                        alias.name.startswith("distutils"),
++                        "setup.py should not import distutils"
++                    )
++
++    def test_setuptools_is_used(self):
++        self.assertIn("setuptools", self.content)
++
++    def test_no_hardcoded_package_list(self):
++        self.assertNotIn("'scapy/arch'", self.content)
++        self.assertNotIn("'scapy/layers'", self.content)
++        self.assertNotIn("'scapy/contrib'", self.content)
++
++    def test_uses_automatic_package_discovery(self):
++        has_find = (
++            "find_packages" in self.content
++            or "find_namespace_packages" in self.content
++            or "find:" in self.content
++        )
++        self.assertTrue(
++            has_find,
++            "setup.py should use automatic package discovery "
++            "(find_packages, find_namespace_packages, or find:)"
++        )
++
++    def test_entry_points_defined(self):
++        self.assertIn("entry_points", self.content)
++        self.assertIn("console_scripts", self.content)
++
++    def test_entry_point_for_scapy(self):
++        after_entrypoints = self.content[self.content.index("entry_points"):]
++        self.assertIn("scapy", after_entrypoints)
++
++    def test_entry_point_for_utscapy(self):
++        after_entrypoints = self.content[self.content.index("entry_points"):]
++        self.assertIn("UTscapy", after_entrypoints)
++
++    def test_python_requires_declared(self):
++        self.assertIn("python_requires", self.content)
++
++    def test_extras_require_declared(self):
++        self.assertIn("extras_require", self.content)
++
++    def test_no_scripts_parameter(self):
++        self.assertNotIn("SCRIPTS", self.content)
++        for node in ast.walk(self.tree):
++            if isinstance(node, ast.keyword) and node.arg == "scripts":
++                self.fail(
++                    "setup.py should not pass 'scripts' to setup(); "
++                    "use entry_points with console_scripts instead"
++                )
++
++    def test_no_ezip_code(self):
++        self.assertNotIn("make_ezipfile", self.content)
++        self.assertNotIn("EZIP_HEADER", self.content)
++
++
++class TestLegacyBinScriptsRemoved(unittest.TestCase):
++    """Legacy wrapper scripts in bin/ should be removed."""
++
++    def _path(self, name):
++        return os.path.join(REPO_ROOT, "bin", name)
++
++    def test_bin_scapy_removed(self):
++        self.assertFalse(os.path.exists(self._path("scapy")))
++
++    def test_bin_utscapy_removed(self):
++        self.assertFalse(os.path.exists(self._path("UTscapy")))
++
++    def test_bin_scapy_bat_removed(self):
++        self.assertFalse(os.path.exists(self._path("scapy.bat")))
++
++    def test_bin_utscapy_bat_removed(self):
++        self.assertFalse(os.path.exists(self._path("UTscapy.bat")))
++
++
++class TestUTscapyEntryPoint(unittest.TestCase):
++    """UTscapy main() must be callable with no arguments."""
++
++    def test_main_has_no_required_parameters(self):
++        from scapy.tools.UTscapy import main
++        sig = inspect.signature(main)
++        required = [
++            p for p in sig.parameters.values()
++            if p.default is inspect.Parameter.empty
++            and p.kind not in (
++                inspect.Parameter.VAR_POSITIONAL,
++                inspect.Parameter.VAR_KEYWORD,
++            )
++        ]
++        self.assertEqual(
++            len(required), 0,
++            "main() should have no required parameters, found: "
++            + str([p.name for p in required])
++        )
++
++    def test_main_call_sites_use_no_args(self):
++        content = _read_file("scapy/tools/UTscapy.py")
++        tree = ast.parse(content)
++        for node in ast.walk(tree):
++            if (isinstance(node, ast.Call)
++                    and isinstance(node.func, ast.Name)
++                    and node.func.id == "main"):
++                self.assertEqual(
++                    len(node.args), 0,
++                    "main() should be called with no positional arguments"
++                )
++
++
++class TestLauncherDefaults(unittest.TestCase):
++    """Launcher scripts should default to Python 3."""
++
++    def test_run_scapy_defaults_to_python3(self):
++        content = _read_file("run_scapy")
++        self.assertIn("python3", content)
++
++    def test_run_scapy_no_pythondontwritebytecode(self):
++        content = _read_file("run_scapy")
++        self.assertNotIn("PYTHONDONTWRITEBYTECODE", content)
++
++    def test_run_scapy_bat_is_standalone_launcher(self):
++        content = _read_file("run_scapy.bat")
++        self.assertNotIn("run_scapy_py2", content)
++        self.assertNotIn("run_scapy_py3", content)
++
++    def test_run_scapy_bat_defaults_to_python3(self):
++        content = _read_file("run_scapy.bat")
++        self.assertIn("python3", content)
++
++    def test_run_scapy_bat_runs_scapy_as_module(self):
++        content = _read_file("run_scapy.bat")
++        self.assertIn("-m scapy", content)
++
++    def test_run_scapy_bat_has_python2_fallback(self):
++        content = _read_file("run_scapy.bat").lower()
++        self.assertIn("python3", content)
++        has_fallback = "python" in content.replace("python3", "")
++        self.assertTrue(has_fallback,
++                        "run_scapy.bat should fall back to python if python3 is unavailable")
++
++    def test_py2_bat_delegates_to_run_scapy_bat(self):
++        content = _read_file("run_scapy_py2.bat")
++        self.assertIn("run_scapy.bat", content)
++
++    def test_py3_bat_delegates_to_run_scapy_bat(self):
++        content = _read_file("run_scapy_py3.bat")
++        self.assertIn("run_scapy.bat", content)
++
++    def test_py2_bat_sets_python_interpreter(self):
++        content = _read_file("run_scapy_py2.bat").lower()
++        self.assertIn("python", content)
++
++    def test_py3_bat_sets_python3_interpreter(self):
++        content = _read_file("run_scapy_py3.bat")
++        self.assertIn("python3", content)
++
++    def test_py2_bat_no_pythondontwritebytecode(self):
++        content = _read_file("run_scapy_py2.bat")
++        self.assertNotIn("PYTHONDONTWRITEBYTECODE", content)
++
++    def test_py3_bat_no_pythondontwritebytecode(self):
++        content = _read_file("run_scapy_py3.bat")
++        self.assertNotIn("PYTHONDONTWRITEBYTECODE", content)
++
++    def test_py2_bat_no_nopause_logic(self):
++        content = _read_file("run_scapy_py2.bat")
++        self.assertNotIn("nopause", content.lower())
++
++    def test_py3_bat_no_nopause_logic(self):
++        content = _read_file("run_scapy_py3.bat")
++        self.assertNotIn("nopause", content.lower())
++
++
++if __name__ == "__main__":
++    unittest.main()

@@ -1,0 +1,98 @@
+[
+  {
+    "id": "9f84c2a1e63d5b07f8e19c0d4a72b3f6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "1e3b07d5a94cf268e0b73f1d5a96c4e2",
+    "title": "1.1: Reorders the outer loop body of `processSupersedesManagers` in `lib/workers/repository/extract/supersedes.ts` to check for superseding managers configuration before accessing package files",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the guard check for whether a manager has any superseding managers configured appears before any access to the manager's package files in the outer loop body.",
+      "evidence": "Reference patch: in supersedes.ts, the refactored outer loop first calls `get(primaryExtract.manager, 'supersedesManagers')` and continues if empty (diff lines 241-243), then checks `!primaryExtract.packageFiles` afterward (diff lines 250-251). The original code checked `!packageFiles` first (base line 9) before calling `get(manager, 'supersedesManagers')` (base line 12).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the guard checks are ordered in a way that processes package files before confirming the manager even has any superseding configuration, which adds unnecessary nesting' and asks that 'guard conditions should be reordered so irrelevant iterations are skipped early.' [2: Implicit Codebase Constraint] The original implementation checks `!packageFiles` at the top of the outer loop body before ever calling `get(manager, 'supersedesManagers')`, meaning package file access precedes the supersedes configuration check. [3: Logical Necessity] Checking supersedes configuration first avoids processing package files for managers that don't supersede anything. [5: Conclusion] Therefore, any correct answer must reorder the guard so the supersedes configuration check precedes package files access."
+    }
+  },
+  {
+    "id": "4d7f2a0e83b16c59f4a27d0e3b85c1f6",
+    "title": "1.2: Reduces the maximum nesting depth of the package file filtering logic in `processSupersedesManagers` in `lib/workers/repository/extract/supersedes.ts`",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the refactored function has a lower maximum nesting depth than the original, where the filter callback was nested inside an if block inside a for loop inside another if block inside the outer for loop.",
+      "evidence": "Reference patch supersedes.ts: uses early `continue` statements at diff lines 242-243, 250-251, and 279-280 to skip iterations, bringing the filter callback (diff lines 283-295) down to: outer for > inner for > filter callback, instead of the original: outer for > if(supersedesManagers) > inner for > if(packageFiles) > filter callback (base lines 8-31).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the function has 'deeply nested' control flow with 'the core filtering logic buried inside multiple levels of conditionals and loops' and asks that 'the nesting should be reduced.' [2: Implicit Code Base Constraint] The existing implementation nests the filter callback four levels deep within the outer for loop, through if(supersedesManagers) > inner for > if(packageFiles), establishing the concrete baseline that must be improved. [3: Logical Necessity] Deeply nested code forces readers to track multiple conditional contexts simultaneously, which is the specific readability problem the refactoring must resolve. [5: Conclusion] Therefore, any correct answer must reduce the maximum nesting depth of the filtering logic compared to the original."
+    }
+  },
+  {
+    "id": "b60e3f17d84a2c95f0b63e1d7a48c2f5",
+    "title": "1.3: Renames all 4 verbose local variables (`supersedesManagers`, `supercedingPackageFileNames`, `supercededManagerResults`, `supercededManager`) in `processSupersedesManagers` in `lib/workers/repository/extract/supersedes.ts` to names that no longer use the `superceding` or `superceded` prefixes",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that all four verbose local variable names are replaced with names that no longer use the `superceding` or `superceded` prefixes.",
+      "evidence": "Reference patch supersedes.ts: renames `supersedesManagers` to `secondaryManagers` (diff line 241), `supercedingPackageFileNames` to `primaryPackageFiles` (diff line 254), `supercededManager` to `secondaryManager` (diff line 258), and `supercededManagerResults` to `secondaryExtract` (diff line 259). All four original names are removed.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies all four verbose local variables \u2014 `supersedesManagers`, `supercedingPackageFileNames`, `supercededManager`, and `supercededManagerResults` \u2014 and explicitly asks that 'the verbose variable names should be renamed to avoid the confusingly similar `superceding`/`superceded` prefixes.' [2: Implicit Codebase Constraint] These four names are the only locally-scoped variables in the function that use the 'supersedes'/'superceding'/'superceded' prefix pattern. [3: Logical Necessity] Renaming only some while leaving others would create an inconsistent naming scheme within the same function. [4: Quality Necessity] The prefixes 'superceding' and 'superceded' are near-homonyms that make the code harder to scan. [5: Conclusion] Therefore, any correct answer must rename all four local variables to names that no longer use the `superceding` or `superceded` prefixes."
+    }
+  },
+  {
+    "id": "7c15a9f3e20d6b84c7a51f9e3d02b8a6",
+    "title": "1.4: Replaces the compound negation in the filter callback of `processSupersedesManagers` in `lib/workers/repository/extract/supersedes.ts` with separate filter conditions",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the filter callback no longer uses a compound negation (checking two conditions to return false, then returning true as default) and instead expresses the keep conditions positively.",
+      "evidence": "Reference patch supersedes.ts: the filter callback (diff lines 284-294) uses `if (is.nonEmptyArray(lockFiles)) { return true; }` and `if (!primaryPackageFiles.includes(packageFile)) { return true; }` followed by `return false`, replacing the original `if (!lockFiles?.length && includes(...)) { return false; } return true;` compound negation (base lines 24-30).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly identifies 'a compound negation to decide when to exclude entries' as a readability problem and states it is 'harder to read than expressing the conditions for keeping them.' The prompt asks that 'the filter logic should be easier to follow.' [2: Implicit Codebase Constraint] The original filter callback combines two conditions in a single negated branch: `if (!packageFile.lockFiles?.length && supercedingPackageFileNames.includes(packageFile.packageFile)) { return false; } return true;`. [3: Logical Necessity] Expressing keep conditions positively makes each branch's intent self-documenting. [5: Conclusion] Therefore, any correct answer must replace the compound negation with logic that expresses the conditions for keeping entries."
+    }
+  },
+  {
+    "id": "e28d4c06f93a1b75e82d0c4f6a31b97c",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "3f96b1e7d40c28a5f3b69e1d7c04a2f8",
+    "title": "4.1: Alters the filtering behavior of `processSupersedesManagers` (such as removing package files that have lock files, or keeping superseded package files without lock files that overlap with the superseding manager's file list)",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactoring changes which package files are kept or removed. The original logic keeps entries that have lock files and entries whose packageFile is not in the superseding manager's list, and removes everything else. This behavior must be preserved exactly.",
+      "evidence": "Reference patch supersedes.ts: the filter callback (diff lines 283-295) preserves the same keep/remove semantics as the original (base lines 23-31), keeping entries with non-empty lockFiles and entries not in the superseding manager's package file list, while removing the rest.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'refactor this function to improve its readability' and to 'make the minimal changes,' which means the function's observable behavior must remain identical. [2: Implicit Code Base Constraint] The function is integrated into the repository extract pipeline, and its filtering output directly determines which package files remain for downstream processing by other managers. [3: Logical Necessity] Changing which package files are kept or removed would alter how managers supersede each other across the entire application. [5: Conclusion] Therefore, any correct answer must NOT alter the filtering behavior."
+    }
+  },
+  {
+    "id": "82a5f0c3d96e1b47a25f8c0d3e61b94a",
+    "title": "4.2: Modifies any testing logic in `lib/workers/repository/extract/supersedes.spec.ts` or any other test file",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the agent modifies test files despite the explicit constraint not to.",
+      "evidence": "Reference patch supersedes.ts: only `lib/workers/repository/extract/supersedes.ts` is modified in the source changes. The test file changes in the reference patch are pre-applied and not part of the agent's task.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.' [2: Implicit Codebase Constraint] The corresponding test file `lib/workers/repository/extract/supersedes.spec.ts` exists and its changes were pre-applied separately. [3: Logical Necessity] The test suite is managed separately and must remain untouched for evaluation integrity. [5: Conclusion] Therefore, any correct answer must NOT modify any test files."
+    }
+  }
+]

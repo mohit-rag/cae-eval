@@ -1,0 +1,118 @@
+{
+  "tests": [
+    {
+      "name": "UnifiedSearcher > doSearchQuery pagination > should report isItemLoaded correctly"
+    },
+    {
+      "name": "UnifiedSearcher > getFolderViewSort > should return \"name_sort\""
+    },
+    {
+      "name": "UnifiedSearcher > getSortOptions > should include enterprise sort options when analytics is enabled"
+    },
+    {
+      "name": "UnifiedSearcher > getSortOptions > should only return 2 options when analytics is disabled"
+    },
+    {
+      "name": "UnifiedSearcher > getSortOptions > should return alphabetical sort options by default"
+    },
+    {
+      "name": "UnifiedSearcher > search > should default limit to 50 when not specified"
+    },
+    {
+      "name": "UnifiedSearcher > search > should fall back when backend returns Loading frame"
+    },
+    {
+      "name": "UnifiedSearcher > search > should handle empty response frames"
+    },
+    {
+      "name": "UnifiedSearcher > search > should return results from the unified search API"
+    },
+    {
+      "name": "UnifiedSearcher > search > should set default meta when custom meta is missing"
+    },
+    {
+      "name": "UnifiedSearcher > search > should throw error when facets are requested"
+    },
+    {
+      "name": "UnifiedSearcher > search > should use default query \"*\" when query is undefined"
+    },
+    {
+      "name": "UnifiedSearcher > search > should use provided limit when specified"
+    },
+    {
+      "name": "UnifiedSearcher > starred > should fetch stars from api/user/stars"
+    },
+    {
+      "name": "UnifiedSearcher > starred > should return empty response when no stars exist"
+    },
+    {
+      "name": "UnifiedSearcher > starred > should return empty response when stars API returns null"
+    },
+    {
+      "name": "UnifiedSearcher > starred > should search with starred UIDs when stars exist"
+    },
+    {
+      "name": "UnifiedSearcher > starred > should throw error when facets are requested"
+    },
+    {
+      "name": "UnifiedSearcher > starred > should use default query \"*\" when query.query is undefined"
+    },
+    {
+      "name": "UnifiedSearcher > tags > should fall back when Loading frame is returned"
+    },
+    {
+      "name": "UnifiedSearcher > tags > should post with facet tag and limit 1"
+    },
+    {
+      "name": "UnifiedSearcher > tags > should return empty array when no tag frame is found"
+    },
+    {
+      "name": "UnifiedSearcher > tags > should return tag counts from the response"
+    },
+    {
+      "name": "getGrafanaSearcher > should return FrontendSearcher when panelTitleSearch and do-frontend-query are active"
+    },
+    {
+      "name": "getGrafanaSearcher > should return SQLSearcher when no feature toggles are enabled"
+    },
+    {
+      "name": "getGrafanaSearcher > should return UnifiedSearcher when unifiedStorageSearch is enabled"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestCustomMeta_JSONSerialization"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestCustomMeta_OmitsEmptyFields"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestCustomMeta_ZeroCount"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestDashboardListDoc_JSONDeserialization"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestGetDoc_EmptyInput"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestGetDoc_EmptyObject"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestGetDoc_InvalidJSON"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestGetDoc_NullInput"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestGetDoc_PartialFields"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestGetDoc_SpecWithEmptyTitle"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestGetDoc_SpecWithSpecialCharacters"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/unifiedSearch/TestGetDoc_ValidJSON"
+    }
+  ]
+}

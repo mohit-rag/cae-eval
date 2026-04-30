@@ -1,0 +1,194 @@
+[
+  {
+    "id": "cb82894adfc3a4247bbb3fcf3ca856e1",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ca23f32ee7392dd7867dafde4963220b",
+    "title": "1.1: Implements getRateLimitFromConfig(env_var: str, default: str) function in app/config.py returning list[tuple[int, int]]",
+    "annotations": {
+      "importance": "must have",
+      "description": "The code defines a function named getRateLimitFromConfig in app/config.py that accepts parameters (env_var: str, default: str = '') and returns list[tuple[int, int]]. The function parses rate limit configuration from the specified environment variable.",
+      "evidence": "gold.patch lines 13-25 show 'def getRateLimitFromConfig(env_var: string, default: string = \"\") -> list[tuple[int, int]]:' function definition in app/config.py that parses environment variable and returns list of tuples.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt provides an interface specifying getRateLimitFromConfig with exact signature (env_var: str, default: str = '') returning list[tuple[int, int]]. [2: Implicit Code Base Constraint] The codebase centralizes environment-driven settings in config.py, which is the established pattern for all environment-variable-backed configuration. [3: Logical Necessity] Centralizing the function in config.py ensures any module can import it without circular dependencies, as config.py does not import from models or other application modules. [5: Conclusion] Therefore, ANY correct answer must implement getRateLimitFromConfig with the specified signature in app/config.py.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3ef067bf544820d1bba9f92067c4050b",
+    "title": "1.2: Parses rate limit format as 'hits,seconds:hits,seconds...' in getRateLimitFromConfig",
+    "annotations": {
+      "importance": "must have",
+      "description": "The getRateLimitFromConfig function parses the environment variable value using the format 'hits,seconds:hits,seconds...' where colon separates multiple windows and comma separates hits from seconds within each window (e.g., '1,10:4,60' means 1 hit in 10 seconds or 4 hits in 60 seconds).",
+      "evidence": "gold.patch lines 11-12 show comments '# Expect format hits,seconds:hits,seconds...' and '# Example 1,10:4,60 means 1 in the last 10 secs or 4 in the last 60 secs'. Lines 19-24 show parsing logic: 'value.split(\":\")' to separate windows, then 'entry.split(\",\")' to extract hits and seconds.",
+      "justification": "[1: Explicit Prompt Requirement] The interface explicitly defines the parsing format as 'hits,seconds:hits,seconds...' with a concrete example. [3: Logical Necessity] Consistent parsing is required for the configuration to work correctly across environments. [5: Conclusion] Therefore, ANY correct answer must parse the specified format.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b7fec82073116b8a11095eedf9553e4e",
+    "title": "1.3: Defines ALIAS_CREATE_RATE_LIMIT_FREE constant in app/config.py with default '10,900:50,3600'",
+    "annotations": {
+      "importance": "must have",
+      "description": "The code defines a constant named ALIAS_CREATE_RATE_LIMIT_FREE in app/config.py that loads from the ALIAS_CREATE_RATE_LIMIT_FREE environment variable with default value '10,900:50,3600' (10 aliases per 900 seconds, 50 aliases per 3600 seconds).",
+      "evidence": "gold.patch lines 28-29 show 'ALIAS_CREATE_RATE_LIMIT_FREE = getRateLimitFromConfig(\"ALIAS_CREATE_RATE_LIMIT_FREE\", \"10,900:50,3600\")' defining the constant with the specified default value.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'I need separate rate limits for free vs paid users' and the interface specifies ALIAS_CREATE_RATE_LIMIT_FREE with exact default '10,900:50,3600'. [2: Implicit Code Base Constraint] The codebase defines all environment-variable-backed constants at module level in config.py, making this the established and expected location. [3: Logical Necessity] Defining the constant at module level ensures the environment variable is parsed once at startup rather than re-evaluated on every alias creation request. [5: Conclusion] Therefore, ANY correct answer must define ALIAS_CREATE_RATE_LIMIT_FREE with the specified default in app/config.py.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "09deb252420aba8e60b5a189a9d97a55",
+    "title": "1.4: Defines ALIAS_CREATE_RATE_LIMIT_PAID constant in app/config.py with default '50,900:200,3600'",
+    "annotations": {
+      "importance": "must have",
+      "description": "The code defines a constant named ALIAS_CREATE_RATE_LIMIT_PAID in app/config.py that loads from the ALIAS_CREATE_RATE_LIMIT_PAID environment variable with default value '50,900:200,3600' (50 aliases per 900 seconds, 200 aliases per 3600 seconds).",
+      "evidence": "gold.patch lines 31-32 show 'ALIAS_CREATE_RATE_LIMIT_PAID = getRateLimitFromConfig(\"ALIAS_CREATE_RATE_LIMIT_PAID\", \"50,900:200,3600\")' defining the constant with the specified default value.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'I need separate rate limits for free vs paid users' and the interface specifies ALIAS_CREATE_RATE_LIMIT_PAID with exact default '50,900:200,3600'. [2: Implicit Code Base Constraint] The codebase defines all environment-variable-backed constants at module level in config.py, making this the established and expected location. [3: Logical Necessity] Defining the constant at module level ensures the environment variable is parsed once at startup rather than re-evaluated on every alias creation request. [5: Conclusion] Therefore, ANY correct answer must define ALIAS_CREATE_RATE_LIMIT_PAID with the specified default in app/config.py.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "905f446420003a6368a769b6824dd7de",
+    "title": "1.5: Returns empty list from getRateLimitFromConfig when environment variable is empty or not set to skip rate limiting",
+    "annotations": {
+      "importance": "must have",
+      "description": "The getRateLimitFromConfig function returns an empty list when the environment variable is not set or is empty, effectively skipping rate limiting rather than throwing an error.",
+      "evidence": "gold.patch lines 16-18 show 'value = os.environ.get(env_var, default)' followed by 'if not value: return []' - returning an empty list when the value is falsy.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'If the env var is empty, just skip rate limiting rather than erroring'. The interface confirms this by specifying 'Returns an empty list if the environment variable is not set or is empty'. [2: Implicit Code Base Constraint] The models.py for loop iterates over the returned list; an empty list produces zero iterations and zero rate limit checks, making it the natural no-op within the existing code structure without requiring any changes to models.py. [3: Logical Necessity] An empty list means rate limit checks iterate zero times, effectively skipping rate limiting without additional conditional logic. [5: Conclusion] Therefore, ANY correct answer must return an empty list when the env var is empty.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a65b34733a28d574e5d86832da01692b",
+    "title": "1.6: Enforces all configured rate limit windows by iterating over the full limits list in models.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "The alias creation code in models.py iterates over every entry in the limits list, enforcing all configured rate windows rather than checking only the first one. This ensures both short burst and longer rolling limits are applied.",
+      "evidence": "gold.patch lines 51-54 in models.py show 'for limit in limits:' followed by 'rate_limiter.check_bucket_limit(key, limit[0], limit[1])' inside the loop, applying the rate check for each configured window in the list.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'with support for multiple rate windows (like both a short burst limit and a longer rolling limit)', requiring all windows to be checked. [2: Implicit Code Base Constraint] The existing for loop in models.py already iterates over whatever list is assigned to limits, so any number of windows is naturally enforced without additional control flow changes. [3: Logical Necessity] Checking only the first window would silently ignore additional configured limits, defeating the purpose of multi-window rate limiting. [5: Conclusion] Therefore, ANY correct answer must iterate over all entries in the limits list.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b886760bba588d1c71315a0a33b0e1d4",
+    "title": "1.7: Selects ALIAS_CREATE_RATE_LIMIT_PAID for premium users and ALIAS_CREATE_RATE_LIMIT_FREE for free users in models.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "The alias creation flow in models.py chooses which configured limits to apply based on whether the user is premium/paid, using ALIAS_CREATE_RATE_LIMIT_PAID for premium users and ALIAS_CREATE_RATE_LIMIT_FREE for free users.",
+      "evidence": "gold.patch lines 44-49 in models.py show 'if user.is_premium(): limits = config.ALIAS_CREATE_RATE_LIMIT_PAID else: limits = config.ALIAS_CREATE_RATE_LIMIT_FREE' replacing the old hardcoded tuples.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'I need separate rate limits for free vs paid users'. [2: Implicit Code Base Constraint] The canonical tier check in this codebase is user.is_premium(), and alias creation rate limiting is enforced in models.py. [3: Logical Necessity] The rate limit must be applied at the point of alias creation; models.py is the only location where both the user object and rate_limiter are accessible together, making tier-based branching there the only viable approach. [5: Conclusion] Therefore, ANY correct answer must branch on user tier and apply the corresponding tier's configured limits in models.py.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "305486fc917160c81adb73952d57a954",
+    "title": "1.8: Passes time windows in seconds directly to rate_limiter.check_bucket_limit without * 86400 conversion",
+    "annotations": {
+      "importance": "must have",
+      "description": "The rate limiting code passes window sizes in seconds directly to the rate limiter API, eliminating the inconsistent time unit handling where limits were previously in days with an awkward * 86400 conversion.",
+      "evidence": "gold.patch line 54 shows 'rate_limiter.check_bucket_limit(key, limit[0], limit[1])' without the '* 86400' multiplication. Line 53 shows the old code '-rate_limiter.check_bucket_limit(key, limit[0], limit[1] * 86400)' being removed.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies the '* 86400 conversion' as problematic and asks to make limits configurable. [2: Implicit Code Base Constraint] The rate_limiter.check_bucket_limit API expects its time window parameter in seconds. [3: Logical Necessity] The new format specifies seconds directly, so no conversion should be needed. [5: Conclusion] Therefore, ANY correct answer must pass seconds directly without the * 86400 conversion.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a0afbed5d57630e373bdc30a2e972425",
+    "title": "1.9: Fails with an exception when getRateLimitFromConfig receives a non-empty but unparseable environment variable value",
+    "annotations": {
+      "importance": "must have",
+      "description": "The getRateLimitFromConfig function raises an exception when the environment variable is set to a non-empty value that cannot be parsed into the expected format (e.g., 'invalid' or a string missing the comma separator). This surfaces misconfiguration immediately rather than silently applying no rate limits.",
+      "evidence": "gold.patch lines 22-23 show 'fields = entry.split(\",\")' followed by 'limit = (int(fields[0]), int(fields[1]))' \u2014 calling int() on a non-numeric string raises ValueError, and indexing into a too-short fields list raises IndexError, both propagating naturally as uncaught exceptions.",
+      "justification": "[1: Explicit Prompt Requirement] The interface specifies 'Raises an exception if the value is set but cannot be parsed (e.g., not in the expected format)'. [3: Logical Necessity] Unlike an empty value which signals intentional opt-out, an invalid format indicates misconfiguration that should surface immediately at startup rather than silently disabling rate limiting and leaving the system unprotected. [5: Conclusion] Therefore, ANY correct answer must propagate parsing errors for non-empty, unparseable values.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b8779142c24d92c38ae8788348cbbd30",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "9c86fe685152d9d359990752f3334082",
+    "title": "2.1: Adds comments or docstrings explaining the 'hits,seconds:hits,seconds...' rate limit format",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "The code includes comments or docstrings near the rate limit configuration explaining how to format the environment variable value (e.g., 'hits,seconds:hits,seconds...').",
+      "evidence": "gold.patch lines 11-12 show comments '# Expect format hits,seconds:hits,seconds...' and '# Example 1,10:4,60 means 1 in the last 10 secs or 4 in the last 60 secs' documenting the format.",
+      "justification": "[4: Qualitative Requirement] Clear inline documentation helps operators understand how to configure the rate limits without searching elsewhere. [5: Conclusion] Therefore, a good solution should include documentation for the env var format.",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "b85ff7dd8a13216a22f660da5779be03",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "a258b940d177fe62794a6bb8765b6b6b",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "d3d44d4c34f97f51e6cc2ff4a66c9c25",
+    "title": "4.1: Retains hardcoded rate limit numeric values in models.py instead of using ALIAS_CREATE_RATE_LIMIT_FREE/PAID constants",
+    "annotations": {
+      "importance": "must have",
+      "description": "The alias creation code continues to use hardcoded numeric rate limit values instead of reading from the configuration constants (ALIAS_CREATE_RATE_LIMIT_FREE, ALIAS_CREATE_RATE_LIMIT_PAID). Hardcoding defeats the purpose of making limits configurable.",
+      "evidence": "gold.patch lines 45-49 show the hardcoded values '-limits = ((50, 1), (200, 7))' and '-limits = ((10, 1), (20, 7))' must be replaced with config constants. Retaining these hardcoded values is a regression.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to make rate limiting 'configurable via environment variables'. [2: Implicit Code Base Constraint] The for loop in models.py reads directly from the limits variable; if hardcoded tuples remain, the config constants defined in config.py are never referenced and the environment variable mechanism is entirely bypassed. [3: Logical Necessity] Hardcoding values in models.py would make the new getRateLimitFromConfig function and the two rate limit constants completely unreachable, defeating the purpose of the refactor. [5: Conclusion] Therefore, retaining hardcoded rate limit values in models.py is a regression.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "9a343e6462977fa73023f69f1e547eaa",
+    "title": "4.2: Throws error or exception when rate limit environment variable is empty instead of returning empty list",
+    "annotations": {
+      "importance": "must have",
+      "description": "The code throws an error, raises an exception, or fails when the rate limit environment variable is empty or not set, instead of gracefully skipping rate limiting by returning an empty list.",
+      "evidence": "gold.patch lines 17-18 show the correct behavior: 'if not value: return []'. Any implementation that raises an exception or errors instead of returning an empty list violates this requirement.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires skipping rate limiting rather than erroring when env var is empty. [2: Implicit Code Base Constraint] The for loop in models.py executes zero iterations on an empty list, so returning [] is the only mechanism that allows rate limiting to be disabled without modifying models.py. [3: Logical Necessity] Throwing an error would break deployments that intentionally configure an empty env var to disable rate limiting. [5: Conclusion] Therefore, throwing an error on empty env var is a regression.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

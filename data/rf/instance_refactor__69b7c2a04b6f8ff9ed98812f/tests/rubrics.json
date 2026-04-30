@@ -1,0 +1,206 @@
+[
+  {
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Code Maintainability",
+      "description": "N/A: No Description Required.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "f71dbe52628a3f83a77ab494817525c6",
+    "title": "1.1: Refactors all 4 FileContainer methods (free, file_open, file_append, file_close) to invoke direct C functions instead of going through the SC vtable indirection",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the methods in FileContainer are updated to use direct unsafe FFI calls rather than accessing the deprecated global vtable.",
+      "evidence": "rust/src/filecontainer.rs: inside `impl FileContainer`, the gold patch replaces indirect calls like `(c.FileOpenFile)(...)` with direct calls like `FileOpenFileWithId(self, ...)`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requests to \"replace the indirect vtable calls with direct extern \\\"C\\\" FFI declarations\". [3: Logical Necessity] To effectively eliminate the indirection, the function bodies must actually execute the newly declared direct calls. [5: Conclusion] Therefore, any correct answer must update the FileContainer implementation to call the direct FFI functions."
+    }
+  },
+  {
+    "id": "b4b147bc522828731f1a016bfa72c073",
+    "title": "1.2: Declares extern \"C\" FFI blocks for all 5 file operations (FileContainerRecycle, FileAppendGAPById, FileAppendDataById, FileCloseFileById, FileOpenFileWithId) guarded by #[cfg(not(test))]",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that direct FFI functions are declared for production environments.",
+      "evidence": "rust/src/filecontainer.rs: the gold patch adds an `extern \"C\"` block with `#[cfg(not(test))]`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to \"replace the indirect vtable calls with direct extern 'C' FFI declarations guarded by #[cfg(not(test))]\". [3: Logical Necessity] To link against the C functions in production, these extern declarations are technically required. [5: Conclusion] Therefore, any correct answer must declare the extern C blocks conditionally."
+    }
+  },
+  {
+    "id": "16c222aa19898e5058938167c8ab6c45",
+    "title": "1.3: Provides #[cfg(test)] no-op fallback stubs for all 5 file operations (FileContainerRecycle, FileAppendGAPById, FileAppendDataById, FileCloseFileById, FileOpenFileWithId) to allow unit tests to compile",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that dummy implementations are provided for test environments so they do not rely on the C library.",
+      "evidence": "rust/src/filecontainer.rs: the gold patch adds individual dummy functions with `#[cfg(test)]`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to \"add #[cfg(test)] no-op stubs so our unit tests still compile\". [3: Logical Necessity] Without these stubs, the Rust test compiler will fail to resolve the C symbols during unit testing. [5: Conclusion] Therefore, any correct answer must provide these dummy fallback stubs."
+    }
+  },
+  {
+    "id": "fc49231bdde1297e2f694c92155ceeb8",
+    "title": "1.4: Moves all 4 opaque Rust types (IKEState, IKETransaction, TFTPState, TFTPTransaction) from their respective app-layer headers to src/rust.h",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the opaque structs previously defined in individual app-layer headers are consolidated into src/rust.h for bindgen compatibility.",
+      "evidence": "src/rust.h: the gold patch adds `typedef struct IKEState_ IKEState;` etc., and removes them from `src/app-layer-ike.h` and `src/app-layer-tftp.h`.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states to \"move the opaque Rust types for IKE and TFTP from their respective app-layer headers over to src/rust.h\". [4: Qualitative Requirement] Consolidating these declarations simplifies the C-to-Rust binding generation scope. [5: Conclusion] Therefore, any correct answer must relocate these type definitions to src/rust.h."
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1.5: Replaces the rust-context.h include with a detect.h include in rust.h",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that rust.h replaces the deleted rust-context.h include with detect.h to maintain required declarations.",
+      "evidence": "src/rust.h: the gold patch removes `#include \"rust-context.h\"` and adds `#include \"detect.h\"`.",
+      "justification": "[3: Logical Necessity] Since rust-context.h is being deleted and it transitively provided declarations needed by Rust bindings, rust.h must include detect.h to maintain those declarations. [5: Conclusion] Therefore, any correct answer must replace the rust-context.h include with detect.h in rust.h."
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d7",
+    "title": "1.6: Adds the DetectEngineState typedef to rust.h",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that rust.h declares the DetectEngineState typedef that was previously provided through rust-context.h.",
+      "evidence": "src/rust.h: the gold patch adds `typedef struct DetectEngineState_ DetectEngineState;`.",
+      "justification": "[3: Logical Necessity] Since rust-context.h is being deleted and it declared the DetectEngineState typedef used by Rust bindings, rust.h must provide this typedef directly. [5: Conclusion] Therefore, any correct answer must add the DetectEngineState typedef to rust.h."
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+    "title": "1.7: Removes both SuricataContext and SuricataFileContext entries from the exclude list in rust/cbindgen.toml",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the cbindgen configuration is updated to remove references to the deleted SuricataContext types.",
+      "evidence": "rust/cbindgen.toml: the gold patch removes `\"SuricataContext\",` and `\"SuricataFileContext\",` from the exclude list.",
+      "justification": "[1: Explicit Prompt Requirement] The interface explicitly specifies that cbindgen.toml must remove SuricataContext and SuricataFileContext from the exclude list. [3: Logical Necessity] Since these types are being removed from the codebase, they should not be referenced in the cbindgen configuration. [5: Conclusion] Therefore, any correct answer must update cbindgen.toml to remove these entries."
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+    "title": "1.8: Updates plugin.rs init function to remove SCGetContext and init_ffi calls",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the plugin.rs init function is updated to remove references to the deleted context initialization.",
+      "evidence": "rust/src/plugin.rs: the gold patch removes `let context = crate::core::SCGetContext();` and `crate::core::init_ffi(context);` from the init function, keeping only the log level initialization.",
+      "justification": "[1: Explicit Prompt Requirement] The interface explicitly specifies that plugin.rs init function must remove SCGetContext and init_ffi calls. [3: Logical Necessity] Since SCGetContext and init_ffi are being removed from core.rs, any code calling them must be updated. [5: Conclusion] Therefore, any correct answer must update plugin.rs to remove these calls."
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "title": "1.9: Updates suricata.c InitGlobal function to remove SCRustInit call",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the suricata.c InitGlobal function is updated to remove the SCRustInit call.",
+      "evidence": "src/suricata.c: the gold patch removes `SCRustInit(&suricata_context);` from the InitGlobal function.",
+      "justification": "[1: Explicit Prompt Requirement] The interface explicitly specifies that InitGlobal must remove the SCRustInit call. [3: Logical Necessity] Since SCRustInit is being removed from the Rust codebase, the C code calling it must be updated. [5: Conclusion] Therefore, any correct answer must update suricata.c to remove this call."
+    }
+  },
+  {
+    "id": "9d5ed678fe57bcca610140957afab571",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "Artifact Cleanup",
+      "description": "N/A: No Description Required.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "415290769594460e2e485922904f345d",
+    "title": "3.1: Removes the SuricataContext struct, the global SC static, and the initialization functions (init_ffi, SCRustInit, SCGetContext) from core.rs",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "Verifies that the deprecated global state, vtable struct, and initialization functions used for the old Rust/C FFI are stripped out from core.rs.",
+      "evidence": "rust/src/core.rs: the gold patch deletes `pub struct SuricataContext`, `pub static mut SC`, `pub fn init_ffi`, `pub extern \"C\" fn SCRustInit`, and the `extern \"C\" { pub fn SCGetContext() }` block.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt demands to \"remove the SuricataContext struct, the global SC static, and all related initialization logic\". [3: Logical Necessity] Leaving these in would create dead code and contradict the core architectural migration goal. [5: Conclusion] Therefore, a good answer will systematically delete these constructs from core.rs."
+    }
+  },
+  {
+    "id": "a5120fcb64082dc8a46cf7f29b6fdf8e",
+    "title": "3.2: Deletes the obsolete rust-context.c and rust-context.h files",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "Verifies that the obsolete rust-context files are entirely removed from the file system.",
+      "evidence": "src/rust-context.c and src/rust-context.h are completely deleted in the gold patch.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for \"completely deleting the rust-context C files\". [4: Qualitative Requirement] Removing unused obsolete files prevents confusion and reduces technical debt. [5: Conclusion] Therefore, a good answer will actively delete these obsolete files."
+    }
+  },
+  {
+    "id": "b9c7b9ea325d2598cb7206d203da8ba2",
+    "title": "3.3: Removes references to the deleted rust-context files from build and lint configurations (such as Makefile.am or cppclean_check.py)",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "Verifies that references to the deleted files are stripped from the build tools.",
+      "evidence": "Relevant lines referencing rust-context are removed from src/Makefile.am and cppclean_check.py in the gold patch.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests \"removing them from our build and lint scripts\". [3: Logical Necessity] If the files are deleted but their references remain in the build scripts, the build and lint processes will fail. [5: Conclusion] Therefore, a good answer will strictly remove these build references."
+    }
+  },
+  {
+    "id": "8c19f571e251e61cb8dd3612f26d5ecf",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Negative Rubrics",
+      "description": "N/A: No Description Required.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "1534b76d325a8f591b52d302e7181331",
+    "title": "4.1: Modifies, adds, or refactors any files within the test suite",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "Ensures the agent adheres to the strict constraint of only touching production source code.",
+      "evidence": "The gold patch only modifies source code files and does not contain any modifications to test files.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states as a strict constraint: \"do not modify or refactor any test files.\" [3: Logical Necessity] Altering test files risks masking actual regressions caused by the source code changes. [5: Conclusion] Therefore, any correct solution must strictly avoid modifying test files."
+    }
+  },
+  {
+    "id": "e7df7cd2ca07f4f1ab415d457a6e1c13",
+    "title": "4.2: Leaves residual vtable indirection calls (e.g., using c.FileOpenFile or the SC global) within the FileContainer implementation",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "Verifies that the old vtable access pattern is entirely eradicated from the refactored methods.",
+      "evidence": "rust/src/filecontainer.rs `file_open` method and others no longer contain matching blocks for `unsafe { SC }` in the gold patch.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires switching over \"to using direct bindgen-generated calls\". [2: Implicit Code Base Constraint] The codebase relies on these methods for core operations, and leaving old `SC` usages intact will lead to compilation failures or undefined behavior since `SC` is no longer initialized. [5: Conclusion] Therefore, any correct solution must eradicate all traces of the old vtable indirection in these methods."
+    }
+  }
+]

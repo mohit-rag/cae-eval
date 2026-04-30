@@ -1,0 +1,213 @@
+diff --git a/pkg/sources/gitlab/gitlab_test.go b/pkg/sources/gitlab/gitlab_test.go
+index 3970c89a3..a3c3a4c3b 100644
+--- a/pkg/sources/gitlab/gitlab_test.go
++++ b/pkg/sources/gitlab/gitlab_test.go
+@@ -1,12 +1,14 @@
+ package gitlab
+ 
+ import (
++	"errors"
+ 	"fmt"
+ 	"reflect"
+ 	"testing"
+ 
+ 	"github.com/kylelemons/godebug/pretty"
+ 	"github.com/stretchr/testify/assert"
++	gogitlab "github.com/xanzy/go-gitlab"
+ 	"golang.org/x/sync/errgroup"
+ 	"google.golang.org/protobuf/types/known/anypb"
+ 
+@@ -443,3 +445,193 @@ func Test_scanRepos_SetProgressComplete(t *testing.T) {
+ 		})
+ 	}
+ }
++
++func TestProcessProjectsDeduplication(t *testing.T) {
++	tests := []struct {
++		name           string
++		inputProjects  [][]*gogitlab.Project
++		wantCount      int
++		wantNamespaces []string
++	}{
++		{
++			name: "no duplicates",
++			inputProjects: [][]*gogitlab.Project{
++				{
++					{ID: 1, NameWithNamespace: "org/project1"},
++					{ID: 2, NameWithNamespace: "org/project2"},
++				},
++			},
++			wantCount:      2,
++			wantNamespaces: []string{"org/project1", "org/project2"},
++		},
++		{
++			name: "with duplicates in same batch",
++			inputProjects: [][]*gogitlab.Project{
++				{
++					{ID: 1, NameWithNamespace: "org/project1"},
++					{ID: 1, NameWithNamespace: "org/project1"},
++					{ID: 2, NameWithNamespace: "org/project2"},
++				},
++			},
++			wantCount:      2,
++			wantNamespaces: []string{"org/project1", "org/project2"},
++		},
++		{
++			name: "with duplicates across batches",
++			inputProjects: [][]*gogitlab.Project{
++				{
++					{ID: 1, NameWithNamespace: "org/project1"},
++					{ID: 2, NameWithNamespace: "org/project2"},
++				},
++				{
++					{ID: 2, NameWithNamespace: "org/project2"},
++					{ID: 3, NameWithNamespace: "org/project3"},
++				},
++			},
++			wantCount:      3,
++			wantNamespaces: []string{"org/project1", "org/project2", "org/project3"},
++		},
++		{
++			name: "all duplicates",
++			inputProjects: [][]*gogitlab.Project{
++				{
++					{ID: 1, NameWithNamespace: "org/project1"},
++				},
++				{
++					{ID: 1, NameWithNamespace: "org/project1"},
++				},
++				{
++					{ID: 1, NameWithNamespace: "org/project1"},
++				},
++			},
++			wantCount:      1,
++			wantNamespaces: []string{"org/project1"},
++		},
++		{
++			name:           "empty input",
++			inputProjects:  [][]*gogitlab.Project{},
++			wantCount:      0,
++			wantNamespaces: []string{},
++		},
++	}
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			uniqueProjects := make(map[int]*gogitlab.Project)
++			var projects []*gogitlab.Project
++			var projectsWithNamespace []string
++
++			processProjects := func(projList []*gogitlab.Project) {
++				for _, proj := range projList {
++					if _, exists := uniqueProjects[proj.ID]; !exists {
++						uniqueProjects[proj.ID] = proj
++						projects = append(projects, proj)
++						projectsWithNamespace = append(projectsWithNamespace, proj.NameWithNamespace)
++					}
++				}
++			}
++
++			for _, batch := range tt.inputProjects {
++				processProjects(batch)
++			}
++
++			assert.Equal(t, tt.wantCount, len(projects))
++			if tt.wantCount > 0 {
++				for _, ns := range tt.wantNamespaces {
++					assert.Contains(t, projectsWithNamespace, ns)
++				}
++			}
++		})
++	}
++}
++
++func TestPaginationConstants(t *testing.T) {
++	const (
++		orderBy         = "last_activity_at"
++		paginationLimit = 100
++	)
++
++	assert.Equal(t, "last_activity_at", orderBy, "orderBy constant should be 'last_activity_at'")
++	assert.Equal(t, 100, paginationLimit, "paginationLimit should be 100 (max allowed by GitLab API)")
++
++	listOpts := gogitlab.ListOptions{PerPage: paginationLimit}
++	assert.Equal(t, 100, listOpts.PerPage)
++
++	projectQueryOptions := &gogitlab.ListProjectsOptions{
++		OrderBy:     gogitlab.String(orderBy),
++		ListOptions: listOpts,
++	}
++	assert.Equal(t, "last_activity_at", *projectQueryOptions.OrderBy)
++	assert.Equal(t, 100, projectQueryOptions.ListOptions.PerPage)
++}
++
++func TestCloudBaseURLConditional(t *testing.T) {
++	tests := []struct {
++		name             string
++		sourceURL        string
++		wantAllAvailable bool
++	}{
++		{
++			name:             "gitlab.com cloud URL",
++			sourceURL:        "https://gitlab.com/",
++			wantAllAvailable: false,
++		},
++		{
++			name:             "self-hosted GitLab",
++			sourceURL:        "https://gitlab.mycompany.com/",
++			wantAllAvailable: true,
++		},
++		{
++			name:             "another self-hosted instance",
++			sourceURL:        "https://git.example.org/",
++			wantAllAvailable: true,
++		},
++	}
++
++	const cloudBaseURL = "https://gitlab.com/"
++
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			listGroupsOptions := gogitlab.ListGroupsOptions{
++				AllAvailable: gogitlab.Bool(false),
++				TopLevelOnly: gogitlab.Bool(false),
++				Owned:        gogitlab.Bool(false),
++			}
++
++			if tt.sourceURL != cloudBaseURL {
++				listGroupsOptions.AllAvailable = gogitlab.Bool(true)
++			}
++
++			assert.Equal(t, tt.wantAllAvailable, *listGroupsOptions.AllAvailable)
++		})
++	}
++}
++
++func TestErrorWrappingFormat(t *testing.T) {
++	baseErr := errors.New("connection refused")
++	authMethod := "token"
++
++	wrappedErr := fmt.Errorf("unable to authenticate using %s, %w", authMethod, baseErr)
++
++	assert.Contains(t, wrappedErr.Error(), "unable to authenticate using token")
++	assert.Contains(t, wrappedErr.Error(), "connection refused")
++	assert.True(t, errors.Is(wrappedErr, baseErr), "wrapped error should unwrap to base error")
++}
++
++func TestListGroupProjectOptionsWithPagination(t *testing.T) {
++	const (
++		orderBy         = "last_activity_at"
++		paginationLimit = 100
++	)
++	listOpts := gogitlab.ListOptions{PerPage: paginationLimit}
++
++	listGroupProjectOptions := &gogitlab.ListGroupProjectsOptions{
++		ListOptions:      listOpts,
++		OrderBy:          gogitlab.String(orderBy),
++		IncludeSubGroups: gogitlab.Bool(true),
++	}
++
++	assert.Equal(t, 100, listGroupProjectOptions.ListOptions.PerPage)
++	assert.Equal(t, "last_activity_at", *listGroupProjectOptions.OrderBy)
++	assert.True(t, *listGroupProjectOptions.IncludeSubGroups)
++}

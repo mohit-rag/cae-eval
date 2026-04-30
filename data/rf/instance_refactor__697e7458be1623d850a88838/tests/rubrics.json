@@ -1,0 +1,206 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "cb059d64ef21a609a208ed627e2bb260",
+    "title": "1.1: Adds defensive error handling around PID response parsing in scapy/contrib/automotive/obd/scanner.py to prevent crashes from unexpected response data",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the supported PID detection logic in OBD_Service_Enumerator within scapy/contrib/automotive/obd/scanner.py includes error handling (such as try/except or isinstance checks) so that unexpected packet structures with non-iterable fields do not crash the scanner.",
+      "evidence": "`gold.patch` lines 9-17 (`scapy/contrib/automotive/obd/scanner.py`): the get_supported method iterates over results_with_positive_response and calls getattr(dr, key, ['xxx00']) which can return non-iterable types, causing TypeError when iterated. The gold solution wraps the parsing in try/except TypeError.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the function to get supported PID detection 'can crash when it encounters response data that doesn't match the expected format' and 'should handle these gracefully instead of failing the entire scan'. [2: Implicit Codebase Constraint] The existing get_supported method uses getattr with a fallback that can return non-iterable values for certain PID layers. [3: Logical Necessity] Given the above, the solution must wrap the iteration in error handling to catch non-iterable return values. [4: Quality Necessity] Any good implementation must ensure robustness against unexpected data without crashing the entire scan. [5: Conclusion] Therefore, ANY correct answer must add defensive error handling around the PID parsing logic to prevent crashes from unexpected data types."
+    }
+  },
+  {
+    "id": "9210f51d297cf3052395900fd00e3f1a",
+    "title": "1.2: Ensures the supported PID detection in scapy/contrib/automotive/obd/scanner.py returns only unique PID values",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the supported PID detection logic in OBD_Service_Enumerator deduplicates the returned list of supported PIDs, so that duplicate entries from multiple response records are eliminated. Any deduplication approach (such as set(), dict, or manual filtering) is acceptable.",
+      "evidence": "`gold.patch` line 17 (`scapy/contrib/automotive/obd/scanner.py`): the get_supported method accumulates supported PIDs from multiple results_with_positive_response entries and can produce duplicates. The gold solution uses list(set(...)) to deduplicate.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The method can also return duplicate PID entries when the same PID appears across multiple response records, so the results should only contain unique values'. [2: Implicit Codebase Constraint] The existing get_supported method accumulates PIDs in a list from multiple response records without deduplication. [3: Logical Necessity] Given the above, the solution must add a deduplication step before returning the PID list. [4: Quality Necessity] Any good implementation must return clean, unique data to callers. [5: Conclusion] Therefore, ANY correct answer must ensure the supported PID list contains only unique values."
+    }
+  },
+  {
+    "id": "4cdaa4eacd5f2f78a4c58dee5de85ddf",
+    "title": "1.3: Changes closed-socket handling in ServiceEnumerator.execute in scapy/contrib/automotive/scanner/enumerator.py to signal an error instead of silently returning",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the ServiceEnumerator.execute method in enumerator.py raises an exception (such as Scapy_Exception or any appropriate error) when socket.closed is detected during a scan, instead of silently returning, so that callers can detect the interruption.",
+      "evidence": "`gold.patch` lines 29-30 (`scapy/contrib/automotive/scanner/enumerator.py`): the execute method checks socket.closed and currently returns silently. The gold solution changes 'return' to 'raise Scapy_Exception(\"Socket closed during scan\")'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'When the socket closes during a scan, the scanning process fails silently, leaving callers with no way to detect the interruption'. [2: Implicit Codebase Constraint] The existing execute method has a socket.closed check that silently returns, hiding the failure from callers. [3: Logical Necessity] Given the above, the solution must replace the silent return with an error signal so callers can detect the interruption. [4: Quality Necessity] Any good implementation must make failures observable rather than hiding them. [5: Conclusion] Therefore, ANY correct answer must change the closed-socket handling to signal an error (such as raising an exception) instead of silently returning."
+    }
+  },
+  {
+    "id": "5233c9c6380f93059a979bbde1d9401c",
+    "title": "1.4: Fixes the results_with_negative_response property in scapy/contrib/automotive/scanner/enumerator.py to exclude entries where no response was received",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the results_with_negative_response property in ServiceEnumerator is corrected so that it only includes entries that actually have a response, excluding entries without a received response. Any implementation that achieves this behavioral outcome is acceptable (e.g., filtering through results_with_response, adding explicit None/timestamp checks, or equivalent approaches).",
+      "evidence": "`gold.patch` lines 57-58 (`scapy/contrib/automotive/scanner/enumerator.py`): results_with_negative_response currently iterates over self._results which includes all entries. The gold solution switches it to filter from self.results_with_response instead.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The properties for filtering positive and negative responses can also include entries where no response was actually received, which leads to incorrect result filtering'. [2: Implicit Codebase Constraint] The existing results_with_negative_response property filters self._results directly, which includes entries with None responses. [3: Logical Necessity] Given the above, the solution must change the filter source to exclude entries without actual responses. [4: Quality Necessity] Any good implementation must ensure data filtering properties return accurate results. [5: Conclusion] Therefore, ANY correct answer must fix results_with_negative_response so it only includes entries with actual responses."
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1.5: Fixes the results_with_positive_response property in scapy/contrib/automotive/scanner/enumerator.py to exclude entries where no response was received",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the results_with_positive_response property in ServiceEnumerator is corrected so that it only includes entries that actually have a response, excluding entries without a received response. Any implementation that achieves this behavioral outcome is acceptable (e.g., filtering through results_with_response, adding explicit None/timestamp checks, or equivalent approaches).",
+      "evidence": "`gold.patch` lines 66-67 (`scapy/contrib/automotive/scanner/enumerator.py`): results_with_positive_response currently iterates over self._results which includes all entries. The gold solution switches it to filter from self.results_with_response instead.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The properties for filtering positive and negative responses can also include entries where no response was actually received, which leads to incorrect result filtering'. [2: Implicit Codebase Constraint] The existing results_with_positive_response property filters self._results directly, which includes entries with None responses. [3: Logical Necessity] Given the above, the solution must change the filter source to exclude entries without actual responses. [4: Quality Necessity] Any good implementation must ensure data filtering properties return accurate results. [5: Conclusion] Therefore, ANY correct answer must fix results_with_positive_response so it only includes entries with actual responses."
+    }
+  },
+  {
+    "id": "bfd408c72b33f6d820d2c7e587459314",
+    "title": "1.6: Adds cleanup for the ISOTP socket in the finally block of main() in scapy/tools/automotive/obdscanner.py to prevent resource leaks",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the main() function in obdscanner.py adds cleanup for the ISOTP socket (isock) when exceptions occur, so that it is properly closed alongside the already-closed CAN socket. This can be achieved via a finally block, a context manager (with statement), or any equivalent cleanup mechanism.",
+      "evidence": "`gold.patch` lines 148-149 (`scapy/tools/automotive/obdscanner.py`): the existing main() only closes csock in the finally block, leaving the ISOTP socket unclosed. The gold solution adds isock.close() in the finally block before csock.close().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The cleanup logic also only closes the CAN socket, but the ISOTP socket needs to be properly closed as well to avoid resource leaks'. [2: Implicit Codebase Constraint] The existing finally block only calls csock.close(), leaving the ISOTP socket unclosed. [3: Logical Necessity] Given the above, the solution must add cleanup for the ISOTP socket. [4: Quality Necessity] Any good implementation must prevent resource leaks by closing all acquired resources. [5: Conclusion] Therefore, ANY correct answer must add ISOTP socket cleanup in the error/finally path of main()."
+    }
+  },
+  {
+    "id": "450f95e0bb2426a661398414c180fcaa",
+    "title": "1.7: Implements get_can_socket() in scapy/tools/automotive/obdscanner.py that accepts channel, interface, and python_can_args parameters, returns a CANSocket, and is called from main()",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that obdscanner.py defines a get_can_socket() function with the signature specified in the interface (channel, interface, python_can_args) that creates and returns a CANSocket, handling both python-can and native socket backends, and that main() delegates CAN socket creation to this function.",
+      "evidence": "`gold.patch` lines 79-89 and 129 (`scapy/tools/automotive/obdscanner.py`): defines get_can_socket(channel, interface, python_can_args) which checks PYTHON_CAN, parses python_can_args if provided, and returns a CANSocket. Line 129 shows main() calling csock = get_can_socket(channel, interface, python_can_args).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the main function is monolithic with all the socket setup and scanning logic inlined. It would benefit from extracting the setup and execution logic into reusable helpers'. The interface specifies get_can_socket with parameters channel, interface, python_can_args returning CANSocket. [2: Implicit Codebase Constraint] The existing main() contains inline CAN socket creation logic. [3: Logical Necessity] Given the interface specification and the extraction requirement, the solution must implement this function and have main() call it. [4: Quality Necessity] Any good implementation must match the prescribed interface and actually use the extracted helper. [5: Conclusion] Therefore, ANY correct answer must implement get_can_socket() with the specified 3-parameter signature and have main() delegate to it."
+    }
+  },
+  {
+    "id": "9225c47f3cd40dd244408b5ea280183c",
+    "title": "1.8: Implements get_isotp_socket() in scapy/tools/automotive/obdscanner.py that accepts csock, source, and destination parameters, returns an ISOTPSocket, and is called from main()",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that obdscanner.py defines a get_isotp_socket() function with the signature specified in the interface (csock, source, destination) that wraps an existing CAN socket into an ISOTP socket configured for OBD communication, and that main() delegates ISOTP socket creation to this function.",
+      "evidence": "`gold.patch` lines 92-93 and 130 (`scapy/tools/automotive/obdscanner.py`): defines get_isotp_socket(csock, source, destination) which returns ISOTPSocket(csock, source, destination, basecls=OBD, padding=True). Line 130 shows main() calling isock = get_isotp_socket(csock, source, destination).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests extracting socket setup into reusable helpers. The interface specifies get_isotp_socket with parameters csock, source, destination returning ISOTPSocket. [2: Implicit Codebase Constraint] The existing main() wraps the CAN socket in an ISOTPSocket inline. [3: Logical Necessity] Given the interface specification and the extraction requirement, the solution must implement this function and have main() call it. [4: Quality Necessity] Any good implementation must match the prescribed interface and actually use the extracted helper. [5: Conclusion] Therefore, ANY correct answer must implement get_isotp_socket() with the specified 3-parameter signature and have main() delegate to it."
+    }
+  },
+  {
+    "id": "6a7ba253ff3d382d9076f14388b35fad",
+    "title": "1.9: Implements run_scan() in scapy/tools/automotive/obdscanner.py that accepts isock, enumerators, full_scan, verbose, and timeout parameters, and is called from main()",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that obdscanner.py defines a run_scan() function with the signature specified in the interface (isock, enumerators, full_scan, verbose, timeout) that runs an OBD scan and prints the results, and that main() delegates scan execution to this function.",
+      "evidence": "`gold.patch` lines 96-102 and 139 (`scapy/tools/automotive/obdscanner.py`): defines run_scan(isock, enumerators, full_scan, verbose, timeout) which creates an OBD_Scanner, calls scan(), and calls show_testcases(). Line 139 shows main() calling run_scan(isock, enumerators, full_scan, verbose, timeout).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests extracting execution logic into reusable helpers. The interface specifies run_scan with parameters isock, enumerators, full_scan, verbose, timeout returning None. [2: Implicit Codebase Constraint] The existing main() contains inline OBD_Scanner creation, scan execution, and result display. [3: Logical Necessity] Given the interface specification and the extraction requirement, the solution must implement this function and have main() call it. [4: Quality Necessity] Any good implementation must match the prescribed interface and actually use the extracted helper. [5: Conclusion] Therefore, ANY correct answer must implement run_scan() with the specified 5-parameter signature and have main() delegate to it."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "801fbe8619f340e3de8307dc9148346b",
+    "title": "2.1: Adds debug logging in scapy/contrib/automotive/scanner/enumerator.py when retrying a request due to a None response",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability",
+      "description": "Verifies that the ServiceEnumerator adds a debug-level log message when a None response triggers a retry, improving observability of the scan flow.",
+      "evidence": "`gold.patch` lines 38-39 (`scapy/contrib/automotive/scanner/enumerator.py`): the _evaluate_response method silently calls _populate_retry when retry_if_none_received is True. The gold solution adds log_interactive.debug before the retry call.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'there is no debug logging to help trace why the retry is happening'. [2: Implicit Codebase Constraint] The existing _evaluate_response method calls _populate_retry without any logging when retry_if_none_received is True. [3: Logical Necessity] Given the above, the solution must add a log statement in the None-response retry path. [4: Quality Necessity] Adding debug logging makes retry decisions observable for developers without changing control flow. [5: Conclusion] Therefore, a correct answer should add debug logging when a None response triggers a retry."
+    }
+  },
+  {
+    "id": "fc027432ea53da96205a12c25794dd20",
+    "title": "2.2: Adds debug logging in scapy/contrib/automotive/scanner/enumerator.py when retrying a request due to a busy return code",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability",
+      "description": "Verifies that the ServiceEnumerator adds a debug-level log message when a busy return code triggers a retry, improving observability of the scan flow.",
+      "evidence": "`gold.patch` lines 47-49 (`scapy/contrib/automotive/scanner/enumerator.py`): the _evaluate_response method has a branch that retries on busy return codes (NRC 0x21) but does so silently. The gold solution adds log_interactive.debug before the retry call.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'there is no debug logging to help trace why the retry is happening' and mentions both None responses and busy responses as retry scenarios. [2: Implicit Codebase Constraint] The existing busy-returncode branch calls _populate_retry without any logging. [3: Logical Necessity] Given the above, the solution must add a log statement in the busy-returncode retry path. [4: Quality Necessity] Consistent debug logging across all retry paths improves diagnosability. [5: Conclusion] Therefore, a correct answer should add debug logging when a busy return code triggers a retry."
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "0e359368582e694eee9ae8b7ea9b0f92",
+    "title": "4.1: Introduces syntax errors, import errors, or undefined references in modified source files",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the solution introduces syntax errors, broken imports, typos, or undefined variable references in the modified source files, causing the code to fail to load or execute correctly.",
+      "evidence": "`gold.patch` modifies 3 source files (`scapy/contrib/automotive/obd/scanner.py`, `scapy/contrib/automotive/scanner/enumerator.py`, `scapy/tools/automotive/obdscanner.py`). Any of these could contain syntax or reference errors after agent modification.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires making changes to non-test source files. [2: Implicit Codebase Constraint] The modified source files must remain syntactically valid and all references must resolve correctly for the codebase to function. [3: Logical Necessity] Given the above, any introduced syntax or reference errors would break the codebase. [4: Quality Necessity] Any good implementation must produce valid, executable code. [5: Conclusion] Therefore, ANY solution that introduces syntax errors, broken imports, or undefined references triggers this negative criterion."
+    }
+  },
+  {
+    "id": "29289bf2c090dd17a669374cc5c9bfce",
+    "title": "4.2: Modifies test files or testing logic despite the explicit prompt constraint",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the solution modifies any test files (such as .uts files in the test/ directory, tox.ini, or similar testing infrastructure) despite the prompt explicitly instructing 'Do NOT modify any test files or testing logic in any way'.",
+      "evidence": "The prompt ends with: 'I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly constrains the agent to 'make the minimal changes to non-test source files only' and states 'Do NOT modify any test files or testing logic in any way'. [2: Implicit Codebase Constraint] Test files exist in the test/ directory and must remain untouched. [3: Logical Necessity] Given the explicit constraint, any modification to test files violates the prompt. [4: Quality Necessity] Any good implementation must respect explicit constraints. [5: Conclusion] Therefore, ANY solution that modifies test files or testing logic triggers this negative criterion."
+    }
+  }
+]

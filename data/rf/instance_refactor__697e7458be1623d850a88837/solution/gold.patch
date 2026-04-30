@@ -1,0 +1,143 @@
+diff --git a/app/models.py b/app/models.py
+index 5e3c5508..536f9904 100644
+--- a/app/models.py
++++ b/app/models.py
+@@ -3771,15 +3771,14 @@ class SyncEvent(Base, ModelMixin):
+         sa.Index("ix_sync_event_taken_time", "taken_time"),
+     )
+ 
+-    def mark_as_taken(self) -> bool:
+-        sql = """
+-        UPDATE sync_event
+-        SET taken_time = :taken_time
+-        WHERE id = :sync_event_id
+-          AND taken_time IS NULL
+-        """
++    def mark_as_taken(self, allow_taken_older_than: Optional[Arrow] = None) -> bool:
++        taken_condition = ["taken_time IS NULL"]
+         args = {"taken_time": arrow.now().datetime, "sync_event_id": self.id}
+-
++        if allow_taken_older_than:
++            taken_condition.append("taken_time < :taken_older_than")
++            args["taken_older_than"] = allow_taken_older_than.datetime
++        sql_taken_condition = "({})".format(" OR ".join(taken_condition))
++        sql = f"UPDATE sync_event SET taken_time = :taken_time WHERE id = :sync_event_id AND {sql_taken_condition}"
+         res = Session.execute(sql, args)
+         Session.commit()
+ 
+diff --git a/events/event_source.py b/events/event_source.py
+index 3633ec74..2b5920c3 100644
+--- a/events/event_source.py
++++ b/events/event_source.py
+@@ -85,24 +85,28 @@ class DeadLetterEventSource(EventSource):
+     def __init__(self, max_retries: int):
+         self.__max_retries = max_retries
+ 
++    def execute_loop(
++        self, on_event: Callable[[SyncEvent], NoReturn]
++    ) -> list[SyncEvent]:
++        threshold = arrow.utcnow().shift(minutes=-_DEAD_LETTER_THRESHOLD_MINUTES)
++        events = SyncEvent.get_dead_letter(
++            older_than=threshold, max_retries=self.__max_retries
++        )
++        if events:
++            LOG.info(f"Got {len(events)} dead letter events")
++            newrelic.agent.record_custom_metric(
++                "Custom/dead_letter_events_to_process", len(events)
++            )
++            for event in events:
++                if event.mark_as_taken(allow_taken_older_than=threshold):
++                    on_event(event)
++        return events
++
+     @newrelic.agent.background_task()
+     def run(self, on_event: Callable[[SyncEvent], NoReturn]):
+         while True:
+             try:
+-                threshold = arrow.utcnow().shift(
+-                    minutes=-_DEAD_LETTER_THRESHOLD_MINUTES
+-                )
+-                events = SyncEvent.get_dead_letter(
+-                    older_than=threshold, max_retries=self.__max_retries
+-                )
+-                if events:
+-                    LOG.info(f"Got {len(events)} dead letter events")
+-                    if events:
+-                        newrelic.agent.record_custom_metric(
+-                            "Custom/dead_letter_events_to_process", len(events)
+-                        )
+-                    for event in events:
+-                        on_event(event)
++                events = self.execute_loop(on_event)
+                 Session.close()  # Ensure that we have a new connection and we don't have a dangling tx with a lock
+                 if not events:
+                     LOG.debug("No dead letter events")
+diff --git a/oneshot/send_plan_change_events.py b/oneshot/send_plan_change_events.py
+new file mode 100644
+index 00000000..4fcaad2d
+--- /dev/null
++++ b/oneshot/send_plan_change_events.py
+@@ -0,0 +1,63 @@
++#!/usr/bin/env python3
++import argparse
++import time
++
++from sqlalchemy import func
++
++from app.events.event_dispatcher import EventDispatcher
++from app.events.generated.event_pb2 import UserPlanChanged, EventContent
++from app.models import PartnerUser
++from app.db import Session
++
++parser = argparse.ArgumentParser(
++    prog="Backfill alias", description="Update alias notes and backfill flag"
++)
++parser.add_argument(
++    "-s", "--start_pu_id", default=0, type=int, help="Initial partner_user_id"
++)
++parser.add_argument(
++    "-e", "--end_pu_id", default=0, type=int, help="Last partner_user_id"
++)
++
++args = parser.parse_args()
++pu_id_start = args.start_pu_id
++max_pu_id = args.end_pu_id
++if max_pu_id == 0:
++    max_pu_id = Session.query(func.max(PartnerUser.id)).scalar()
++
++print(f"Checking partner user {pu_id_start} to {max_pu_id}")
++step = 100
++updated = 0
++start_time = time.time()
++with_premium = 0
++for batch_start in range(pu_id_start, max_pu_id, step):
++    partner_users = (
++        Session.query(PartnerUser).filter(
++            PartnerUser.id >= batch_start, PartnerUser.id < batch_start + step
++        )
++    ).all()
++    for partner_user in partner_users:
++        subscription_end = partner_user.user.get_active_subscription_end(
++            include_partner_subscription=False
++        )
++        end_timestamp = None
++        if subscription_end:
++            with_premium += 1
++            end_timestamp = subscription_end.timestamp
++        event = UserPlanChanged(plan_end_time=end_timestamp)
++        EventDispatcher.send_event(
++            partner_user.user, EventContent(user_plan_change=event)
++        )
++        Session.flush()
++        updated += 1
++    Session.commit()
++    elapsed = time.time() - start_time
++    last_batch_id = batch_start + step
++    time_per_alias = elapsed / (last_batch_id)
++    remaining = max_pu_id - last_batch_id
++    time_remaining = remaining / time_per_alias
++    hours_remaining = time_remaining / 60.0
++    print(
++        f"\PartnerUser {batch_start}/{max_pu_id} {updated} {hours_remaining:.2f} mins remaining"
++    )
++print(f"With SL premium {with_premium}")

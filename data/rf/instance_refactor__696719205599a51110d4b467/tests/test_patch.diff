@@ -1,0 +1,566 @@
+diff --git a/pkg/api/k8s_handler_gvr_test.go b/pkg/api/k8s_handler_gvr_test.go
+new file mode 100644
+index 00000000000..ba115e63945
+--- /dev/null
++++ b/pkg/api/k8s_handler_gvr_test.go
+@@ -0,0 +1,32 @@
++package api
++
++import (
++	"testing"
++
++	"github.com/stretchr/testify/require"
++
++	"github.com/grafana/grafana/apps/playlist/pkg/apis/playlist/v0alpha1"
++	"github.com/grafana/grafana/apps/shorturl/pkg/apis/shorturl/v1alpha1"
++	"github.com/grafana/grafana/pkg/infra/log"
++	"github.com/grafana/grafana/pkg/setting"
++)
++
++func TestNewPlaylistK8sHandler_UsesKindGroupVersionResource(t *testing.T) {
++	cfg := setting.NewCfg()
++	hs := &HTTPServer{
++		Cfg: cfg,
++		log: log.New("test"),
++	}
++	h := newPlaylistK8sHandler(hs)
++	require.Equal(t, v0alpha1.PlaylistKind().GroupVersionResource(), h.gvr)
++}
++
++func TestNewShortURLK8sHandler_UsesKindGroupVersionResource(t *testing.T) {
++	cfg := setting.NewCfg()
++	hs := &HTTPServer{
++		Cfg: cfg,
++		log: log.New("test"),
++	}
++	h := newShortURLK8sHandler(hs)
++	require.Equal(t, v1alpha1.ShortURLKind().GroupVersionResource(), h.gvr)
++}
+diff --git a/pkg/registry/apps/playlist/legacy_storage_gvr_test.go b/pkg/registry/apps/playlist/legacy_storage_gvr_test.go
+new file mode 100644
+index 00000000000..2d36692c82e
+--- /dev/null
++++ b/pkg/registry/apps/playlist/legacy_storage_gvr_test.go
+@@ -0,0 +1,56 @@
++package playlist
++
++import (
++	"context"
++	"errors"
++	"testing"
++
++	k8serrors "k8s.io/apimachinery/pkg/api/errors"
++	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
++	k8srequest "k8s.io/apiserver/pkg/endpoints/request"
++	"github.com/stretchr/testify/require"
++
++	playlistapi "github.com/grafana/grafana/apps/playlist/pkg/apis/playlist/v0alpha1"
++	grafanarequest "github.com/grafana/grafana/pkg/services/apiserver/endpoints/request"
++	playlistsvc "github.com/grafana/grafana/pkg/services/playlist"
++)
++
++type stubPlaylistService struct{}
++
++func (stubPlaylistService) Create(context.Context, *playlistsvc.CreatePlaylistCommand) (*playlistsvc.Playlist, error) {
++	return nil, errors.New("not implemented")
++}
++func (stubPlaylistService) Update(context.Context, *playlistsvc.UpdatePlaylistCommand) (*playlistsvc.PlaylistDTO, error) {
++	return nil, errors.New("not implemented")
++}
++func (stubPlaylistService) GetWithoutItems(context.Context, *playlistsvc.GetPlaylistByUidQuery) (*playlistsvc.Playlist, error) {
++	return nil, errors.New("not implemented")
++}
++func (stubPlaylistService) Get(context.Context, *playlistsvc.GetPlaylistByUidQuery) (*playlistsvc.PlaylistDTO, error) {
++	return nil, playlistsvc.ErrPlaylistNotFound
++}
++func (stubPlaylistService) Search(context.Context, *playlistsvc.GetPlaylistsQuery) (playlistsvc.Playlists, error) {
++	return nil, errors.New("not implemented")
++}
++func (stubPlaylistService) Delete(context.Context, *playlistsvc.DeletePlaylistCommand) error {
++	return errors.New("not implemented")
++}
++func (stubPlaylistService) List(context.Context, int64) ([]playlistsvc.PlaylistDTO, error) {
++	return nil, errors.New("not implemented")
++}
++
++func TestLegacyStorage_Get_NotFoundUsesKindGroupResource(t *testing.T) {
++	s := &legacyStorage{
++		service:    stubPlaylistService{},
++		namespacer: grafanarequest.GetNamespaceMapper(nil),
++	}
++	ctx := k8srequest.WithNamespace(context.Background(), "org-1")
++	_, err := s.Get(ctx, "missing-playlist", &metav1.GetOptions{})
++	require.Error(t, err)
++	var status *k8serrors.StatusError
++	require.True(t, errors.As(err, &status))
++	require.True(t, k8serrors.IsNotFound(err))
++	want := playlistapi.PlaylistKind().GroupVersionResource().GroupResource()
++	require.Equal(t, want.Group, status.ErrStatus.Details.Group)
++	require.Equal(t, want.Resource, status.ErrStatus.Details.Resource)
++}
+diff --git a/pkg/registry/apps/playlist/register_test.go b/pkg/registry/apps/playlist/register_test.go
+new file mode 100644
+index 00000000000..38bf19bc878
+--- /dev/null
++++ b/pkg/registry/apps/playlist/register_test.go
+@@ -0,0 +1,30 @@
++package playlist
++
++import (
++	"testing"
++
++	"github.com/stretchr/testify/require"
++	"k8s.io/apimachinery/pkg/runtime/schema"
++
++	playlistv0alpha1 "github.com/grafana/grafana/apps/playlist/pkg/apis/playlist/v0alpha1"
++	"github.com/grafana/grafana/pkg/setting"
++)
++
++func TestPlaylistAppInstaller_GetLegacyStorage_MatchingGVR(t *testing.T) {
++	p := &PlaylistAppInstaller{
++		cfg:     setting.NewCfg(),
++		service: nil,
++	}
++	want := playlistv0alpha1.PlaylistKind().GroupVersionResource()
++	st := p.GetLegacyStorage(want)
++	require.NotNil(t, st)
++}
++
++func TestPlaylistAppInstaller_GetLegacyStorage_NonMatchingGVR(t *testing.T) {
++	p := &PlaylistAppInstaller{
++		cfg:     setting.NewCfg(),
++		service: nil,
++	}
++	other := schema.GroupVersionResource{Group: "other", Version: "v1", Resource: "things"}
++	require.Nil(t, p.GetLegacyStorage(other))
++}
+diff --git a/pkg/registry/apps/plugins/register_installapis_gvr_test.go b/pkg/registry/apps/plugins/register_installapis_gvr_test.go
+new file mode 100644
+index 00000000000..c8ef7d14678
+--- /dev/null
++++ b/pkg/registry/apps/plugins/register_installapis_gvr_test.go
+@@ -0,0 +1,24 @@
++package plugins
++
++import (
++	"testing"
++
++	"github.com/stretchr/testify/require"
++	"k8s.io/apimachinery/pkg/runtime/schema"
++
++	pluginsv0alpha1 "github.com/grafana/grafana/apps/plugins/pkg/apis/plugins/v0alpha1"
++)
++
++func TestPluginMetaKindGVR_MatchesManualComposition(t *testing.T) {
++	manual := schema.GroupVersionResource{
++		Group:    pluginsv0alpha1.GroupVersion.Group,
++		Version:  pluginsv0alpha1.GroupVersion.Version,
++		Resource: pluginsv0alpha1.PluginMetaKind().Plural(),
++	}
++	fromHelper := pluginsv0alpha1.PluginMetaKind().GroupVersionResource()
++
++	require.Equal(t, manual.Group, fromHelper.Group)
++	require.Equal(t, manual.Version, fromHelper.Version)
++	require.Equal(t, manual.Resource, fromHelper.Resource)
++	require.NotEqual(t, schema.GroupVersionResource{}, fromHelper)
++}
+diff --git a/pkg/registry/apps/shorturl/legacy_storage_gvr_test.go b/pkg/registry/apps/shorturl/legacy_storage_gvr_test.go
+new file mode 100644
+index 00000000000..e2ff7a4f4d7
+--- /dev/null
++++ b/pkg/registry/apps/shorturl/legacy_storage_gvr_test.go
+@@ -0,0 +1,71 @@
++package shorturl
++
++import (
++	"context"
++	"errors"
++	"testing"
++
++	k8serrors "k8s.io/apimachinery/pkg/api/errors"
++	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
++	"github.com/stretchr/testify/require"
++
++	shorturlapi "github.com/grafana/grafana/apps/shorturl/pkg/apis/shorturl/v1alpha1"
++	"github.com/grafana/grafana/pkg/apimachinery/identity"
++	"github.com/grafana/grafana/pkg/api/dtos"
++	"github.com/grafana/grafana/pkg/services/apiserver/endpoints/request"
++	"github.com/grafana/grafana/pkg/services/shorturls"
++	"github.com/grafana/grafana/pkg/services/user"
++)
++
++type stubShortURLService struct{}
++
++func (stubShortURLService) GetShortURLByUID(context.Context, *user.SignedInUser, string) (*shorturls.ShortUrl, error) {
++	return nil, shorturls.ErrShortURLNotFound.Errorf("missing")
++}
++func (stubShortURLService) CreateShortURL(context.Context, *user.SignedInUser, *dtos.CreateShortURLCmd) (*shorturls.ShortUrl, error) {
++	return nil, errors.New("not implemented")
++}
++func (stubShortURLService) UpdateLastSeenAt(context.Context, *shorturls.ShortUrl) error {
++	return errors.New("not implemented")
++}
++func (stubShortURLService) DeleteStaleShortURLs(context.Context, *shorturls.DeleteShortUrlCommand) error {
++	return errors.New("not implemented")
++}
++func (stubShortURLService) ConvertShortURLToDTO(*shorturls.ShortUrl, string) *dtos.ShortURL {
++	return nil
++}
++func (stubShortURLService) List(context.Context, int64) ([]*shorturls.ShortUrl, error) {
++	return nil, errors.New("not implemented")
++}
++
++func TestLegacyStorage_Get_NotFoundUsesKindGroupResource(t *testing.T) {
++	s := &legacyStorage{
++		service:    stubShortURLService{},
++		namespacer: request.GetNamespaceMapper(nil),
++	}
++	ctx := identity.WithRequester(context.Background(), &user.SignedInUser{OrgID: 1, UserID: 1})
++	_, err := s.Get(ctx, "missing", &metav1.GetOptions{})
++	require.Error(t, err)
++	var status *k8serrors.StatusError
++	require.True(t, errors.As(err, &status))
++	require.True(t, k8serrors.IsNotFound(err))
++	want := shorturlapi.ShortURLKind().GroupVersionResource().GroupResource()
++	require.Equal(t, want.Group, status.ErrStatus.Details.Group)
++	require.Equal(t, want.Resource, status.ErrStatus.Details.Resource)
++}
++
++func TestLegacyStorage_Update_NotFoundUsesKindGroupResource(t *testing.T) {
++	s := &legacyStorage{
++		service:    stubShortURLService{},
++		namespacer: request.GetNamespaceMapper(nil),
++	}
++	ctx := identity.WithRequester(context.Background(), &user.SignedInUser{OrgID: 1, UserID: 1})
++	_, _, err := s.Update(ctx, "missing", nil, nil, nil, false, &metav1.UpdateOptions{})
++	require.Error(t, err)
++	var status *k8serrors.StatusError
++	require.True(t, errors.As(err, &status))
++	require.True(t, k8serrors.IsNotFound(err))
++	want := shorturlapi.ShortURLKind().GroupVersionResource().GroupResource()
++	require.Equal(t, want.Group, status.ErrStatus.Details.Group)
++	require.Equal(t, want.Resource, status.ErrStatus.Details.Resource)
++}
+diff --git a/pkg/registry/apps/shorturl/register_test.go b/pkg/registry/apps/shorturl/register_test.go
+new file mode 100644
+index 00000000000..fdc83977811
+--- /dev/null
++++ b/pkg/registry/apps/shorturl/register_test.go
+@@ -0,0 +1,31 @@
++package shorturl
++
++import (
++	"testing"
++
++	"github.com/stretchr/testify/require"
++	"k8s.io/apimachinery/pkg/runtime/schema"
++
++	shorturlapi "github.com/grafana/grafana/apps/shorturl/pkg/apis/shorturl/v1alpha1"
++	"github.com/grafana/grafana/pkg/services/apiserver/endpoints/request"
++	"github.com/grafana/grafana/pkg/setting"
++)
++
++func TestShortURLAppInstaller_GetLegacyStorage_MatchingGVR(t *testing.T) {
++	s := &ShortURLAppInstaller{
++		service:    nil,
++		namespacer: request.GetNamespaceMapper(setting.NewCfg()),
++	}
++	want := shorturlapi.ShortURLKind().GroupVersionResource()
++	st := s.GetLegacyStorage(want)
++	require.NotNil(t, st)
++}
++
++func TestShortURLAppInstaller_GetLegacyStorage_NonMatchingGVR(t *testing.T) {
++	s := &ShortURLAppInstaller{
++		service:    nil,
++		namespacer: request.GetNamespaceMapper(setting.NewCfg()),
++	}
++	other := schema.GroupVersionResource{Group: "other", Version: "v1", Resource: "things"}
++	require.Nil(t, s.GetLegacyStorage(other))
++}
+diff --git a/pkg/services/apiserver/builder/runner/admission_test.go b/pkg/services/apiserver/builder/runner/admission_test.go
+index f9b6fec3244..11275afdea8 100644
+--- a/pkg/services/apiserver/builder/runner/admission_test.go
++++ b/pkg/services/apiserver/builder/runner/admission_test.go
+@@ -5,12 +5,11 @@ import (
+ 	"errors"
+ 	"testing"
+ 
+-	"github.com/grafana/grafana-app-sdk/app"
+ 	"github.com/stretchr/testify/require"
+-	"k8s.io/apimachinery/pkg/runtime/schema"
+ 	"k8s.io/apiserver/pkg/admission"
+ 	"k8s.io/apiserver/pkg/authentication/user"
+ 
++	"github.com/grafana/grafana-app-sdk/app"
+ 	examplev1 "github.com/grafana/grafana/pkg/services/apiserver/builder/runner/testdata/app/pkg/apis/example/v1"
+ )
+ 
+@@ -20,12 +19,8 @@ func TestBuilderAdmission_Validate(t *testing.T) {
+ 			A: "test",
+ 		},
+ 	}
+-	gvk := schema.GroupVersionKind{
+-		Group:   examplev1.ExampleKind().Group(),
+-		Version: examplev1.ExampleKind().Version(),
+-		Kind:    examplev1.ExampleKind().Kind(),
+-	}
+-	gvr := gvk.GroupVersion().WithResource(examplev1.ExampleKind().Plural())
++	gvk := examplev1.ExampleKind().GroupVersionKind()
++	gvr := examplev1.ExampleKind().GroupVersionResource()
+ 	defaultAttributes := admission.NewAttributesRecord(exampleObj, nil, gvk, "default", "foo", gvr, "", admission.Create, nil, false, &user.DefaultInfo{})
+ 
+ 	tests := []struct {
+@@ -73,12 +68,8 @@ func TestBuilderAdmission_Validate(t *testing.T) {
+ }
+ 
+ func TestBuilderAdmission_Mutate(t *testing.T) {
+-	gvk := schema.GroupVersionKind{
+-		Group:   examplev1.ExampleKind().Group(),
+-		Version: examplev1.ExampleKind().Version(),
+-		Kind:    examplev1.ExampleKind().Kind(),
+-	}
+-	gvr := gvk.GroupVersion().WithResource(examplev1.ExampleKind().Plural())
++	gvk := examplev1.ExampleKind().GroupVersionKind()
++	gvr := examplev1.ExampleKind().GroupVersionResource()
+ 	getAttributes := func() admission.Attributes {
+ 		exampleObj := &examplev1.Example{
+ 			Spec: examplev1.ExampleSpec{
+diff --git a/pkg/services/cleanup/kubernetes_shorturl_gvr_test.go b/pkg/services/cleanup/kubernetes_shorturl_gvr_test.go
+new file mode 100644
+index 00000000000..e2000c3f329
+--- /dev/null
++++ b/pkg/services/cleanup/kubernetes_shorturl_gvr_test.go
+@@ -0,0 +1,100 @@
++package cleanup
++
++import (
++	"context"
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"sync"
++	"testing"
++
++	"github.com/stretchr/testify/require"
++	clientrest "k8s.io/client-go/rest"
++
++	"github.com/grafana/grafana/apps/shorturl/pkg/apis/shorturl/v1alpha1"
++	"github.com/grafana/grafana/pkg/infra/log"
++	grafanaapiserver "github.com/grafana/grafana/pkg/services/apiserver"
++	"github.com/grafana/grafana/pkg/services/org"
++	"github.com/grafana/grafana/pkg/setting"
++)
++
++type fakeOrgService struct{}
++
++func (fakeOrgService) GetIDForNewUser(context.Context, org.GetOrgIDForNewUserCommand) (int64, error) {
++	return 0, nil
++}
++func (fakeOrgService) InsertOrgUser(context.Context, *org.OrgUser) (int64, error) {
++	return 0, nil
++}
++func (fakeOrgService) DeleteUserFromAll(context.Context, int64) error { return nil }
++func (fakeOrgService) GetUserOrgList(context.Context, *org.GetUserOrgListQuery) ([]*org.UserOrgDTO, error) {
++	return nil, nil
++}
++func (fakeOrgService) UpdateOrg(context.Context, *org.UpdateOrgCommand) error { return nil }
++func (fakeOrgService) Search(_ context.Context, _ *org.SearchOrgsQuery) ([]*org.OrgDTO, error) {
++	return []*org.OrgDTO{{ID: 1}}, nil
++}
++func (fakeOrgService) GetByID(context.Context, *org.GetOrgByIDQuery) (*org.Org, error) {
++	return nil, nil
++}
++func (fakeOrgService) GetByName(context.Context, *org.GetOrgByNameQuery) (*org.Org, error) {
++	return nil, nil
++}
++func (fakeOrgService) CreateWithMember(context.Context, *org.CreateOrgCommand) (*org.Org, error) {
++	return nil, nil
++}
++func (fakeOrgService) UpdateAddress(context.Context, *org.UpdateOrgAddressCommand) error { return nil }
++func (fakeOrgService) GetOrCreate(context.Context, string) (int64, error)                { return 0, nil }
++func (fakeOrgService) AddOrgUser(context.Context, *org.AddOrgUserCommand) error          { return nil }
++func (fakeOrgService) UpdateOrgUser(context.Context, *org.UpdateOrgUserCommand) error    { return nil }
++func (fakeOrgService) RemoveOrgUser(context.Context, *org.RemoveOrgUserCommand) error    { return nil }
++func (fakeOrgService) GetOrgUsers(context.Context, *org.GetOrgUsersQuery) ([]*org.OrgUserDTO, error) {
++	return nil, nil
++}
++func (fakeOrgService) SearchOrgUsers(context.Context, *org.SearchOrgUsersQuery) (*org.SearchOrgUsersQueryResult, error) {
++	return nil, nil
++}
++func (fakeOrgService) RegisterDelete(string) {}
++
++func TestDeleteStaleKubernetesShortURLs_UsesCorrectGVRPath(t *testing.T) {
++	var mu sync.Mutex
++	var capturedPaths []string
++
++	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		mu.Lock()
++		capturedPaths = append(capturedPaths, r.URL.Path)
++		mu.Unlock()
++		w.Header().Set("Content-Type", "application/json")
++		w.Write([]byte(`{"kind":"ShortURLList","apiVersion":"v1","metadata":{},"items":[]}`))
++	}))
++	defer srv.Close()
++
++	cfg := setting.NewCfg()
++	service := &CleanUpService{
++		Cfg: cfg,
++		log: log.New("cleanup-test"),
++		clientConfigProvider: grafanaapiserver.RestConfigProviderFunc(func(context.Context) (*clientrest.Config, error) {
++			return &clientrest.Config{Host: srv.URL}, nil
++		}),
++		orgService: fakeOrgService{},
++	}
++
++	service.deleteStaleKubernetesShortURLs(context.Background())
++
++	mu.Lock()
++	defer mu.Unlock()
++
++	expectedResource := v1alpha1.ShortURLKind().Plural()
++	expectedGroup := v1alpha1.ShortURLKind().Group()
++	expectedVersion := v1alpha1.ShortURLKind().Version()
++
++	found := false
++	for _, p := range capturedPaths {
++		if strings.Contains(p, "/apis/"+expectedGroup+"/"+expectedVersion) && strings.Contains(p, expectedResource) {
++			found = true
++			break
++		}
++	}
++	require.True(t, found, "expected dynamic client to hit a path containing the short URL GVR (%s/%s/%s), got paths: %v",
++		expectedGroup, expectedVersion, expectedResource, capturedPaths)
++}
+diff --git a/pkg/tests/apis/alerting/notifications/common/testing.go b/pkg/tests/apis/alerting/notifications/common/testing.go
+index bd9891402c9..2376b1368aa 100644
+--- a/pkg/tests/apis/alerting/notifications/common/testing.go
++++ b/pkg/tests/apis/alerting/notifications/common/testing.go
+@@ -3,12 +3,11 @@ package common
+ import (
+ 	"testing"
+ 
+-	"github.com/grafana/grafana/pkg/tests/apis"
+ 	"github.com/stretchr/testify/require"
+-	"k8s.io/apimachinery/pkg/runtime/schema"
+ 	"k8s.io/client-go/dynamic"
+ 
+ 	"github.com/grafana/grafana/apps/alerting/notifications/pkg/apis/alertingnotifications/v0alpha1"
++	"github.com/grafana/grafana/pkg/tests/apis"
+ )
+ 
+ func NewReceiverClient(t *testing.T, user apis.User) *apis.TypedClient[v0alpha1.Receiver, v0alpha1.ReceiverList] {
+@@ -19,11 +18,8 @@ func NewReceiverClient(t *testing.T, user apis.User) *apis.TypedClient[v0alpha1.
+ 
+ 	return &apis.TypedClient[v0alpha1.Receiver, v0alpha1.ReceiverList]{
+ 		Client: client.Resource(
+-			schema.GroupVersionResource{
+-				Group:    v0alpha1.ReceiverKind().Group(),
+-				Version:  v0alpha1.ReceiverKind().Version(),
+-				Resource: v0alpha1.ReceiverKind().Plural(),
+-			}).Namespace("default"),
++			v0alpha1.ReceiverKind().GroupVersionResource()).
++			Namespace("default"),
+ 	}
+ }
+ 
+@@ -35,11 +31,7 @@ func NewRoutingTreeClient(t *testing.T, user apis.User) *apis.TypedClient[v0alph
+ 
+ 	return &apis.TypedClient[v0alpha1.RoutingTree, v0alpha1.RoutingTreeList]{
+ 		Client: client.Resource(
+-			schema.GroupVersionResource{
+-				Group:    v0alpha1.RoutingTreeKind().Group(),
+-				Version:  v0alpha1.RoutingTreeKind().Version(),
+-				Resource: v0alpha1.RoutingTreeKind().Plural(),
+-			}).Namespace("default"),
++			v0alpha1.RoutingTreeKind().GroupVersionResource()).Namespace("default"),
+ 	}
+ }
+ 
+@@ -51,11 +43,7 @@ func NewTemplateGroupClient(t *testing.T, user apis.User) *apis.TypedClient[v0al
+ 
+ 	return &apis.TypedClient[v0alpha1.TemplateGroup, v0alpha1.TemplateGroupList]{
+ 		Client: client.Resource(
+-			schema.GroupVersionResource{
+-				Group:    v0alpha1.TemplateGroupKind().Group(),
+-				Version:  v0alpha1.TemplateGroupKind().Version(),
+-				Resource: v0alpha1.TemplateGroupKind().Plural(),
+-			}).Namespace("default"),
++			v0alpha1.TemplateGroupKind().GroupVersionResource()).Namespace("default"),
+ 	}
+ }
+ 
+@@ -67,10 +55,6 @@ func NewTimeIntervalClient(t *testing.T, user apis.User) *apis.TypedClient[v0alp
+ 
+ 	return &apis.TypedClient[v0alpha1.TimeInterval, v0alpha1.TimeIntervalList]{
+ 		Client: client.Resource(
+-			schema.GroupVersionResource{
+-				Group:    v0alpha1.TimeIntervalKind().Group(),
+-				Version:  v0alpha1.TimeIntervalKind().Version(),
+-				Resource: v0alpha1.TimeIntervalKind().Plural(),
+-			}).Namespace("default"),
++			v0alpha1.TimeIntervalKind().GroupVersionResource()).Namespace("default"),
+ 	}
+ }
+diff --git a/pkg/tests/apis/alerting/rules/common/testing.go b/pkg/tests/apis/alerting/rules/common/testing.go
+index da9dd55a694..be43be5da26 100644
+--- a/pkg/tests/apis/alerting/rules/common/testing.go
++++ b/pkg/tests/apis/alerting/rules/common/testing.go
+@@ -4,14 +4,14 @@ import (
+ 	"context"
+ 	"testing"
+ 
++	"github.com/stretchr/testify/require"
++	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
++	"k8s.io/client-go/dynamic"
++
+ 	"github.com/grafana/grafana/apps/alerting/rules/pkg/apis/alerting/v0alpha1"
+ 	folders "github.com/grafana/grafana/apps/folder/pkg/apis/folder/v1beta1"
+ 	"github.com/grafana/grafana/pkg/tests/apis"
+ 	"github.com/grafana/grafana/pkg/tests/testinfra"
+-	"github.com/stretchr/testify/require"
+-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+-	"k8s.io/apimachinery/pkg/runtime/schema"
+-	"k8s.io/client-go/dynamic"
+ )
+ 
+ func NewAlertRuleClient(t *testing.T, user apis.User) *apis.TypedClient[v0alpha1.AlertRule, v0alpha1.AlertRuleList] {
+@@ -22,11 +22,7 @@ func NewAlertRuleClient(t *testing.T, user apis.User) *apis.TypedClient[v0alpha1
+ 
+ 	return &apis.TypedClient[v0alpha1.AlertRule, v0alpha1.AlertRuleList]{
+ 		Client: client.Resource(
+-			schema.GroupVersionResource{
+-				Group:    v0alpha1.AlertRuleKind().Group(),
+-				Version:  v0alpha1.AlertRuleKind().Version(),
+-				Resource: v0alpha1.AlertRuleKind().Plural(),
+-			}).Namespace("default"),
++			v0alpha1.AlertRuleKind().GroupVersionResource()).Namespace("default"),
+ 	}
+ }
+ 
+@@ -38,11 +34,7 @@ func NewRecordingRuleClient(t *testing.T, user apis.User) *apis.TypedClient[v0al
+ 
+ 	return &apis.TypedClient[v0alpha1.RecordingRule, v0alpha1.RecordingRuleList]{
+ 		Client: client.Resource(
+-			schema.GroupVersionResource{
+-				Group:    v0alpha1.RecordingRuleKind().Group(),
+-				Version:  v0alpha1.RecordingRuleKind().Version(),
+-				Resource: v0alpha1.RecordingRuleKind().Plural(),
+-			}).Namespace("default"),
++			v0alpha1.RecordingRuleKind().GroupVersionResource()).Namespace("default"),
+ 	}
+ }
+ 
+@@ -54,11 +46,7 @@ func NewFolderClient(t *testing.T, user apis.User) *apis.TypedClient[folders.Fol
+ 
+ 	return &apis.TypedClient[folders.Folder, folders.FolderList]{
+ 		Client: client.Resource(
+-			schema.GroupVersionResource{
+-				Group:    folders.FolderKind().Group(),
+-				Version:  folders.FolderKind().Version(),
+-				Resource: folders.FolderKind().Plural(),
+-			}).Namespace("default"),
++			folders.FolderKind().GroupVersionResource()).Namespace("default"),
+ 	}
+ }
+ 

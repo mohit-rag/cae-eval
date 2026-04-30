@@ -1,0 +1,206 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "8d4dea519ac206c09072a2135425214a",
+    "title": "1.1: Parameterizes the Cache interface in pkg/cache/cache.go with a generic type parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "The Cache interface in pkg/cache/cache.go is declared with a type parameter (such as Cache[T any]) so that Set accepts T, Get returns T, and Values returns []T instead of any.",
+      "evidence": "gold.patch lines 9-26 in pkg/cache/cache.go: Cache[T any] interface with Set(string, T), Get(string) (T, bool), Values() []T.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'refactor the cache interface and its memory implementation to be generic so the caller specifies what type of value the cache holds at creation time' and 'the cache should store and return the concrete type directly, eliminating the need for type assertions'. [2: Implicit Codebase Constraint] The interface specifies Cache[T any] with methods Set, Get, and Values using T instead of any. [5: Conclusion] Any correct solution must parameterize the Cache interface with a generic type parameter.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "760f7a8136e2dde31bd75ec67835961b",
+    "title": "1.2: Parameterizes the Cache struct in pkg/cache/memory/memory.go with a generic type parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "The memory Cache struct in pkg/cache/memory/memory.go is declared with a type parameter (such as Cache[T any]) so it can implement the generic Cache interface.",
+      "evidence": "gold.patch lines 37-42 in pkg/cache/memory/memory.go: type Cache[T any] struct.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'refactor the cache interface and its memory implementation to be generic'. [2: Implicit Codebase Constraint] The interface specifies Cache[T any] struct implementing cache.Cache[T]. [3: Logical Necessity] In Go, a struct must carry the same type parameter to implement a generic interface. [5: Conclusion] Any correct solution must parameterize the memory Cache struct.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b0ba126dee394460c8f7c81afaa5b70d",
+    "title": "1.3: Parameterizes the CacheOption type in pkg/cache/memory/memory.go with a generic type parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "The CacheOption function type in pkg/cache/memory/memory.go is declared with a type parameter (such as CacheOption[T any] func(*Cache[T])).",
+      "evidence": "gold.patch lines 45-46 in pkg/cache/memory/memory.go: type CacheOption[T any] func(*Cache[T]).",
+      "justification": "[2: Implicit Codebase Constraint] The interface specifies CacheOption[T any] func(*Cache[T]). [3: Logical Necessity] In Go, a function type accepting *Cache[T] must itself be generic because *Cache (without T) is not a valid type after Cache becomes generic. [5: Conclusion] Any correct solution must parameterize CacheOption.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "3a8cb1c1f4df501f66a562e928de7a05",
+    "title": "1.4: Parameterizes the CacheEntry struct in pkg/cache/memory/memory.go with a generic type parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "The CacheEntry struct in pkg/cache/memory/memory.go is declared with a type parameter (such as CacheEntry[T any]) so its Value field uses T instead of any.",
+      "evidence": "gold.patch lines 74-81 in pkg/cache/memory/memory.go: type CacheEntry[T any] struct with Value T.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'all the supporting types and constructors in the memory package should be parameterized as well'. [2: Implicit Codebase Constraint] The interface specifies CacheEntry[T any] with a string Key and value of type T. [3: Logical Necessity] CacheEntry is used by NewWithData to populate the cache. If the cache stores type T, entries must also carry type T for type consistency. [5: Conclusion] Any correct solution must parameterize CacheEntry.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "4f7d5c4f76569ff7aeda63465bf40fdb",
+    "title": "1.5: Parameterizes the WithExpirationInterval function in pkg/cache/memory/memory.go with a generic type parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "The WithExpirationInterval function in pkg/cache/memory/memory.go is declared with a type parameter (such as WithExpirationInterval[T any]) and returns CacheOption[T].",
+      "evidence": "gold.patch lines 52-53 in pkg/cache/memory/memory.go: func WithExpirationInterval[T any](interval time.Duration) CacheOption[T].",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'all the supporting types and constructors in the memory package should be parameterized'. [2: Implicit Codebase Constraint] The interface specifies WithExpirationInterval[T any](interval time.Duration) CacheOption[T]. [3: Logical Necessity] A function returning CacheOption[T] must itself be generic in Go. [5: Conclusion] Any correct solution must parameterize WithExpirationInterval.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c7f30f4c8678f789ca5b32f2859e310c",
+    "title": "1.6: Parameterizes the WithPurgeInterval function in pkg/cache/memory/memory.go with a generic type parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "The WithPurgeInterval function in pkg/cache/memory/memory.go is declared with a type parameter (such as WithPurgeInterval[T any]) and returns CacheOption[T].",
+      "evidence": "gold.patch lines 60-61 in pkg/cache/memory/memory.go: func WithPurgeInterval[T any](interval time.Duration) CacheOption[T].",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'all the supporting types and constructors in the memory package should be parameterized'. [2: Implicit Codebase Constraint] The interface specifies WithPurgeInterval[T any](interval time.Duration) CacheOption[T]. [3: Logical Necessity] A function returning CacheOption[T] must itself be generic in Go. [5: Conclusion] Any correct solution must parameterize WithPurgeInterval.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a40ae7619e710263dc711968b4edf7ce",
+    "title": "1.7: Parameterizes the New function in pkg/cache/memory/memory.go with a generic type parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "The New constructor function in pkg/cache/memory/memory.go is declared with a type parameter (such as New[T any]) accepting CacheOption[T] variadic options and returning *Cache[T].",
+      "evidence": "gold.patch lines 69-70 in pkg/cache/memory/memory.go: func New[T any](opts ...CacheOption[T]) *Cache[T].",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'all the supporting types and constructors in the memory package should be parameterized'. [2: Implicit Codebase Constraint] The interface specifies New[T any](opts ...CacheOption[T]) *Cache[T]. [3: Logical Necessity] A function returning *Cache[T] must be generic so callers can specify the type, e.g. New[string](). [5: Conclusion] Any correct solution must parameterize the New function.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "1c325fa7777fbfc02eba36f6d403fca0",
+    "title": "1.8: Parameterizes the NewWithData function in pkg/cache/memory/memory.go with a generic type parameter",
+    "annotations": {
+      "importance": "must have",
+      "description": "The NewWithData constructor function in pkg/cache/memory/memory.go is declared with a type parameter (such as NewWithData[T any]) accepting []CacheEntry[T] and CacheOption[T] variadic options and returning *Cache[T].",
+      "evidence": "gold.patch lines 87-88 in pkg/cache/memory/memory.go: func NewWithData[T any](data []CacheEntry[T], opts ...CacheOption[T]) *Cache[T].",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'all the supporting types and constructors in the memory package should be parameterized'. [2: Implicit Codebase Constraint] The interface specifies NewWithData[T any](data []CacheEntry[T], opts ...CacheOption[T]) *Cache[T]. [3: Logical Necessity] A function accepting []CacheEntry[T] and returning *Cache[T] must be generic. [5: Conclusion] Any correct solution must parameterize the NewWithData function.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "45d855c41cdf59bdc09de221af025b57",
+    "title": "1.9: Updates the GCS source in pkg/sources/gcs/gcs.go to use the typed cache",
+    "annotations": {
+      "importance": "must have",
+      "description": "The GCS source file pkg/sources/gcs/gcs.go is updated so that the persistableCache wrapper, its constructor, and the setupCache and setProgress functions use the typed cache (such as cache.Cache[string] and memory.New[string]()) instead of the unparameterized cache types.",
+      "evidence": "gold.patch lines 180-228 in pkg/sources/gcs/gcs.go: cache.Cache[string] embedding, memory.CacheEntry[string], memory.NewWithData[string](), memory.New[string]().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'every source that uses the cache, including the GCS persistable cache wrapper... should be updated to work with the typed version'. [3: Logical Necessity] In Go, after Cache becomes Cache[T any], all usage sites must instantiate with a concrete type or the code will not compile. [5: Conclusion] Any correct solution must update gcs.go to use the typed cache.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "cfde62aefb238d3272bad10cbb6159fe",
+    "title": "1.10: Updates the GitHub source in pkg/sources/github/github.go to use the typed cache",
+    "annotations": {
+      "importance": "must have",
+      "description": "The GitHub source file pkg/sources/github/github.go is updated so that the orgsCache field, filteredRepoCache wrapper, the newFilteredRepoCache function parameter, and all constructor calls use the typed cache (such as cache.Cache[string] and memory.New[string]()) instead of the unparameterized cache types.",
+      "evidence": "gold.patch lines 240-274 in pkg/sources/github/github.go: cache.Cache[string] field and embedding, memory.New[string]() constructor calls.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'every source that uses the cache, including... the GitHub filtered repo cache and org cache, should be updated to work with the typed version'. [3: Logical Necessity] In Go, after Cache becomes Cache[T any], all usage sites must instantiate with a concrete type or the code will not compile. [5: Conclusion] Any correct solution must update github.go to use the typed cache.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "bfef5ea2c46dc1d0dab3f1d2a7519c7e",
+    "title": "1.11: Removes the manual repo.(string) type assertion from the cache consumer in pkg/sources/github/github.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "After the cache returns typed values directly, any manual type assertion boilerplate in consumer code (such as asserting cached values to string and handling assertion failure) is cleaned up.",
+      "evidence": "gold.patch lines 279-283 in pkg/sources/github/github.go: removal of the repo.(string) type assertion block and its error handling.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'once the values come back as the correct type, any manual type assertion logic in the consumers can be cleaned up'. [3: Logical Necessity] When Values() returns []string directly, type assertions like val.(string) become redundant and should be removed as the prompt requests. [5: Conclusion] Any correct solution must clean up manual type assertion logic that is no longer needed.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "3246c0f62bcb31e4a2b4be4318b52283",
+    "title": "4.1: Removes any of the 9 existing methods (Set, Get, Exists, Delete, Clear, Count, Keys, Values, Contents) from the Cache interface in pkg/cache/cache.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if any of the existing Cache interface methods (Set, Get, Exists, Delete, Clear, Count, Keys, Values, Contents) are removed rather than converted to use the generic type parameter.",
+      "evidence": "gold.patch lines 9-28 in pkg/cache/cache.go: all 9 original methods preserved in the interface.",
+      "justification": "[2: Implicit Codebase Constraint] The Cache interface defines 9 methods that existing consumers (gcs.go, github.go) depend on. [3: Logical Necessity] Removing any method would break all consumers that call it, causing compilation failures throughout the codebase. [5: Conclusion] Any correct solution must preserve all existing interface methods.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "45626a58cf72dd5e7e604f226ff7101e",
+    "title": "4.2: Replaces the underlying go-cache storage mechanism in pkg/cache/memory/memory.go with a different library or data structure",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the refactoring replaces the internal go-cache library usage (e.g. c.c.Set, c.c.Get, c.c.Delete, c.c.Items) with a different storage mechanism rather than keeping the existing implementation and adding generic type wrappers around it.",
+      "evidence": "gold.patch pkg/cache/memory/memory.go: internal go-cache calls (c.c.Set, c.c.Get, c.c.Delete, c.c.Flush, c.c.ItemCount, c.c.Items) are preserved throughout.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for a generic type refactor, not a reimplementation. It states 'make the minimal changes to non-test source files only'. [3: Logical Necessity] Replacing the storage engine goes far beyond a type-safety refactor and introduces regression risks for all cache functionality (expiration, purging, thread safety). [5: Conclusion] Any correct solution must preserve the underlying go-cache mechanism.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

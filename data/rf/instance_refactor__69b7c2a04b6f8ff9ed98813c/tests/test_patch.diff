@@ -1,0 +1,705 @@
+diff --git a/src/libnetdata/memory/tests/test_alignment.c b/src/libnetdata/memory/tests/test_alignment.c
+new file mode 100644
+index 000000000..be7867d5a
+--- /dev/null
++++ b/src/libnetdata/memory/tests/test_alignment.c
+@@ -0,0 +1,69 @@
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++#include "../../libnetdata.h"
++#include "../../required_dummies.h"
++#include <setjmp.h>
++#include <cmocka.h>
++
++static void test_memory_alignment_already_aligned(void **state) {
++    (void)state;
++    assert_int_equal(memory_alignment(16, 8), 16);
++    assert_int_equal(memory_alignment(64, 16), 64);
++    assert_int_equal(memory_alignment(4096, 4096), 4096);
++}
++
++static void test_memory_alignment_rounds_up(void **state) {
++    (void)state;
++    assert_int_equal(memory_alignment(1, 8), 8);
++    assert_int_equal(memory_alignment(9, 8), 16);
++    assert_int_equal(memory_alignment(15, 8), 16);
++    assert_int_equal(memory_alignment(17, 16), 32);
++    assert_int_equal(memory_alignment(4095, 4096), 4096);
++    assert_int_equal(memory_alignment(4097, 4096), 8192);
++}
++
++static void test_memory_alignment_size_zero(void **state) {
++    (void)state;
++    assert_int_equal(memory_alignment(0, 8), 0);
++    assert_int_equal(memory_alignment(0, 16), 0);
++}
++
++static void test_memory_alignment_size_one(void **state) {
++    (void)state;
++    assert_int_equal(memory_alignment(1, 1), 1);
++    assert_int_equal(memory_alignment(1, 4), 4);
++    assert_int_equal(memory_alignment(1, 8), 8);
++}
++
++static void test_memory_alignment_non_power_of_two(void **state) {
++    (void)state;
++    assert_int_equal(memory_alignment(1, 3), 3);
++    assert_int_equal(memory_alignment(4, 3), 6);
++    assert_int_equal(memory_alignment(7, 3), 9);
++    assert_int_equal(memory_alignment(10, 7), 14);
++}
++
++static void test_natural_alignment_zero(void **state) {
++    (void)state;
++    assert_int_equal(natural_alignment(0), 0);
++}
++
++static void test_system_required_alignment_is_valid(void **state) {
++    (void)state;
++    assert_true(SYSTEM_REQUIRED_ALIGNMENT > 0);
++    assert_true(SYSTEM_REQUIRED_ALIGNMENT >= sizeof(uintptr_t));
++}
++
++int main(void) {
++    const struct CMUnitTest tests[] = {
++        cmocka_unit_test(test_memory_alignment_already_aligned),
++        cmocka_unit_test(test_memory_alignment_rounds_up),
++        cmocka_unit_test(test_memory_alignment_size_zero),
++        cmocka_unit_test(test_memory_alignment_size_one),
++        cmocka_unit_test(test_memory_alignment_non_power_of_two),
++        cmocka_unit_test(test_natural_alignment_zero),
++        cmocka_unit_test(test_system_required_alignment_is_valid),
++    };
++
++    return cmocka_run_group_tests_name("alignment", tests, NULL, NULL);
++}
+diff --git a/src/libnetdata/memory/tests/test_nd_mallocz.c b/src/libnetdata/memory/tests/test_nd_mallocz.c
+new file mode 100644
+index 000000000..1bde3d9d3
+--- /dev/null
++++ b/src/libnetdata/memory/tests/test_nd_mallocz.c
+@@ -0,0 +1,179 @@
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++#include "../../libnetdata.h"
++#include "../../required_dummies.h"
++#include <setjmp.h>
++#include <cmocka.h>
++
++static void test_mallocz_returns_non_null(void **state) {
++    (void)state;
++    void *p = mallocz(100);
++    assert_non_null(p);
++    freez(p);
++}
++
++static void test_mallocz_various_sizes(void **state) {
++    (void)state;
++    size_t sizes[] = {1, 8, 64, 256, 1024, 4096, 65536};
++    for (size_t i = 0; i < sizeof(sizes)/sizeof(sizes[0]); i++) {
++        void *p = mallocz(sizes[i]);
++        assert_non_null(p);
++        memset(p, 0xAB, sizes[i]);
++        freez(p);
++    }
++}
++
++static void test_callocz_returns_zeroed_memory(void **state) {
++    (void)state;
++    size_t nmemb = 10;
++    size_t size = 100;
++    unsigned char *p = callocz(nmemb, size);
++    assert_non_null(p);
++    for (size_t i = 0; i < nmemb * size; i++) {
++        assert_int_equal(p[i], 0);
++    }
++    freez(p);
++}
++
++static void test_callocz_single_element(void **state) {
++    (void)state;
++    unsigned char *p = callocz(1, 64);
++    assert_non_null(p);
++    for (size_t i = 0; i < 64; i++) {
++        assert_int_equal(p[i], 0);
++    }
++    freez(p);
++}
++
++static void test_reallocz_grows_buffer(void **state) {
++    (void)state;
++    void *p = mallocz(64);
++    assert_non_null(p);
++    memset(p, 0xCC, 64);
++
++    p = reallocz(p, 256);
++    assert_non_null(p);
++
++    unsigned char *bytes = p;
++    for (size_t i = 0; i < 64; i++) {
++        assert_int_equal(bytes[i], 0xCC);
++    }
++    freez(p);
++}
++
++static void test_reallocz_shrinks_buffer(void **state) {
++    (void)state;
++    void *p = mallocz(256);
++    assert_non_null(p);
++    memset(p, 0xDD, 256);
++
++    p = reallocz(p, 32);
++    assert_non_null(p);
++    unsigned char *bytes = p;
++    assert_int_equal(bytes[0], 0xDD);
++    assert_int_equal(bytes[31], 0xDD);
++    freez(p);
++}
++
++static void test_freez_null_is_safe(void **state) {
++    (void)state;
++    freez(NULL);
++}
++
++static void test_strdupz_duplicates_string(void **state) {
++    (void)state;
++    const char *original = "hello world";
++    char *copy = strdupz(original);
++    assert_non_null(copy);
++    assert_string_equal(copy, original);
++    assert_ptr_not_equal(copy, original);
++    freez(copy);
++}
++
++static void test_strdupz_empty_string(void **state) {
++    (void)state;
++    char *copy = strdupz("");
++    assert_non_null(copy);
++    assert_string_equal(copy, "");
++    freez(copy);
++}
++
++static void test_strndupz_partial_copy(void **state) {
++    (void)state;
++    const char *original = "hello world";
++    char *copy = strndupz(original, 5);
++    assert_non_null(copy);
++    assert_string_equal(copy, "hello");
++    freez(copy);
++}
++
++static void test_strndupz_full_length(void **state) {
++    (void)state;
++    const char *original = "test";
++    char *copy = strndupz(original, strlen(original));
++    assert_non_null(copy);
++    assert_string_equal(copy, original);
++    freez(copy);
++}
++
++static void test_strndupz_zero_length(void **state) {
++    (void)state;
++    char *copy = strndupz("anything", 0);
++    assert_non_null(copy);
++    assert_string_equal(copy, "");
++    freez(copy);
++}
++
++static void test_posix_memfree_non_null(void **state) {
++    (void)state;
++    void *p = mallocz(128);
++    assert_non_null(p);
++    posix_memfree(p);
++}
++
++static void test_mallocz_release_memory(void **state) {
++    (void)state;
++    void *p = mallocz(1024 * 1024);
++    assert_non_null(p);
++    memset(p, 0, 1024 * 1024);
++    freez(p);
++    mallocz_release_as_much_memory_to_the_system();
++}
++
++static void test_mallocz_then_reallocz_then_freez(void **state) {
++    (void)state;
++    char *p = mallocz(16);
++    assert_non_null(p);
++    strcpy(p, "test data");
++
++    p = reallocz(p, 128);
++    assert_non_null(p);
++    assert_string_equal(p, "test data");
++
++    p = reallocz(p, 8);
++    assert_non_null(p);
++
++    freez(p);
++}
++
++int main(void) {
++    const struct CMUnitTest tests[] = {
++        cmocka_unit_test(test_mallocz_returns_non_null),
++        cmocka_unit_test(test_mallocz_various_sizes),
++        cmocka_unit_test(test_callocz_returns_zeroed_memory),
++        cmocka_unit_test(test_callocz_single_element),
++        cmocka_unit_test(test_reallocz_grows_buffer),
++        cmocka_unit_test(test_reallocz_shrinks_buffer),
++        cmocka_unit_test(test_freez_null_is_safe),
++        cmocka_unit_test(test_strdupz_duplicates_string),
++        cmocka_unit_test(test_strdupz_empty_string),
++        cmocka_unit_test(test_strndupz_partial_copy),
++        cmocka_unit_test(test_strndupz_full_length),
++        cmocka_unit_test(test_strndupz_zero_length),
++        cmocka_unit_test(test_posix_memfree_non_null),
++        cmocka_unit_test(test_mallocz_release_memory),
++        cmocka_unit_test(test_mallocz_then_reallocz_then_freez),
++    };
++
++    return cmocka_run_group_tests_name("nd_mallocz", tests, NULL, NULL);
++}
+diff --git a/src/libnetdata/memory/tests/test_nd_mmap.c b/src/libnetdata/memory/tests/test_nd_mmap.c
+new file mode 100644
+index 000000000..c1f24fa21
+--- /dev/null
++++ b/src/libnetdata/memory/tests/test_nd_mmap.c
+@@ -0,0 +1,376 @@
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++#include "../../libnetdata.h"
++#include "../../required_dummies.h"
++#include <setjmp.h>
++#include <cmocka.h>
++#include <sys/mman.h>
++
++// --- nd_mmap / nd_munmap basic behavior ---
++
++static void test_nd_mmap_anonymous_succeeds(void **state) {
++    (void)state;
++    size_t len = 4096;
++    void *ptr = nd_mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++    assert_ptr_not_equal(ptr, MAP_FAILED);
++
++    memset(ptr, 0xAB, len);
++
++    int rc = nd_munmap(ptr, len);
++    assert_int_equal(rc, 0);
++}
++
++static void test_nd_mmap_tracks_count(void **state) {
++    (void)state;
++    size_t before_count = __atomic_load_n(&nd_mmap_count, __ATOMIC_RELAXED);
++
++    void *ptr = nd_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++
++    size_t after_mmap = __atomic_load_n(&nd_mmap_count, __ATOMIC_RELAXED);
++    assert_int_equal(after_mmap, before_count + 1);
++
++    nd_munmap(ptr, 4096);
++
++    size_t after_munmap = __atomic_load_n(&nd_mmap_count, __ATOMIC_RELAXED);
++    assert_int_equal(after_munmap, before_count);
++}
++
++static void test_nd_mmap_tracks_size(void **state) {
++    (void)state;
++    size_t len = 8192;
++    size_t before_size = __atomic_load_n(&nd_mmap_size, __ATOMIC_RELAXED);
++
++    void *ptr = nd_mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++
++    size_t after_mmap = __atomic_load_n(&nd_mmap_size, __ATOMIC_RELAXED);
++    assert_int_equal(after_mmap, before_size + len);
++
++    nd_munmap(ptr, len);
++
++    size_t after_munmap = __atomic_load_n(&nd_mmap_size, __ATOMIC_RELAXED);
++    assert_int_equal(after_munmap, before_size);
++}
++
++static void test_nd_mmap_multiple_mappings(void **state) {
++    (void)state;
++    size_t before_count = __atomic_load_n(&nd_mmap_count, __ATOMIC_RELAXED);
++    size_t before_size = __atomic_load_n(&nd_mmap_size, __ATOMIC_RELAXED);
++
++    void *p1 = nd_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    void *p2 = nd_mmap(NULL, 8192, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    void *p3 = nd_mmap(NULL, 16384, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++
++    assert_non_null(p1);
++    assert_non_null(p2);
++    assert_non_null(p3);
++
++    assert_int_equal(__atomic_load_n(&nd_mmap_count, __ATOMIC_RELAXED), before_count + 3);
++    assert_int_equal(__atomic_load_n(&nd_mmap_size, __ATOMIC_RELAXED), before_size + 4096 + 8192 + 16384);
++
++    nd_munmap(p1, 4096);
++    nd_munmap(p2, 8192);
++    nd_munmap(p3, 16384);
++
++    assert_int_equal(__atomic_load_n(&nd_mmap_count, __ATOMIC_RELAXED), before_count);
++    assert_int_equal(__atomic_load_n(&nd_mmap_size, __ATOMIC_RELAXED), before_size);
++}
++
++static void test_nd_mmap_read_only(void **state) {
++    (void)state;
++    void *ptr = nd_mmap(NULL, 4096, PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++
++    nd_munmap(ptr, 4096);
++}
++
++static void test_nd_munmap_returns_zero_on_success(void **state) {
++    (void)state;
++    void *ptr = nd_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++
++    int rc = nd_munmap(ptr, 4096);
++    assert_int_equal(rc, 0);
++}
++
++// --- nd_mmap_advanced behavior ---
++
++static void test_nd_mmap_advanced_anonymous_private(void **state) {
++    (void)state;
++    void *ptr = nd_mmap_advanced(NULL, 4096, MAP_PRIVATE, 0, false, false, NULL);
++    assert_non_null(ptr);
++
++    memset(ptr, 0xCD, 4096);
++
++    nd_munmap(ptr, 4096);
++}
++
++static void test_nd_mmap_advanced_returns_null_not_map_failed(void **state) {
++    (void)state;
++    // MAP_SHARED without a filename should fatal, but a zero-size mapping
++    // or other invalid params should return NULL rather than MAP_FAILED.
++    // We test by verifying a successful call returns non-NULL (not MAP_FAILED).
++    void *ptr = nd_mmap_advanced(NULL, 4096, MAP_PRIVATE, 0, false, false, NULL);
++    assert_non_null(ptr);
++    assert_ptr_not_equal(ptr, MAP_FAILED);
++
++    nd_munmap(ptr, 4096);
++}
++
++static void test_nd_mmap_advanced_read_only(void **state) {
++    (void)state;
++    void *ptr = nd_mmap_advanced(NULL, 4096, MAP_PRIVATE, 0, true, false, NULL);
++    assert_non_null(ptr);
++
++    nd_munmap(ptr, 4096);
++}
++
++static void test_nd_mmap_advanced_updates_counters(void **state) {
++    (void)state;
++    size_t before_count = __atomic_load_n(&nd_mmap_count, __ATOMIC_RELAXED);
++    size_t before_size = __atomic_load_n(&nd_mmap_size, __ATOMIC_RELAXED);
++    size_t len = 4096;
++
++    void *ptr = nd_mmap_advanced(NULL, len, MAP_PRIVATE, 0, false, false, NULL);
++    assert_non_null(ptr);
++
++    assert_int_equal(__atomic_load_n(&nd_mmap_count, __ATOMIC_RELAXED), before_count + 1);
++    assert_int_equal(__atomic_load_n(&nd_mmap_size, __ATOMIC_RELAXED), before_size + len);
++
++    nd_munmap(ptr, len);
++
++    assert_int_equal(__atomic_load_n(&nd_mmap_count, __ATOMIC_RELAXED), before_count);
++    assert_int_equal(__atomic_load_n(&nd_mmap_size, __ATOMIC_RELAXED), before_size);
++}
++
++static void test_nd_mmap_advanced_large_allocation(void **state) {
++    (void)state;
++    size_t len = 1024 * 1024; // 1 MB
++    void *ptr = nd_mmap_advanced(NULL, len, MAP_PRIVATE, 0, false, false, NULL);
++    assert_non_null(ptr);
++
++    memset(ptr, 0, len);
++
++    nd_munmap(ptr, len);
++}
++
++static void test_nd_mmap_advanced_dont_dump(void **state) {
++    (void)state;
++    void *ptr = nd_mmap_advanced(NULL, 4096, MAP_PRIVATE, 0, false, true, NULL);
++    assert_non_null(ptr);
++    nd_munmap(ptr, 4096);
++}
++
++// --- madvise wrapper tests ---
++
++static void test_madvise_sequential_on_valid_mapping(void **state) {
++    (void)state;
++    void *ptr = nd_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++    int rc = madvise_sequential(ptr, 4096);
++    assert_int_equal(rc, 0);
++    nd_munmap(ptr, 4096);
++}
++
++static void test_madvise_random_on_valid_mapping(void **state) {
++    (void)state;
++    void *ptr = nd_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++    int rc = madvise_random(ptr, 4096);
++    assert_int_equal(rc, 0);
++    nd_munmap(ptr, 4096);
++}
++
++static void test_madvise_willneed_on_valid_mapping(void **state) {
++    (void)state;
++    void *ptr = nd_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++    int rc = madvise_willneed(ptr, 4096);
++    assert_int_equal(rc, 0);
++    nd_munmap(ptr, 4096);
++}
++
++static void test_madvise_dontneed_on_valid_mapping(void **state) {
++    (void)state;
++    void *ptr = nd_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++    int rc = madvise_dontneed(ptr, 4096);
++    assert_int_equal(rc, 0);
++    nd_munmap(ptr, 4096);
++}
++
++static void test_madvise_dontfork_on_valid_mapping(void **state) {
++    (void)state;
++    void *ptr = nd_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++    int rc = madvise_dontfork(ptr, 4096);
++    assert_int_equal(rc, 0);
++    nd_munmap(ptr, 4096);
++}
++
++static void test_madvise_dontdump_on_valid_mapping(void **state) {
++    (void)state;
++    void *ptr = nd_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++    int rc = madvise_dontdump(ptr, 4096);
++    assert_int_equal(rc, 0);
++    nd_munmap(ptr, 4096);
++}
++
++static void test_madvise_mergeable_on_valid_mapping(void **state) {
++    (void)state;
++    void *ptr = nd_mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
++    assert_non_null(ptr);
++    memset(ptr, 0xEE, 4096);
++    madvise_mergeable(ptr, 4096);
++    unsigned char *bytes = ptr;
++    assert_int_equal(bytes[0], 0xEE);
++    nd_munmap(ptr, 4096);
++}
++
++// --- file-backed nd_mmap_advanced tests ---
++
++static void test_nd_mmap_advanced_file_backed_shared(void **state) {
++    (void)state;
++    char tmppath[] = "/tmp/netdata_test_mmap_XXXXXX";
++    int fd = mkstemp(tmppath);
++    assert_true(fd >= 0);
++    close(fd);
++
++    size_t len = 4096;
++    int open_fd = -1;
++    void *ptr = nd_mmap_advanced(tmppath, len, MAP_SHARED, 0, false, false, &open_fd);
++    assert_non_null(ptr);
++
++    memset(ptr, 0xAA, len);
++
++    nd_munmap(ptr, len);
++    if (open_fd >= 0) close(open_fd);
++    unlink(tmppath);
++}
++
++static void test_nd_mmap_advanced_file_backed_read_only(void **state) {
++    (void)state;
++    char tmppath[] = "/tmp/netdata_test_mmap_ro_XXXXXX";
++    int fd = mkstemp(tmppath);
++    assert_true(fd >= 0);
++
++    char data[] = "test data for read-only mmap";
++    assert_true(write(fd, data, sizeof(data)) == sizeof(data));
++    assert_true(ftruncate(fd, 4096) == 0);
++    close(fd);
++
++    void *ptr = nd_mmap_advanced(tmppath, 4096, MAP_SHARED, 0, true, false, NULL);
++    assert_non_null(ptr);
++
++    nd_munmap(ptr, 4096);
++    unlink(tmppath);
++}
++
++static void test_nd_mmap_advanced_file_backed_private(void **state) {
++    (void)state;
++    char tmppath[] = "/tmp/netdata_test_mmap_priv_XXXXXX";
++    int fd = mkstemp(tmppath);
++    assert_true(fd >= 0);
++
++    char data[64];
++    memset(data, 0xBB, sizeof(data));
++    assert_true(write(fd, data, sizeof(data)) == sizeof(data));
++    assert_true(ftruncate(fd, 4096) == 0);
++    close(fd);
++
++    void *ptr = nd_mmap_advanced(tmppath, 4096, MAP_PRIVATE, 0, false, false, NULL);
++    assert_non_null(ptr);
++
++    unsigned char *bytes = ptr;
++    assert_int_equal(bytes[0], 0xBB);
++
++    nd_munmap(ptr, 4096);
++    unlink(tmppath);
++}
++
++static void test_nd_mmap_advanced_open_fd_returned(void **state) {
++    (void)state;
++    char tmppath[] = "/tmp/netdata_test_mmap_fd_XXXXXX";
++    int fd = mkstemp(tmppath);
++    assert_true(fd >= 0);
++    close(fd);
++
++    int open_fd = -1;
++    void *ptr = nd_mmap_advanced(tmppath, 4096, MAP_SHARED, 0, false, false, &open_fd);
++    assert_non_null(ptr);
++    assert_true(open_fd >= 0);
++
++    nd_munmap(ptr, 4096);
++    close(open_fd);
++    unlink(tmppath);
++}
++
++static void test_nd_mmap_advanced_null_filename_no_fd(void **state) {
++    (void)state;
++    int open_fd = -1;
++    void *ptr = nd_mmap_advanced(NULL, 4096, MAP_PRIVATE, 0, false, false, &open_fd);
++    assert_non_null(ptr);
++    assert_int_equal(open_fd, -1);
++
++    nd_munmap(ptr, 4096);
++}
++
++static void test_nd_mmap_advanced_with_ksm(void **state) {
++    (void)state;
++    int saved_ksm = enable_ksm;
++    enable_ksm = 1;
++
++    void *ptr = nd_mmap_advanced(NULL, 4096, MAP_PRIVATE, 1, false, false, NULL);
++    assert_non_null(ptr);
++    nd_munmap(ptr, 4096);
++
++    enable_ksm = saved_ksm;
++}
++
++static void test_nd_mmap_advanced_ksm_disabled_globally(void **state) {
++    (void)state;
++    int saved_ksm = enable_ksm;
++    enable_ksm = 0;
++
++    void *ptr = nd_mmap_advanced(NULL, 4096, MAP_PRIVATE, 1, false, false, NULL);
++    assert_non_null(ptr);
++    nd_munmap(ptr, 4096);
++
++    enable_ksm = saved_ksm;
++}
++
++int main(void) {
++    const struct CMUnitTest tests[] = {
++        cmocka_unit_test(test_nd_mmap_anonymous_succeeds),
++        cmocka_unit_test(test_nd_mmap_tracks_count),
++        cmocka_unit_test(test_nd_mmap_tracks_size),
++        cmocka_unit_test(test_nd_mmap_multiple_mappings),
++        cmocka_unit_test(test_nd_mmap_read_only),
++        cmocka_unit_test(test_nd_munmap_returns_zero_on_success),
++        cmocka_unit_test(test_nd_mmap_advanced_anonymous_private),
++        cmocka_unit_test(test_nd_mmap_advanced_returns_null_not_map_failed),
++        cmocka_unit_test(test_nd_mmap_advanced_read_only),
++        cmocka_unit_test(test_nd_mmap_advanced_updates_counters),
++        cmocka_unit_test(test_nd_mmap_advanced_large_allocation),
++        cmocka_unit_test(test_nd_mmap_advanced_dont_dump),
++        cmocka_unit_test(test_madvise_sequential_on_valid_mapping),
++        cmocka_unit_test(test_madvise_random_on_valid_mapping),
++        cmocka_unit_test(test_madvise_willneed_on_valid_mapping),
++        cmocka_unit_test(test_madvise_dontneed_on_valid_mapping),
++        cmocka_unit_test(test_madvise_dontfork_on_valid_mapping),
++        cmocka_unit_test(test_madvise_dontdump_on_valid_mapping),
++        cmocka_unit_test(test_madvise_mergeable_on_valid_mapping),
++        cmocka_unit_test(test_nd_mmap_advanced_file_backed_shared),
++        cmocka_unit_test(test_nd_mmap_advanced_file_backed_read_only),
++        cmocka_unit_test(test_nd_mmap_advanced_file_backed_private),
++        cmocka_unit_test(test_nd_mmap_advanced_open_fd_returned),
++        cmocka_unit_test(test_nd_mmap_advanced_null_filename_no_fd),
++        cmocka_unit_test(test_nd_mmap_advanced_with_ksm),
++        cmocka_unit_test(test_nd_mmap_advanced_ksm_disabled_globally),
++    };
++
++    return cmocka_run_group_tests_name("nd_mmap", tests, NULL, NULL);
++}
+diff --git a/src/libnetdata/os/tests/test_get_system_pagesize.c b/src/libnetdata/os/tests/test_get_system_pagesize.c
+new file mode 100644
+index 000000000..b4faee67a
+--- /dev/null
++++ b/src/libnetdata/os/tests/test_get_system_pagesize.c
+@@ -0,0 +1,57 @@
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++#include "../../libnetdata.h"
++#include "../../required_dummies.h"
++#include <setjmp.h>
++#include <cmocka.h>
++
++static void test_page_size_is_at_least_4096(void **state) {
++    (void)state;
++    size_t page_size = os_get_system_page_size();
++    assert_true(page_size >= 4096);
++}
++
++static void test_page_size_is_power_of_two(void **state) {
++    (void)state;
++    size_t page_size = os_get_system_page_size();
++    assert_true(page_size > 0);
++    assert_int_equal(page_size & (page_size - 1), 0);
++}
++
++static void test_page_size_is_consistent(void **state) {
++    (void)state;
++    size_t first = os_get_system_page_size();
++    size_t second = os_get_system_page_size();
++    size_t third = os_get_system_page_size();
++    assert_int_equal(first, second);
++    assert_int_equal(second, third);
++}
++
++static void test_page_size_matches_sysconf(void **state) {
++    (void)state;
++    size_t our_size = os_get_system_page_size();
++    long sys_size = sysconf(_SC_PAGE_SIZE);
++    if (sys_size > 4096) {
++        assert_int_equal(our_size, (size_t)sys_size);
++    } else {
++        assert_int_equal(our_size, 4096);
++    }
++}
++
++static void test_page_size_reasonable_upper_bound(void **state) {
++    (void)state;
++    size_t page_size = os_get_system_page_size();
++    assert_true(page_size <= 1024 * 1024);
++}
++
++int main(void) {
++    const struct CMUnitTest tests[] = {
++        cmocka_unit_test(test_page_size_is_at_least_4096),
++        cmocka_unit_test(test_page_size_is_power_of_two),
++        cmocka_unit_test(test_page_size_is_consistent),
++        cmocka_unit_test(test_page_size_matches_sysconf),
++        cmocka_unit_test(test_page_size_reasonable_upper_bound),
++    };
++
++    return cmocka_run_group_tests_name("os_get_system_page_size", tests, NULL, NULL);
++}

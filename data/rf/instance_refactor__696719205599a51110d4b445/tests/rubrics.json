@@ -1,0 +1,266 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f1d07f2cba86e0bb6aea1d8bc3c10792",
+    "title": "1.1: Adds source files for a new insights package under output/cloud/ for the extracted Insights functionality",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a new package is created under output/cloud/ directory to house the extracted Insights functionality.",
+      "evidence": "gold.patch lines 287-416 show creation of output/cloud/insights/collect.go, lines 417-424 show output/cloud/insights/doc.go, lines 425-448 show output/cloud/insights/enable.go, and lines 449-498 show output/cloud/insights/flush.go.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requests extracting functionality 'into a separate reusable package so it can be shared with other cloud output implementations'. The interface specifies files under output/cloud/insights/. [2: Implicit Codebase Constraint] Cloud outputs are organized under output/cloud/ (v1/, expv2/). [3: Logical Necessity] For the package to be shared with cloud outputs, it must be in a discoverable location under output/cloud/. [5: Conclusion] Therefore, ANY correct answer must create a new package under output/cloud/.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7bd8f924b6699c275747872a389cb8c2",
+    "title": "1.2: Implements a CollectRequestMetadatas method on the collector struct in the new insights package that processes HTTP request trail data",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the new package contains a collector struct with CollectRequestMetadatas method that filters httpext.Trail samples containing trace IDs.",
+      "evidence": "gold.patch lines 340-384 in output/cloud/insights/collect.go show the Collector.CollectRequestMetadatas method filtering httpext.Trail samples and storing them as insights.RequestMetadatas.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly lists 'request metadata collection' as one of the three tightly coupled functionalities to extract. The interface specifies Collector struct with CollectRequestMetadatas method. [2: Implicit Codebase Constraint] The codebase has rmCollector.CollectRequestMetadatas in expv2/collect.go that filters httpext.Trail samples. [3: Logical Necessity] The collection logic must exist in the new package for it to be reusable. [5: Conclusion] Therefore, ANY correct answer must include a collector struct with CollectRequestMetadatas method.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "97f3123fbf4f733cf8813ff7728a8b6f",
+    "title": "1.3: Implements a PopAll method on the collector struct in the new insights package that returns the buffered request metadata",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the collector struct in the new package has a PopAll method that returns buffered data and clears the buffer.",
+      "evidence": "gold.patch lines 387-395 in output/cloud/insights/collect.go show the Collector.PopAll method returning the buffer and setting it to nil.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires extracting 'request metadata collection' which includes the retrieval mechanism. The interface specifies PopAll() in the RequestMetadatasCollector interface. [2: Implicit Codebase Constraint] The codebase has rmCollector.PopAll in expv2/collect.go that returns buffer and sets it to nil. [3: Logical Necessity] The flusher needs PopAll to retrieve data for sending. [5: Conclusion] Therefore, ANY correct answer must include a PopAll method on the collector.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "6883767b2915ca694bcd5c75b86de554",
+    "title": "1.4: Implements a flusher struct in the new insights package with an exported Flush method for sending collected data",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the new package contains a flusher struct with an exported Flush method that retrieves data from collector and sends to client.",
+      "evidence": "gold.patch lines 474-498 in output/cloud/insights/flush.go show the Flusher struct (line 477) and Flush method (lines 491-498).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly lists 'flushing' as one of the three tightly coupled functionalities to extract. The interface specifies Flusher struct with Flush() error method. [2: Implicit Codebase Constraint] The codebase has requestMetadatasFlusher.flush() in expv2/flush.go. [3: Logical Necessity] The flushing logic must be exported (capital F) for external consumers to call it. [5: Conclusion] Therefore, ANY correct answer must include a flusher struct with an exported Flush method.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ca3125bed7f3f6f3ddf22e2ed1ce1236",
+    "title": "1.5: Implements an Enabled function definition in the new insights package that checks if tracing is enabled based on the cloud config",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the new package contains an exported function that checks config.TracesEnabled to determine if insights is enabled.",
+      "evidence": "gold.patch lines 431-448 in output/cloud/insights/enable.go show the Enabled function checking config.TracesEnabled.ValueOrZero().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly lists 'the tracing enabled check' as one of the three tightly coupled functionalities to extract. The interface specifies Enabled(config cloudapi.Config) bool function. [2: Implicit Codebase Constraint] The codebase has tracingEnabled() method in expv2/output.go. [3: Logical Necessity] Consumers need to check if insights is enabled before initializing collector/flusher. [5: Conclusion] Therefore, ANY correct answer must include an exported Enabled function.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b14709bc98cb4e4594a63533c3cac32f",
+    "title": "1.6: Exports the RequestMetadatasCollector interface in the new insights package",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that an exported interface is created defining CollectRequestMetadatas and PopAll methods for dependency injection.",
+      "evidence": "gold.patch lines 313-318 in output/cloud/insights/collect.go show the RequestMetadatasCollector interface with CollectRequestMetadatas and PopAll methods.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests a 'reusable package' for sharing. The interface specifies RequestMetadatasCollector as an exported interface. [2: Implicit Codebase Constraint] The codebase has internal requestMetadatasCollector interface in expv2/output.go. [3: Logical Necessity] For consumers to depend on abstraction rather than concrete type, an interface is needed. [5: Conclusion] Therefore, ANY correct answer must create an exported collector interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "6966ba36486ea27c50aeece5d02fee8c",
+    "title": "1.7: Exports a Client interface definition in the new insights package for the insights API dependency",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that an exported Client interface is created for the insights API client dependency.",
+      "evidence": "gold.patch lines 463-467 in output/cloud/insights/flush.go show the Client interface with IngestRequestMetadatasBatch and Close methods.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests extraction into a 'reusable package'. The interface specifies Client as an exported interface. [2: Implicit Codebase Constraint] The codebase has internal insightsClient interface in expv2/flush.go. [3: Logical Necessity] The flusher needs to accept a client parameter via an exported interface. [5: Conclusion] Therefore, ANY correct answer must create an exported Client interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a71fa73c111b19f0cd3e57bb553ceb77",
+    "title": "1.8: Exports the RequestMetadatasFlusher interface in the new insights package",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that an exported flusher interface is created so consumers can depend on the abstraction.",
+      "evidence": "gold.patch lines 469-472 in output/cloud/insights/flush.go show the RequestMetadatasFlusher interface with Flush() error method.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests a 'reusable package' for sharing. The interface specifies RequestMetadatasFlusher as an exported interface. [2: Implicit Codebase Constraint] The expv2/output.go stores requestMetadatasFlusher field typed as flusher interface. [3: Logical Necessity] For expv2 and other consumers to declare fields of the flusher type, they need an exported interface. [5: Conclusion] Therefore, ANY correct answer must create an exported flusher interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "34688977b874e8c1bffa940e5e6952be",
+    "title": "1.9: Implements the NewCollector constructor in the new insights package for creating collector instances",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a constructor function is provided for instantiating the collector with a testRunID parameter.",
+      "evidence": "gold.patch lines 329-336 in output/cloud/insights/collect.go show the NewCollector function taking testRunID int64 and returning *Collector.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests a 'reusable package'. The interface specifies NewCollector(testRunID int64) *Collector. [2: Implicit Codebase Constraint] The codebase has newRequestMetadatasCollector(testRunID) function in expv2/collect.go. [3: Logical Necessity] Since struct fields should remain unexported, consumers need an exported constructor. [5: Conclusion] Therefore, ANY correct answer must include an exported NewCollector function.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c7deaff362b286c1ca7cda37353267a5",
+    "title": "1.10: Implements the NewFlusher constructor in the new insights package for creating flusher instances",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that a constructor function is provided for instantiating the flusher with client and collector parameters.",
+      "evidence": "gold.patch lines 482-488 in output/cloud/insights/flush.go show the NewFlusher function taking Client and RequestMetadatasCollector and returning *Flusher.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests a 'reusable package'. The interface specifies NewFlusher(client Client, collector RequestMetadatasCollector) *Flusher. [2: Implicit Codebase Constraint] The codebase has newTracesFlusher(client, collector) function in expv2/flush.go. [3: Logical Necessity] Since struct fields should remain unexported, consumers need an exported constructor with dependencies. [5: Conclusion] Therefore, ANY correct answer must include an exported NewFlusher function.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "88d9d85aa17b0f36fd6620e6dfd40d86",
+    "title": "1.11: Replaces the internal tracingEnabled() call with insightsOutput.Enabled() from the new insights package in output/cloud/expv2/output.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that expv2/output.go calls the new package's Enabled function instead of the internal tracingEnabled method at all call sites.",
+      "evidence": "gold.patch lines 214, 246, 255 in output/cloud/expv2/output.go show insightsOutput.Enabled(o.config) replacing o.tracingEnabled() at all three call sites (Start, StopWithTestError, collectSamples).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires extracting 'the tracing enabled check' and 'replacing the internal implementations'. The interface specifies Enabled(config cloudapi.Config) bool. [2: Implicit Codebase Constraint] The expv2/output.go currently uses the internal tracingEnabled() method. [3: Logical Necessity] After extraction with replacement, the internal method call must be replaced with the new package's exported function. [5: Conclusion] Therefore, ANY correct answer must replace tracingEnabled() calls with insightsOutput.Enabled().",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a2c7d91f3e48b05c6df1209e84a5b7d3",
+    "title": "1.12: Replaces the internal newRequestMetadatasCollector() call with insightsOutput.NewCollector() from the new insights package in output/cloud/expv2/output.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that expv2/output.go instantiates the collector using the new package's NewCollector constructor instead of the internal newRequestMetadatasCollector function.",
+      "evidence": "gold.patch line 220 in output/cloud/expv2/output.go shows insightsOutput.NewCollector(testRunID) replacing newRequestMetadatasCollector(testRunID).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires extracting 'request metadata collection' and 'replacing the internal implementations'. The interface specifies NewCollector(testRunID int64) *Collector. [2: Implicit Codebase Constraint] The expv2/output.go currently uses the internal newRequestMetadatasCollector function. [3: Logical Necessity] After extraction with replacement, the internal constructor call must be replaced with the new package's exported constructor. [5: Conclusion] Therefore, ANY correct answer must replace newRequestMetadatasCollector() with insightsOutput.NewCollector().",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b3d8e02f4f59c16d7e02310f95b6c8e4",
+    "title": "1.13: Replaces the internal newTracesFlusher() call with insightsOutput.NewFlusher() from the new insights package in output/cloud/expv2/output.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that expv2/output.go instantiates the flusher using the new package's NewFlusher constructor instead of the internal newTracesFlusher function.",
+      "evidence": "gold.patch line 237 in output/cloud/expv2/output.go shows insightsOutput.NewFlusher(insightsClient, o.requestMetadatasCollector) replacing newTracesFlusher(insightsClient, o.requestMetadatasCollector).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires extracting 'flushing' and 'replacing the internal implementations'. The interface specifies NewFlusher(client Client, collector RequestMetadatasCollector) *Flusher. [2: Implicit Codebase Constraint] The expv2/output.go currently uses the internal newTracesFlusher function. [3: Logical Necessity] After extraction with replacement, the internal constructor call must be replaced with the new package's exported constructor. [5: Conclusion] Therefore, ANY correct answer must replace newTracesFlusher() with insightsOutput.NewFlusher().",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "dac008e741c80f2862488c47affa4e64",
+    "title": "1.14: Increases the insights client dial timeout to 10 seconds in output/cloud/expv2/output.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the insights client dial context timeout is increased from 1 second to 10 seconds.",
+      "evidence": "gold.patch lines 228-229 in output/cloud/expv2/output.go show the timeout changed from context.WithTimeout(context.Background(), 1*time.Second) to context.WithTimeout(context.Background(), 10*time.Second).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'The insights client dial timeout should also be increased to 10 seconds.' [2: Implicit Codebase Constraint] The current timeout in expv2/output.go is 1*time.Second for the insightsClient.Dial call. [3: Logical Necessity] The prompt directly requests this change. [5: Conclusion] Therefore, ANY correct answer must increase the dial timeout to 10 seconds.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "de4a8ee68aa21fa2a9cf8d56282bce78",
+    "title": "3.1: Removes the tracingEnabled method from output/cloud/expv2/output.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies cleanup of the original enabled check method after extraction.",
+      "evidence": "gold.patch lines 272-283 in output/cloud/expv2/output.go show removal of the tracingEnabled() method.",
+      "justification": "[2: Implicit Codebase Constraint] tracingEnabled() exists in expv2/output.go. With the Enabled function extracted to the new package, this method becomes obsolete. [4: Quality Necessity] Clean implementations should not have obsolete code. [5: Conclusion] Therefore, ANY good answer should remove tracingEnabled from expv2/output.go.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "dadf9ba095f99b2cf9b416e2f2f62db5",
+    "title": "3.2: Removes the requestMetadatasCollector interface from output/cloud/expv2/output.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies cleanup of the internal collector interface after extraction.",
+      "evidence": "gold.patch lines 186-191 in output/cloud/expv2/output.go show removal of the requestMetadatasCollector interface.",
+      "justification": "[2: Implicit Codebase Constraint] requestMetadatasCollector interface exists in expv2/output.go. With the interface now exported from the new package, this internal definition becomes duplicate. [4: Quality Necessity] Clean implementations should not have duplicate interface definitions. [5: Conclusion] Therefore, ANY good answer should remove the interface from expv2/output.go.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "f39713758623a9d78bdbfb3866679e0a",
+    "title": "4.1: Introduces compilation error in output/cloud/expv2/ files after the refactoring",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the expv2 package compiles without error after refactoring to use the new package.",
+      "evidence": "All modified source files in gold.patch (output/cloud/expv2/collect.go, output/cloud/expv2/flush.go, output/cloud/expv2/output.go) must compile without errors.",
+      "justification": "[2: Implicit Codebase Constraint] Go requires all code to compile successfully. [3: Logical Necessity] Changing expv2 to use the new package could introduce errors if imports or types are incorrect. [5: Conclusion] Therefore, compilation errors in expv2 indicate a failed refactoring.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "869c0961a76c7f3071391f29695643ef",
+    "title": "4.2: Modifies existing test files in the repository",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the agent does not alter any test files. The problem statement explicitly constrains changes to non-test source files only.",
+      "evidence": "The problem statement states: 'I've already taken care of all changes to the test files. Do NOT modify any test files in any way.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'Do NOT modify any test files in any way. Your task is to make the minimal changes to non-test source files only.' [3: Logical Necessity] Modifying tests could mask regressions or break the existing test suite. [5: Conclusion] Therefore, any modification to test files is a failure.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

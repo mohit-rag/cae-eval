@@ -1,0 +1,40 @@
+{
+  "tests": [
+    {
+      "name": "sitePluginDeactivateMutation > invalidates queries on success by default"
+    },
+    {
+      "name": "sitePluginDeactivateMutation > supports suppressing query invalidation on success"
+    },
+    {
+      "name": "sitePluginDeactivateMutation > invalidates queries when explicitly passed true"
+    },
+    {
+      "name": "sitePluginAutoupdateDisableMutation > invalidates queries on success by default"
+    },
+    {
+      "name": "sitePluginAutoupdateDisableMutation > supports suppressing query invalidation on success"
+    },
+    {
+      "name": "sitePluginAutoupdateDisableMutation > invalidates queries when explicitly passed true"
+    },
+    {
+      "name": "sitePluginRemoveMutation > invalidates queries on success by default"
+    },
+    {
+      "name": "sitePluginRemoveMutation > supports suppressing query invalidation on success"
+    },
+    {
+      "name": "sitePluginRemoveMutation > invalidates queries when explicitly passed true"
+    },
+    {
+      "name": "SitesWithThisPlugin > renders the component with plugin data views"
+    },
+    {
+      "name": "SitesWithThisPlugin > initializes bulk action handlers from mutation hooks"
+    },
+    {
+      "name": "SitesWithThisPlugin > configures delete modal mutations with query invalidation suppressed"
+    }
+  ]
+}

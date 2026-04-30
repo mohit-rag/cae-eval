@@ -1,0 +1,194 @@
+[
+  {
+    "id": "cb82894adfc3a4247bbb3fcf3ca856e1",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7a3f9c2e8b1d4a5f6c7e8d9b0a1c2d3e",
+    "title": "1.1: Creates a standalone function named getPanelDataSummary that accepts DataFrames and returns a PanelDataSummary",
+    "annotations": {
+      "importance": "must have",
+      "description": "A new exported function named getPanelDataSummary exists at packages/grafana-data/src/panel/suggestions/getPanelDataSummary.ts. It accepts an array of DataFrame objects (with a default of empty array) and returns a PanelDataSummary, callable without instantiating VisualizationSuggestionsBuilder.",
+      "evidence": "gold.patch lines 85-128 show the new function: export function getPanelDataSummary(frames: DataFrame[] = []): PanelDataSummary.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Can you refactor the data summary into a standalone utility that can be used independently of the builder? The summary should be available as a simple function call that takes dataframes and returns the summary.' [2: Implicit Code Base Constraint] The interface specifies: Path: packages/grafana-data/src/panel/suggestions/getPanelDataSummary.ts, Name: getPanelDataSummary, Input: frames: DataFrame[] = [], Output: PanelDataSummary. [5: Conclusion] Therefore, ANY correct answer must create a standalone function named getPanelDataSummary matching the interface specification.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "8b4f0d3e9c2a5b6d7e8f9a0b1c2d3e4f",
+    "title": "1.2: Exports the getPanelDataSummary function and PanelDataSummary type from the @grafana/data public API",
+    "annotations": {
+      "importance": "must have",
+      "description": "The getPanelDataSummary function and PanelDataSummary type are exported from the @grafana/data package entry point so external consumers can import them.",
+      "evidence": "gold.patch line 29 shows: export { type PanelDataSummary, getPanelDataSummary } from './panel/suggestions/getPanelDataSummary'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The function and its interface should be part of the @grafana/data public API.' [2: Implicit Code Base Constraint] The @grafana/data package exports public utilities from packages/grafana-data/src/index.ts. [3: Logical Necessity] For external consumers (such as PanelDataErrorView) to import getPanelDataSummary, it must be exported from the package entry point. [5: Conclusion] Therefore, ANY correct answer must export both the function and type from @grafana/data.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "9c5a1e4f0d3b6c7e8f9a0b1c2d3e4f5a",
+    "title": "1.3: Adds a fieldCountByType method to PanelDataSummary that returns the count of fields for a given FieldType",
+    "annotations": {
+      "importance": "must have",
+      "description": "The PanelDataSummary interface includes a fieldCountByType method that accepts a FieldType parameter and returns a number representing how many fields of that type exist across all frames.",
+      "evidence": "gold.patch line 59 shows: fieldCountByType: (type: FieldType) => number in the PanelDataSummary interface.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The field type counting should also be generalized so you can query the count... of any field type without needing a dedicated property for each one.' [2: Implicit Code Base Constraint] The interface specifies: PanelDataSummary provides fieldCountByType(type: FieldType) returning number. [5: Conclusion] Therefore, ANY correct answer must add a fieldCountByType method to PanelDataSummary.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "title": "1.4: Adds a hasFieldType method to PanelDataSummary that returns whether any field of a given FieldType exists",
+    "annotations": {
+      "importance": "must have",
+      "description": "The PanelDataSummary interface includes a hasFieldType method that accepts a FieldType parameter and returns a boolean indicating whether at least one field of that type exists across all frames.",
+      "evidence": "gold.patch line 60 shows: hasFieldType: (type: FieldType) => boolean in the PanelDataSummary interface.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The field type counting should also be generalized so you can query the count or presence of any field type without needing a dedicated property for each one.' [2: Implicit Code Base Constraint] The interface specifies: PanelDataSummary provides hasFieldType(type: FieldType) returning boolean. [5: Conclusion] Therefore, ANY correct answer must add a hasFieldType method to PanelDataSummary.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "0d6b2f5a1e4c7d8e9f0a1b2c3d4e5f6b",
+    "title": "1.5: Updates VisualizationSuggestionsBuilder to delegate summary computation to getPanelDataSummary",
+    "annotations": {
+      "importance": "must have",
+      "description": "The VisualizationSuggestionsBuilder class in packages/grafana-data/src/types/panel.ts delegates its dataSummary computation to the extracted getPanelDataSummary function rather than computing it internally.",
+      "evidence": "gold.patch line 182 shows: this.dataSummary = getPanelDataSummary(this.data?.series) replacing this.computeDataSummary() in the constructor.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Can you refactor the data summary into a standalone utility that can be used independently of the builder?' [2: Implicit Code Base Constraint] VisualizationSuggestionsBuilder in packages/grafana-data/src/types/panel.ts currently computes dataSummary via a private method computeDataSummary(). [3: Logical Necessity] After extraction, this class must delegate to the new function to avoid duplicating the logic. [5: Conclusion] Therefore, ANY correct answer must update VisualizationSuggestionsBuilder to call the standalone function.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "1e7c3a6b2f5d8e9f0a1b2c3d4e5f6a7c",
+    "title": "1.6: Updates consumers (such as PanelDataErrorView) that instantiate VisualizationSuggestionsBuilder solely for dataSummary to call getPanelDataSummary directly",
+    "annotations": {
+      "importance": "must have",
+      "description": "Code that previously created a VisualizationSuggestionsBuilder only to access its dataSummary property is updated to call getPanelDataSummary directly with the data series.",
+      "evidence": "gold.patch lines 269-271 show PanelDataErrorView.tsx changed from 'const builder = new VisualizationSuggestionsBuilder(props.data); const { dataSummary } = builder' to 'const dataSummary = getPanelDataSummary(props.data.series)'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Any code that currently instantiates a builder just to get the summary should use the new utility directly instead.' [2: Implicit Code Base Constraint] PanelDataErrorView in public/app/features/panel/components/PanelDataErrorView.tsx instantiates VisualizationSuggestionsBuilder solely to read dataSummary. [5: Conclusion] Therefore, ANY correct answer must update such consumers to call the utility directly.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1.7: Marks all 6 existing per-type properties (numberFieldCount, timeFieldCount, stringFieldCount, hasNumberField, hasTimeField, hasStringField) on PanelDataSummary as deprecated (such as via @deprecated JSDoc annotations)",
+    "annotations": {
+      "importance": "must have",
+      "description": "All 6 existing hardcoded per-type properties (numberFieldCount, timeFieldCount, stringFieldCount, hasNumberField, hasTimeField, hasStringField) are marked as deprecated on the PanelDataSummary interface, indicating that consumers should use the new generic methods instead.",
+      "evidence": "gold.patch lines 65-76 show @deprecated JSDoc annotations on each per-type property, e.g. '@deprecated use PanelDataSummary.fieldCountByType(FieldType.number)'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The existing per-type properties should be preserved for backward compatibility but marked as deprecated.' [3: Logical Necessity] Deprecation markers guide consumers to migrate to the new generic methods. Without them, consumers have no signal that the old API is superseded. [5: Conclusion] Therefore, ANY correct answer must mark the per-type properties as deprecated using an appropriate mechanism.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b8779142c24d92c38ae8788348cbbd30",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "5c1a7e0f6d9b2c3d4e5f6a7b8c9d0e1a",
+    "title": "2.1: Includes documentation for the getPanelDataSummary function (such as JSDoc comments describing purpose and parameters)",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "The getPanelDataSummary function includes documentation comments explaining its purpose, parameters, and return value.",
+      "evidence": "gold.patch lines 79-84 show JSDoc with @alpha tag, @param frames description, and @returns annotation.",
+      "justification": "[2: Implicit Code Base Constraint] The @grafana/data package uses JSDoc annotations (such as @alpha, @param) for exported functions. [4: Qualitative Requirement] Public utility functions should be documented for consumers to understand usage. [5: Conclusion] Therefore, ANY correct answer should include documentation for the new function.",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "b85ff7dd8a13216a22f660da5779be03",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "6d2b8f1a7e0c3d4e5f6a7b8c9d0e1f2b",
+    "title": "3.1: Removes the embedded computeDataSummary method from VisualizationSuggestionsBuilder in packages/grafana-data/src/types/panel.ts",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "The private computeDataSummary() method or equivalent inline logic is removed from VisualizationSuggestionsBuilder since the class now delegates to getPanelDataSummary.",
+      "evidence": "gold.patch lines 189-242 show removal of the private computeDataSummary() method from VisualizationSuggestionsBuilder.",
+      "justification": "[3: Logical Necessity] After delegating to getPanelDataSummary, the private computeDataSummary() method becomes dead code. [4: Qualitative Requirement] Good refactoring removes redundant code to avoid confusion and maintenance burden. [5: Conclusion] Therefore, ANY correct answer should remove the embedded computation logic.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "a258b940d177fe62794a6bb8765b6b6b",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "7e3c9a2b8f1d4e5f6a7b8c9d0e1f2a3c",
+    "title": "4.1: Removes existing PanelDataSummary per-type properties (such as numberFieldCount, hasNumberField) without providing them for backward compatibility",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the refactoring breaks existing consumers by completely removing properties like numberFieldCount, timeFieldCount, stringFieldCount, hasNumberField, hasTimeField, or hasStringField from PanelDataSummary without preserving them.",
+      "evidence": "gold.patch lines 65-76 show the deprecated fields are preserved on the interface with @deprecated annotations, and lines 121-126 show the function still populates them.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The existing per-type properties should be preserved for backward compatibility but marked as deprecated.' [2: Implicit Code Base Constraint] Existing consumer code throughout the codebase references these property names directly. [5: Conclusion] Therefore, ANY correct answer must NOT remove these properties from the PanelDataSummary return value.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "8f4d0b3c9a2e5f6a7b8c9d0e1f2a3b4d",
+    "title": "4.2: Introduces compilation errors in modified TypeScript files",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the refactoring introduces code that would fail to compile due to syntax errors, missing imports, type mismatches, or undefined references in any modified file.",
+      "evidence": "All files modified by the solution must remain valid TypeScript that compiles without errors.",
+      "justification": "[3: Logical Necessity] Compilation errors would make the refactoring unusable and break the build. [5: Conclusion] Therefore, ANY correct answer must NOT introduce compilation errors in any modified file.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7",
+    "title": "4.3: Modifies test files despite the explicit constraint not to do so",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the agent modifies, adds, or removes any test files (such as files matching *.test.ts, *.test.tsx, *.spec.ts, or files in test/ directories) despite the prompt explicitly stating not to.",
+      "evidence": "The prompt ends with: 'I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.' [5: Conclusion] Therefore, ANY correct answer must NOT modify any test files.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

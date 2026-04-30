@@ -1,0 +1,254 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "2b799a826d19edc3b13be09f02bee8eb",
+    "title": "1.1: Introduces the ControlSurface struct in api/v1/ with all 5 required fields (RunCtx, Samples, MetricsEngine, Scheduler, RunState)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a new struct is created to represent the minimal set of dependencies handlers require, replacing the full Engine dependency.",
+      "evidence": "gold.patch lines 114-139: new file api/v1/control_surface.go creates ControlSurface struct (line 133) with fields RunCtx context.Context (line 134), Samples chan metrics.SampleContainer (line 135), MetricsEngine *engine.MetricsEngine (line 136), Scheduler *execution.Scheduler (line 137), RunState *lib.TestRunState (line 138). Interface specifies ControlSurface struct.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states handlers should receive 'only the specific dependencies they need rather than the entire Engine via context injection.' [2: Implicit Codebase Constraint] Handlers currently access the full core.Engine with all its internals. [3: Logical Necessity] To decouple handlers from Engine, a narrower dependency container must exist. [5: Conclusion] Any correct solution must introduce an explicit dependency container for the API handlers."
+    }
+  },
+  {
+    "id": "31806c79eb20fd86c9e6d0d8810a0594",
+    "title": "1.2: Updates all 10 handler functions in api/v1/ (handleGetGroups, handleGetGroup, handleGetMetrics, handleGetMetric, handleGetSetupData, handleSetSetupData, handleRunSetup, handleRunTeardown, handleGetStatus, handlePatchStatus) to receive *ControlSurface instead of extracting the Engine from request context",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that all route handler functions in api/v1/ accept *ControlSurface as a parameter and no longer call common.GetEngine(). This includes helper functions called by handlers, such as newStatus (renamed from NewStatus) in api/v1/status.go which must also accept *ControlSurface instead of *core.Engine.",
+      "evidence": "gold.patch lines 152-156 (group_routes.go: handleGetGroups changed to accept *ControlSurface), 165-169 (handleGetGroup), 186-189 (metric_routes.go: handleGetMetrics), 210-213 (handleGetMetric), 336-339 (setup_teardown_routes.go: handleGetSetupData), 344-345 (handleSetSetupData), 363-366 (handleRunSetup), 378-383 (handleRunTeardown), 468-472 (status_routes.go: handleGetStatus), 481-482 (handlePatchStatus). Lines 404-406 (status.go): newStatus(cs *ControlSurface) renamed from NewStatus(*core.Engine). Interface specifies newStatus(cs *ControlSurface) Status.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the handlers for status, metrics, groups, and setup/teardown in api/v1/ all access it through a context injection pattern' and asks for them to receive 'only the specific dependencies they need.' [2: Implicit Codebase Constraint] All handler functions in api/v1/ retrieve the Engine from context. [3: Logical Necessity] For decoupling, each handler must receive its dependencies explicitly. [5: Conclusion] Any correct solution must update all handler functions to accept explicit parameters."
+    }
+  },
+  {
+    "id": "a6c56713cb3237b64baba3ffa9e17246",
+    "title": "1.3: Updates NewHandler in api/v1/routes.go to thread *ControlSurface to all 10 route handlers (handleGetGroups, handleGetGroup, handleGetMetrics, handleGetMetric, handleGetSetupData, handleSetSetupData, handleRunSetup, handleRunTeardown, handleGetStatus, handlePatchStatus)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the handler factory function threads dependencies from the entry point to individual handlers.",
+      "evidence": "gold.patch lines 245-247: NewHandler() changed to NewHandler(cs *ControlSurface) http.Handler in api/v1/routes.go. Handler calls updated at lines 252, 257, 266, 275, 284, 293, 297, 301, 305, 315. Interface specifies NewHandler(cs *ControlSurface) http.Handler.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires decoupling handlers from Engine. [2: Implicit Codebase Constraint] NewHandler() is the entry point that creates the mux and registers handlers. [3: Logical Necessity] For handlers to receive explicit dependencies, NewHandler must accept and pass them through. [5: Conclusion] Any correct solution must update NewHandler to accept and propagate the dependency struct."
+    }
+  },
+  {
+    "id": "5e330dd02bb3743b5783ee8ced63841d",
+    "title": "1.4: Updates GetServer in api/server.go to accept individual dependencies instead of *core.Engine",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the server factory function no longer requires the full Engine.",
+      "evidence": "gold.patch lines 69-85: GetServer signature changed from (addr string, engine *core.Engine, logger logrus.FieldLogger) to (runCtx context.Context, addr string, runState *lib.TestRunState, samples chan metrics.SampleContainer, me *engine.MetricsEngine, es *execution.Scheduler) in api/server.go. Constructs ControlSurface at lines 77-83. Interface specifies the new GetServer signature.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The GetServer function in api/server.go takes a *core.Engine directly' as a problem. [2: Implicit Codebase Constraint] GetServer is where the Engine dependency enters the API layer. [3: Logical Necessity] To decouple the API layer, this entry point must accept only what is needed. [5: Conclusion] Any correct solution must change GetServer to accept individual dependencies instead of *core.Engine."
+    }
+  },
+  {
+    "id": "69bc83d6296dfdf95a7a7ebd39766eeb",
+    "title": "1.5: Moves periodic threshold evaluation from core/engine.go into MetricsEngine via StartThresholdCalculations",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the MetricsEngine manages periodic threshold evaluation and finalization, rather than core.Engine running its own threshold goroutine.",
+      "evidence": "gold.patch lines 748-823: threshold goroutine and run-status goroutine removed from core/engine.go startBackgroundProcesses. Lines 1046-1098: MetricsEngine.StartThresholdCalculations added in metrics/engine/engine.go with periodic ticker (line 1057) and finalize callback (line 1081). Line 851: core/engine.go now calls e.MetricsEngine.StartThresholdCalculations(e.AbortFn). Interface specifies StartThresholdCalculations(abortRun func(error)).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The Engine directly manages threshold evaluation even though that belongs in the MetricsEngine' and asks for 'Threshold evaluation and its lifecycle should be owned by the MetricsEngine in metrics/engine/engine.go.' [3: Logical Necessity] Moving threshold evaluation to MetricsEngine consolidates metrics concerns in one place. [5: Conclusion] Any correct solution must move the threshold evaluation goroutine to MetricsEngine."
+    }
+  },
+  {
+    "id": "fe8cef1533911b918f7a3f53c7d5c0b1",
+    "title": "1.6: Renames GetIngester to CreateIngester on MetricsEngine so it stores the ingester reference internally",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the ingester creation method is renamed and updated to store a reference used during threshold finalization.",
+      "evidence": "gold.patch lines 1028-1037: CreateIngester (renamed from GetIngester) in metrics/engine/engine.go stores ingester reference in me.ingester field. Line 78: core/engine.go calls me.CreateIngester() instead of me.GetIngester(). Interface specifies CreateIngester() output.Output.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for threshold evaluation lifecycle to be owned by MetricsEngine. [2: Implicit Codebase Constraint] The ingester is needed during threshold finalization; MetricsEngine must hold a reference to it. [3: Logical Necessity] Renaming from GetIngester to CreateIngester clarifies the method's side effect of storing the reference. [5: Conclusion] Any correct solution must update the ingester creation method to store the reference internally."
+    }
+  },
+  {
+    "id": "dadf165511a50b9ca33493a551182455",
+    "title": "1.7: Handles threshold abort-on-fail within MetricsEngine via the abortRun callback passed to StartThresholdCalculations",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that when a threshold with abortOnFail is breached, the MetricsEngine triggers the abortRun callback passed to StartThresholdCalculations rather than the core.Engine managing abort channels.",
+      "evidence": "gold.patch lines 1063-1073: inside StartThresholdCalculations goroutine, when shouldAbort is true, creates error with breached metric names (line 1065) and calls abortRun(err) at line 1073. Interface specifies StartThresholdCalculations(abortRun func(error)) where abort callback is provided to MetricsEngine.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for threshold evaluation and its lifecycle to be owned by MetricsEngine. [2: Implicit Codebase Constraint] The core.Engine currently manages a thresholdAbortChan to handle abort-on-fail scenarios. [3: Logical Necessity] If evaluation moves to MetricsEngine, the abort decision must also move there since it depends on evaluation results. [5: Conclusion] Any correct solution must have MetricsEngine handle the abort-on-fail logic via the abort callback."
+    }
+  },
+  {
+    "id": "364639564ba93964aa97821ebeb4d60b",
+    "title": "1.8: Adds GetMetricsWithBreachedThresholdsCount on MetricsEngine to query breached-threshold status directly",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that MetricsEngine exposes a way to check breached threshold status, replacing the Engine's IsTainted/thresholdsTainted mechanism.",
+      "evidence": "gold.patch lines 1138-1143: MetricsEngine.GetMetricsWithBreachedThresholdsCount() added in metrics/engine/engine.go returning atomic.LoadUint32(&me.breachedThresholdsCount). Line 939: Engine.IsTainted() updated to return e.MetricsEngine.GetMetricsWithBreachedThresholdsCount() > 0. Interface specifies GetMetricsWithBreachedThresholdsCount() uint32.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states MetricsEngine should 'allow callers to query whether any thresholds have been breached without going through the core Engine.' [2: Implicit Codebase Constraint] The Engine currently tracks tainted state via thresholdsTaintedLock/thresholdsTainted. [3: Logical Necessity] With threshold logic in MetricsEngine, the breach query must also live there. [5: Conclusion] Any correct solution must provide a way to query breached thresholds directly on MetricsEngine."
+    }
+  },
+  {
+    "id": "094ea2035a59cf09d1aacf2810c18270",
+    "title": "1.9: Removes all 4 stop-mechanism members (Stop, IsStopped, stopChan, stopOnce) from core.Engine",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the Engine's dedicated stop channel and associated methods are removed, since they duplicate context cancellation functionality.",
+      "evidence": "gold.patch lines 646-654: Engine struct fields stopOnce sync.Once (line 651) and stopChan chan struct{} (line 652) removed. Lines 925-938: Stop() method (line 925) and IsStopped() method (line 932) removed. Line 668: stopChan initialization removed from NewEngine.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'It has its own stop channel and mutex even though context cancellation already exists.' [2: Implicit Codebase Constraint] The Engine's stopChan duplicates the context cancellation pattern already used elsewhere in k6. [3: Logical Necessity] Redundant stop tracking must be removed for a unified abort mechanism. [5: Conclusion] Any correct solution must remove the Engine's custom stop mechanism."
+    }
+  },
+  {
+    "id": "184bd414f63eb77b501058fcfc2ed396",
+    "title": "1.10: Adds the AbortFn func(error) field on core.Engine as the unified abort mechanism",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the Engine exposes a callable abort function that REST API, signal handlers, and threshold evaluation can all use to stop the test run consistently.",
+      "evidence": "gold.patch line 654: AbortFn func(error) field added to Engine struct in core/engine.go. Line 559: engine.AbortFn = runSubAbort set in cmd/run.go. Line 686: e.AbortFn(err) replaces e.Stop() in output error handler. Interface specifies Engine.AbortFn func(error) field.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks for 'a single, consistent abort mechanism' that 'the REST API, signal handlers, and threshold evaluation all share consistently.' [3: Logical Necessity] After removing the custom stop mechanism, callers need a unified way to abort. [5: Conclusion] Any correct solution must provide a callable abort function on the Engine."
+    }
+  },
+  {
+    "id": "eb92abcb0040313aae642e84540a7ce0",
+    "title": "1.11: Removes the GetRunner() method from execution.Scheduler so callers access the runner directly from the test run state",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the unnecessary GetRunner() indirection on Scheduler is removed.",
+      "evidence": "gold.patch lines 949-950: GetRunner() method removed from execution.Scheduler in execution/scheduler.go. Line 601: cmd/run.go changed from execScheduler.GetRunner().GetDefaultGroup() to testRunState.Runner.GetDefaultGroup(). Line 157: api/v1/group_routes.go changed from engine.ExecutionScheduler.GetRunner().GetDefaultGroup() to cs.RunState.Runner.GetDefaultGroup().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The execution.Scheduler exposes a GetRunner() method that is just unnecessary indirection.' [2: Implicit Codebase Constraint] GetRunner() is a one-line method returning e.state.Test.Runner. [3: Logical Necessity] Callers can access Runner directly from TestRunState without the Scheduler indirection. [5: Conclusion] Any correct solution must remove GetRunner() and update callers to access the runner directly."
+    }
+  },
+  {
+    "id": "f4498841238842520dd475263e026198",
+    "title": "1.12: Moves the test run context creation out of the scheduler's Run method so the caller in cmd/run.go manages it",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that NewTestRunContext is called by the caller rather than internally by the scheduler, enabling the abort function to be shared across signal handlers and the REST API.",
+      "evidence": "gold.patch lines 957-965: execution.Scheduler.Run() no longer calls NewTestRunContext internally (execCtx creation at line 965 removed, executors now receive runSubCtx directly at line 968). Lines 546-555: cmd/run.go creates runSubCtx, runSubAbort := execution.NewTestRunContext(runCtx, logger) and passes runSubCtx to engine.Init() at line 593.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The scheduler also creates its own test run context internally in its Run method. This should be handled by the caller in cmd/run.go so that the same abort mechanism can be shared.' [2: Implicit Codebase Constraint] The scheduler creates its own context, preventing the caller from sharing the abort function. [3: Logical Necessity] For signal handlers and the REST API to use the same abort mechanism, the context must be created by the caller. [5: Conclusion] Any correct solution must externalize the test run context creation to the caller."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "Documentation updates that explain the new abstractions introduced by the refactoring.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "ba953edb257a4c5a1b99c5b19bd7c42e",
+    "title": "2.1: Adds a documentation comment to the ControlSurface struct explaining its purpose",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability",
+      "description": "Verifies that the new dependency struct has a godoc comment explaining its role as the interface between the REST API and the rest of k6.",
+      "evidence": "gold.patch lines 131-132: ControlSurface struct has godoc comment '// ControlSurface includes the methods the REST API can use to control and communicate with the rest of k6.' Codebase convention uses godoc comments on all exported types.",
+      "justification": "[2: Implicit Codebase Constraint] The k6 codebase consistently uses godoc comments on exported types. [4: Qualitative Requirement] A new architectural boundary struct benefits from documentation. [5: Conclusion] A correct and well-crafted solution should document the new dependency struct."
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "Removal of obsolete code that becomes dead after the refactoring.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "23163b956fe375777586979570f4fc90",
+    "title": "3.1: Removes all 3 public context-based Engine injection items in api/common/context.go (WithEngine, GetEngine, ContextKey)",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that the context-based Engine injection infrastructure is cleaned up after handlers receive explicit dependencies.",
+      "evidence": "gold.patch lines 1-31: api/common/context.go file deleted entirely. WithEngine function removed (line 22), GetEngine function removed (line 29), ContextKey type removed (line 15).",
+      "justification": "[2: Implicit Codebase Constraint] The prompt mentions the context injection pattern in api/common/context.go as the mechanism being replaced. [3: Logical Necessity] After handlers receive explicit dependencies, WithEngine/GetEngine become dead code. [4: Qualitative Requirement] Dead code should be removed. [5: Conclusion] A correct and well-crafted solution should remove the obsolete Engine injection infrastructure."
+    }
+  },
+  {
+    "id": "c183934caaf1f5bbf04cfa48507024bb",
+    "title": "3.2: Removes the withEngine middleware function from api/server.go",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that the middleware wrapping requests with Engine context is removed.",
+      "evidence": "gold.patch lines 104-109: withEngine() middleware function removed from api/server.go.",
+      "justification": "[2: Implicit Codebase Constraint] withEngine() in api/server.go is the middleware that injects Engine into the request context. [3: Logical Necessity] After removing context-based Engine access from handlers, this middleware is dead code. [4: Qualitative Requirement] Dead middleware should be removed. [5: Conclusion] Any correct solution should remove the withEngine middleware."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "Penalties for regressions, breaking changes, or anti-patterns introduced during refactoring.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "8a2b746a0fba6f7dec12bdd982cdbc3f",
+    "title": "4.1: Changes the URL paths of existing REST API endpoints (such as /v1/status, /v1/metrics, /v1/groups, /v1/setup, /v1/teardown)",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Checks if the refactoring modifies API endpoint paths, which would break external clients.",
+      "evidence": "gold.patch lines 248-316: api/v1/routes.go preserves all endpoint paths: /v1/status (line 249), /v1/metrics (line 261), /v1/metrics/ (line 270), /v1/groups (line 279), /v1/groups/ (line 288), /v1/setup (line 295), /v1/teardown (line 310). Only handler calls are updated, paths unchanged.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'refactor the Engine to move most of its capabilities out,' an internal change that should not affect external API contracts. [2: Implicit Codebase Constraint] Existing API paths are used by external clients and other k6 components. [3: Logical Necessity] Internal refactoring must not change external interfaces. [5: Conclusion] Any correct solution must preserve all existing API endpoint paths."
+    }
+  },
+  {
+    "id": "cbb9d1e4e9d44b4c3db70fc696f09ba5",
+    "title": "4.2: Removes existing public methods from core.Engine (such as IsTainted) that are still called by code outside the api/ package",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Checks if the agent over-aggressively removes Engine methods that are still used by callers like cmd/run.go. For example, IsTainted() should be updated to delegate to MetricsEngine rather than deleted entirely, since cmd/run.go still calls engine.IsTainted() to determine the exit code.",
+      "evidence": "gold.patch lines 935-939: Engine.IsTainted() preserved and updated to delegate to e.MetricsEngine.GetMetricsWithBreachedThresholdsCount() > 0 (line 939). cmd/run.go still calls engine.IsTainted() (around line 606 in original source) to determine exit code.",
+      "justification": "[2: Implicit Codebase Constraint] cmd/run.go and other callers outside api/ still reference Engine methods like IsTainted(). [3: Logical Necessity] Moving logic to MetricsEngine does not mean removing all Engine methods, only refactoring their implementation. Public methods still called by other packages must be preserved or updated, not deleted. [5: Conclusion] Any correct solution must preserve Engine methods that are still called by code outside the api/ package, updating their implementation rather than removing them."
+    }
+  }
+]

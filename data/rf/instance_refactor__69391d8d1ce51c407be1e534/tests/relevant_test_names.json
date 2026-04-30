@@ -1,0 +1,67 @@
+{
+  "tests": [
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_ClearAndVerifyEmpty"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_DeleteAndGetZeroValue"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_ExistsAfterSetAndDelete"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_GetMissing"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_GetMissingInt"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_ImplementsInterface"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_IntType"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_KeysAndContents"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_NewWithData"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_NewWithDataAndOptions"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_NewWithDataGeneric"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_StructType"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_ValuesEmpty"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_WithBothOptions"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_WithExpirationInterval"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCache_WithPurgeInterval"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCacheEntry_Fields"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/cache/memory/TestCacheOption_Type"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/sources/github/TestEnumerateUnauthenticated"
+    },
+    {
+      "name": "github.com/trufflesecurity/trufflehog/v3/pkg/sources/github/TestNewFilteredRepoCache"
+    }
+  ]
+}

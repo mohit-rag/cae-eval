@@ -1,0 +1,242 @@
+[
+  {
+    "id": "8a9318679bdb26719276055ef4c84d3e",
+    "title": "Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Code Maintainability",
+      "description": "All site-specific plan types, normalization logic, and fetcher/query functions are consolidated from the plans module into the site-plans module, with callers updated accordingly.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "f7b321ae91a7e2a0bcf7df0eab4263f7",
+    "title": "1.1: Adds all three required field groups to SiteContextualPlan (pricing, product identification, discount and cost)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The SiteContextualPlan interface in packages/api-core/src/site-plans/types.ts \u2014 which originally had roughly 10 fields (e.g. id, currency_code, formatted_price, product_slug, raw_price_integer) \u2014 is expanded with the always-present fields that every site plan object contains. These include pricing fields such as formatted_original_price, original_price (an object with amount: number and currency: string), raw_price, raw_discount, raw_discount_integer, and formatted_discount; a product identification field such as product_id; and discount/cost fields such as discount_reason, cost_overrides (an array typed by a cost override interface), and is_domain_upgrade. These fields were previously defined only on the SiteSpecificPlanProduct type in the plans module (packages/api-core/src/plans/types.ts) and must now exist on SiteContextualPlan as required (non-optional) properties.",
+      "evidence": "gold.patch lines 271-298: packages/api-core/src/site-plans/types.ts adds always-present field groups \u2014 'Pricing fields (always present)', 'Product identification (always present)', and 'Discount/cost information (always present)' \u2014 matching the same groups previously in SiteSpecificPlanProduct (gold.patch lines 112-183).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires consolidating site-specific plan fields into SiteContextualPlan. [3: Logical Necessity] These are required fields returned by every plan object from the /sites/{siteId}/plans API; without them, consumers of SiteContextualPlan would lack core pricing and product data. [5: Conclusion] This verifier ensures the always-present pricing, product, and discount fields are added to SiteContextualPlan."
+    }
+  },
+  {
+    "id": "852a31be316008117eb296fcb00c03b1",
+    "title": "1.2: Adds all six conditional field groups to SiteContextualPlan (billing, coupon, offer, current plan, subscription, trial)",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The SiteContextualPlan interface in packages/api-core/src/site-plans/types.ts is expanded with optional (conditional) fields that are present only under certain plan states. These include billing interval (such as interval?: number), coupon status (such as has_sale_coupon?: boolean), introductory offer fields (such as introductory_offer_raw_price, introductory_offer_raw_price_integer, introductory_offer_interval_unit, introductory_offer_interval_count, introductory_offer_end_date), and subscription metadata (such as user_is_owner, has_redeemed_domain_credit, free_trial, auto_renew, auto_renew_date, partner_name, can_start_trial). These fields were previously defined only on the SiteSpecificPlanProduct type in the plans module (packages/api-core/src/plans/types.ts) and must now exist on SiteContextualPlan as optional properties.",
+      "evidence": "gold.patch lines 300-331: packages/api-core/src/site-plans/types.ts adds conditional field groups \u2014 'Billing interval (conditional)', 'Coupon-related fields (conditional)', 'Introductory offer fields (conditional)', 'Current plan fields (conditional)', 'Subscription fields (conditional)', and 'Trial availability (conditional)' \u2014 matching the same groups previously in SiteSpecificPlanProduct (gold.patch lines 112-183).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires consolidating all site-specific plan fields into SiteContextualPlan. [3: Logical Necessity] These optional fields are returned by the /sites/{siteId}/plans API for certain plan states (e.g. current plans, plans with subscriptions, plans with offers); without them, consumers would lose access to subscription and offer data. [5: Conclusion] This verifier ensures the conditional offer, subscription, and interval fields are added to SiteContextualPlan."
+    }
+  },
+  {
+    "id": "9e49aa301b4a75b1ecf84462f6989da5",
+    "title": "1.3: Adds cost override interface to site-plans types module",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The SiteContextualPlanCostOverride interface is added to packages/api-core/src/site-plans/types.ts to type the cost_overrides array field on SiteContextualPlan. The interface includes fields matching the API response shape, such as pricing fields (e.g. old_price: number, new_price: number, percentage: number), an override identifier (e.g. override_code: string), a human-readable reason string, and boolean flags (e.g. does_override_original_cost, first_unit_only). This replaces the SiteSpecificPlanCostOverride interface that previously existed in the plans types module (packages/api-core/src/plans/types.ts).",
+      "evidence": "gold.patch lines 256-264: packages/api-core/src/site-plans/types.ts adds the new cost override interface with 7 fields, matching the SiteSpecificPlanCostOverride removed from packages/api-core/src/plans/types.ts (gold.patch lines 116-124).",
+      "justification": "[3: Logical Necessity] The expanded SiteContextualPlan includes a cost_overrides array field that requires a structured type for each override entry. [2: Implicit Code Base Constraint] The cost override shape is defined by the REST API response and must be typed to match. [5: Conclusion] This verifier ensures the cost override type exists in the site-plans module so the cost_overrides field on SiteContextualPlan is properly typed."
+    }
+  },
+  {
+    "id": "ed5bd85fb3bd30902b4d893bf8e679a4",
+    "title": "1.4: Changes SiteContextualPlan id field type from optional string to optional number",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The id field on SiteContextualPlan in packages/api-core/src/site-plans/types.ts is changed from a string type to a number type (e.g. id?: number | null instead of id?: string | null). Before this refactor, the id field was typed as string despite the API returning a numeric value (which was normalized to a number by the plans-module normalizer). Typing id as number aligns the type with the actual data and eliminates the need for parseInt() coercions at call sites.",
+      "evidence": "gold.patch line 319: packages/api-core/src/site-plans/types.ts shows id?: number | null, replacing the original id?: string | null (pre-patch line 2 of the same file).",
+      "justification": "[2: Implicit Code Base Constraint] The plans-module type SiteSpecificPlanProduct already typed id as number | null; the consolidated type should preserve the correct type. [3: Logical Necessity] Keeping id as string while the normalizer converts it to number creates a type mismatch and forces unnecessary parseInt at call sites. [5: Conclusion] This verifier ensures the id field type is corrected to number, matching the normalized API data."
+    }
+  },
+  {
+    "id": "d0ed51a2a8f64669ef6289c6b6c3faf3",
+    "title": "1.5: Normalizes site plan numeric fields in fetchSitePlans response",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The fetchSitePlans function in packages/api-core/src/site-plans/fetchers.ts ensures that all numeric fields on the returned SiteContextualPlan objects are actual JavaScript numbers, not strings. The /sites/{siteId}/plans REST API is known to return strings for numeric fields; normalization (e.g. via a dedicated helper function, inline conversion, or a utility such as toNumber) must be applied before returning the data. Fields that require normalization include top-level values such as raw_price, raw_price_integer, raw_discount, raw_discount_integer, and product_id; nested values such as original_price.amount and cost_overrides entries (e.g. old_price, new_price, percentage); and conditional values such as interval, introductory offer prices (e.g. introductory_offer_raw_price), and id. This normalization replaces the equivalent logic that previously lived in normalizeSiteSpecificPlanProduct in the plans fetchers module (packages/api-core/src/plans/fetchers.ts).",
+      "evidence": "gold.patch lines 193-236: packages/api-core/src/site-plans/fetchers.ts adds an import of toNumber from normalize-utils and a normalizeSitePlan function. This mirrors the normalization logic previously in normalizeSiteSpecificPlanProduct (removed at gold.patch lines 43-71 from packages/api-core/src/plans/fetchers.ts).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires moving normalization logic into the site-plans module. [2: Implicit Code Base Constraint] The /sites/{siteId}/plans REST API endpoint returns strings for numeric fields; without normalization, runtime type mismatches would occur. [5: Conclusion] This verifier ensures normalization logic is present in the site-plans fetchers module to maintain data integrity."
+    }
+  },
+  {
+    "id": "091e7d3a69106c1148cd5f4a6c07775a",
+    "title": "1.6: Updates fetchSitePlans to accept an optional coupon parameter",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The fetchSitePlans function in packages/api-core/src/site-plans/fetchers.ts \u2014 which originally accepted only siteId: number \u2014 is updated to also accept an optional coupon parameter (e.g. coupon?: string). When a coupon is provided, the function appends it as a coupon_code query parameter to the /sites/{siteId}/plans API request via URLSearchParams or an equivalent mechanism. This consolidates the coupon-handling logic that previously lived in a separate fetchPricedSitePlans function in the plans module (packages/api-core/src/plans/fetchers.ts).",
+      "evidence": "gold.patch lines 238-248: packages/api-core/src/site-plans/fetchers.ts shows the signature changing to fetchSitePlans(siteId: number, coupon?: string) and building a URLSearchParams with conditional coupon_code.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires consolidating coupon handling into fetchSitePlans. [2: Implicit Code Base Constraint] The existing fetchPricedSitePlans in the plans module accepted a coupon parameter and passed it to the same API endpoint; this functionality must be preserved. [5: Conclusion] This verifier ensures fetchSitePlans can handle coupon codes after the consolidation."
+    }
+  },
+  {
+    "id": "091d0789295092f89ba85a87ca0d3026",
+    "title": "1.7: Updates fetchSitePlans return type from record to array",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The fetchSitePlans function in packages/api-core/src/site-plans/fetchers.ts returns an array of SiteContextualPlan objects (e.g. Promise<SiteContextualPlan[]>) instead of the previous record type (Promise<Record<string, SiteContextualPlan>>). The /sites/{siteId}/plans API returns a record keyed by product ID, so the function must convert it to an array (e.g. via Object.values or equivalent) and apply normalization before returning. This aligns the return type with the pattern used by the former fetchPricedSitePlans function and simplifies caller code that previously had to call Object.values on the result.",
+      "evidence": "gold.patch lines 241-249: packages/api-core/src/site-plans/fetchers.ts returns SiteContextualPlan[] by calling Object.values(plansByProductId).map(normalizeSitePlan). The pre-patch return type was Promise<Record<string, SiteContextualPlan>> (pre-patch line 4).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires fetchSitePlans to return an array. [2: Implicit Code Base Constraint] The existing fetchPricedSitePlans already returned an array from the same API endpoint; the consolidated function should follow the same pattern. [5: Conclusion] This verifier ensures the return type is an array, allowing callers to use array methods directly."
+    }
+  },
+  {
+    "id": "9117958b282e875b924c9e5e0f015067",
+    "title": "1.8: Adds sitePlansQuery function to site-plans queries module",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The sitePlansQuery function is added to the site-plans queries module (packages/api-queries/src/site-plans.ts) that accepts a siteId: number and an optional coupon parameter, returns queryOptions with an appropriate queryKey (e.g. ['site', siteId, 'plans', { coupon }]), and calls fetchSitePlans(siteId, coupon) as the queryFn. This replaces the sitePricedPlansQuery function that previously existed in the plans queries module (packages/api-queries/src/plans.ts), which served the same purpose of fetching priced site plans with an optional coupon.",
+      "evidence": "gold.patch lines 365-370: packages/api-queries/src/site-plans.ts adds sitePlansQuery(siteId: number, coupon?: string) with queryKey ['site', siteId, 'plans', { coupon }] and queryFn calling fetchSitePlans(siteId, coupon).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires adding a replacement query for fetching all site plans with optional coupon in the site-plans module. [3: Logical Necessity] After removing sitePricedPlansQuery from the plans module, a replacement is needed so consumers can query priced site plans. [5: Conclusion] This verifier ensures the replacement query exists in the correct module with proper parameters."
+    }
+  },
+  {
+    "id": "c0c480b2f25d4bb89fab7d5735fcc811",
+    "title": "1.9: Updates site-plan query functions to use array methods",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "The query functions in packages/api-queries/src/site-plans.ts that call fetchSitePlans and search the results \u2014 specifically siteCurrentPlanQuery (which finds the plan where current_plan is true) and sitePlanBySlugQuery (which finds the plan matching a given product_slug) \u2014 are updated to use array methods directly (e.g. plans.find(...)) instead of wrapping the result with Object.values() first (e.g. Object.values(plans).find(...)). Before this refactor, fetchSitePlans returned a Record<string, SiteContextualPlan>, requiring Object.values() to iterate. After the refactor, fetchSitePlans returns SiteContextualPlan[], making Object.values() unnecessary and semantically incorrect on an array.",
+      "evidence": "gold.patch lines 376-378: siteCurrentPlanQuery changes Object.values(plans).find(...) to plans.find(...). Lines 386-387: sitePlanBySlugQuery makes the same change.",
+      "justification": "[3: Logical Necessity] Since fetchSitePlans now returns an array, calling Object.values on an array is redundant and would produce incorrect index-keyed iteration on an already-ordered collection. [5: Conclusion] This verifier ensures the query functions in site-plans.ts adapt to the new array return type of fetchSitePlans."
+    }
+  },
+  {
+    "id": "42e63fdeb9a216df65c4c6453c1f130d",
+    "title": "1.10: Removes parseInt coercions for plan id at dashboard call sites",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Dashboard callers that pass plan.id to purchaseQuery (a React Query options function that expects a numeric purchase/plan ID) previously needed parseInt() to convert plan.id from string to number because SiteContextualPlan.id was typed as string | null. After the refactor changes the id type to number | null, these parseInt() calls are unnecessary and should be removed. Affected call sites include client/dashboard/app/router/sites.tsx and client/dashboard/sites/overview-plan-card/index.tsx, where plan.id should be passed as a number without parseInt conversion \u2014 for example, by passing the id directly or using a numeric fallback such as 0 for nullable cases.",
+      "evidence": "gold.patch lines 9-10: client/dashboard/app/router/sites.tsx changes purchaseQuery(parseInt(currentPlan.id)) to purchaseQuery(currentPlan.id). Lines 22-23: client/dashboard/sites/overview-plan-card/index.tsx changes purchaseQuery(parseInt(plan?.id ?? '')) to purchaseQuery(plan?.id ?? 0).",
+      "justification": "[3: Logical Necessity] Since SiteContextualPlan.id is now number | null, parseInt is unnecessary and would cause a TypeScript type error or produce incorrect behavior (e.g. parseInt(0) returns 0 but parseInt(null) returns NaN). [5: Conclusion] This verifier ensures callers no longer apply redundant parseInt coercions for the now-numeric id field."
+    }
+  },
+  {
+    "id": "59298234f5176b41059190eb4c468965",
+    "title": "Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "Artifact Cleanup",
+      "description": "Obsolete types, functions, and queries in the plans module that have been superseded by the consolidated site-plans module are removed.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "88975e1746cd3f0f7bf1cd0fc8270724",
+    "title": "3.1: Removes SiteSpecificPlanProduct type from plans types module",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "The SiteSpecificPlanProduct interface \u2014 a ~60-field exported type in packages/api-core/src/plans/types.ts representing site-specific plan data with pricing, product identification, discounts, offers, and subscription metadata \u2014 is removed. This type is now dead code because all its fields have been consolidated into the expanded SiteContextualPlan interface in the site-plans module (packages/api-core/src/site-plans/types.ts).",
+      "evidence": "gold.patch lines 126-183: packages/api-core/src/plans/types.ts removes the SiteSpecificPlanProduct interface.",
+      "justification": "[3: Logical Necessity] This type is dead code since all its fields have been consolidated into SiteContextualPlan. [4: Qualitative Requirement] Removing the obsolete type prevents confusion about which type represents site-specific plan data. [5: Conclusion] This verifier ensures the superseded SiteSpecificPlanProduct type is cleaned up from the plans module."
+    }
+  },
+  {
+    "id": "a258156f3a71d6c9f17fe10a898c75f0",
+    "title": "3.2: Removes SiteSpecificPlanCostOverride type from plans types module",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "The SiteSpecificPlanCostOverride interface \u2014 a 7-field type in packages/api-core/src/plans/types.ts used exclusively to type the cost_overrides array on SiteSpecificPlanProduct \u2014 is removed. This type is now dead code because an equivalent cost override interface (e.g. SiteContextualPlanCostOverride) has been added to the site-plans types module (packages/api-core/src/site-plans/types.ts).",
+      "evidence": "gold.patch lines 116-124: packages/api-core/src/plans/types.ts removes the SiteSpecificPlanCostOverride interface.",
+      "justification": "[3: Logical Necessity] This type is dead code since an equivalent has been created in the site-plans module and the parent type SiteSpecificPlanProduct that referenced it is also being removed. [4: Qualitative Requirement] Removing the obsolete helper type prevents orphaned dead code. [5: Conclusion] This verifier ensures the superseded SiteSpecificPlanCostOverride type is cleaned up from the plans module."
+    }
+  },
+  {
+    "id": "196bdac42f0fc1af246be38721194fd1",
+    "title": "3.3: Removes fetchPricedSitePlans function from plans fetchers module",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "The fetchPricedSitePlans function \u2014 an exported async function in packages/api-core/src/plans/fetchers.ts that fetched site-specific plans from the /sites/{siteId}/plans API endpoint with an optional coupon and returned a normalized array of SiteSpecificPlanProduct \u2014 is removed. This function is now dead code because its logic (API call, coupon handling, normalization, array conversion) has been consolidated into the updated fetchSitePlans function in the site-plans module (packages/api-core/src/site-plans/fetchers.ts).",
+      "evidence": "gold.patch lines 91-103: packages/api-core/src/plans/fetchers.ts removes the fetchPricedSitePlans function.",
+      "justification": "[3: Logical Necessity] This function is dead code since its logic has been relocated to fetchSitePlans in the site-plans module. [4: Qualitative Requirement] Removing the obsolete fetcher prevents confusion about which function to use for fetching site-specific plans. [5: Conclusion] This verifier ensures the superseded fetchPricedSitePlans function is cleaned up from the plans module."
+    }
+  },
+  {
+    "id": "d394f042ac41cb204c147f117d1056f3",
+    "title": "3.4: Removes normalizeSiteSpecificPlanProduct function from plans fetchers module",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "The normalizeSiteSpecificPlanProduct function \u2014 a private helper function in packages/api-core/src/plans/fetchers.ts that converted API-returned string values to numbers for SiteSpecificPlanProduct fields (such as raw_price, product_id, cost_overrides entries, and introductory offer prices) \u2014 is removed, along with the now-unused import of SiteSpecificPlanProduct from the types module. This function is now dead code because equivalent normalization logic has been added to the site-plans fetchers module (packages/api-core/src/site-plans/fetchers.ts).",
+      "evidence": "gold.patch lines 43-71: packages/api-core/src/plans/fetchers.ts removes the normalizeSiteSpecificPlanProduct function. Lines 34-35: the import of SiteSpecificPlanProduct is removed.",
+      "justification": "[3: Logical Necessity] This function is dead code since equivalent normalization logic has been relocated to the site-plans module. [4: Qualitative Requirement] Removing the obsolete normalizer prevents orphaned dead code in the plans module. [5: Conclusion] This verifier ensures the superseded normalizeSiteSpecificPlanProduct function is cleaned up from the plans module."
+    }
+  },
+  {
+    "id": "55f6d9b3642c962eeaa1a7d0fe5b04b2",
+    "title": "3.5: Removes sitePricedPlansQuery from plans queries module",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "The sitePricedPlansQuery function \u2014 which created React Query options in packages/api-queries/src/plans.ts for fetching priced site plans using queryKey ['site-plans', siteId, coupon] and calling fetchPricedSitePlans(coupon, siteId) \u2014 is removed, along with its import of fetchPricedSitePlans from @automattic/api-core. This query is now dead code because it has been replaced by sitePlansQuery in the site-plans queries module (packages/api-queries/src/site-plans.ts).",
+      "evidence": "gold.patch lines 338-339: the import of fetchPricedSitePlans is removed from packages/api-queries/src/plans.ts. Lines 347-352: the sitePricedPlansQuery function is removed.",
+      "justification": "[3: Logical Necessity] This query is dead code since it has been replaced by sitePlansQuery in the site-plans module. [4: Qualitative Requirement] Removing the obsolete query prevents confusion and potential query key conflicts between the old and new query functions. [5: Conclusion] This verifier ensures the superseded sitePricedPlansQuery function is cleaned up from the plans module."
+    }
+  },
+  {
+    "id": "0248934eb1b30de7faea157dd07d4b5d",
+    "title": "Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Negative Rubrics",
+      "description": "The refactor does not introduce breaking changes, regressions, or remove essential functionality.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "01873200688729f0975dec3ad1d2ebc8",
+    "title": "4.1: Removes normalization logic for site plan numeric fields",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "The refactor does not delete the normalization logic that converts API-returned string values to numbers for site plan fields \u2014 such as raw_price, product_id, original_price.amount, cost_overrides entries (e.g. old_price, new_price, percentage), and conditional fields like interval and id \u2014 without relocating equivalent logic elsewhere in the codebase. Before the refactor, this normalization lived in normalizeSiteSpecificPlanProduct in packages/api-core/src/plans/fetchers.ts. After the refactor, equivalent normalization must exist somewhere (e.g. in packages/api-core/src/site-plans/fetchers.ts), even if renamed or restructured. Simply deleting the old normalizer without adding a replacement is a regression.",
+      "evidence": "gold.patch lines 43-71 remove normalizeSiteSpecificPlanProduct from packages/api-core/src/plans/fetchers.ts, while lines 199-236 add the equivalent normalizeSitePlan to packages/api-core/src/site-plans/fetchers.ts. The normalization logic must not be simply deleted.",
+      "justification": "[2: Implicit Code Base Constraint] The /sites/{siteId}/plans REST API endpoint returns strings for fields typed as numbers; without normalization, runtime type mismatches and potential NaN propagation would occur throughout the application. [3: Logical Necessity] The refactor moves normalization from one module to another \u2014 it does not eliminate normalization; removing it entirely would be a silent data-integrity regression. [5: Conclusion] This negative verifier catches solutions that delete normalization without replacing it, which would break numeric field handling across all site plan consumers."
+    }
+  },
+  {
+    "id": "8695dacc3ef136e7b2907aeeac1954f3",
+    "title": "4.2: Sets coupon as a required parameter in fetchSitePlans",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "The refactor does not change the coupon parameter of fetchSitePlans in packages/api-core/src/site-plans/fetchers.ts to be required (e.g. coupon: string instead of coupon?: string). The coupon parameter must remain optional because existing callers \u2014 such as siteCurrentPlanQuery and sitePlanBySlugQuery in packages/api-queries/src/site-plans.ts \u2014 call fetchSitePlans(siteId) without passing a coupon argument. Making coupon required would introduce a compile-time breaking change for these callers.",
+      "evidence": "gold.patch line 240: packages/api-core/src/site-plans/fetchers.ts uses coupon?: string (optional). Existing callers at gold.patch lines 376 and 385 (packages/api-queries/src/site-plans.ts) invoke fetchSitePlans(siteId) with no coupon argument.",
+      "justification": "[2: Implicit Code Base Constraint] Existing callers siteCurrentPlanQuery and sitePlanBySlugQuery do not pass a coupon parameter and must continue to compile and function without modification. [3: Logical Necessity] Making coupon required would introduce a TypeScript compile error at every call site that omits the argument, breaking the build. [5: Conclusion] This negative verifier catches solutions that inadvertently make coupon required, which would break backward compatibility of the fetchSitePlans function."
+    }
+  }
+]

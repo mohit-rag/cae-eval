@@ -1,0 +1,383 @@
+diff --git a/pkg/cache/memory/memory_test.go b/pkg/cache/memory/memory_test.go
+index 0ec9c926b..c4e167a57 100644
+--- a/pkg/cache/memory/memory_test.go
++++ b/pkg/cache/memory/memory_test.go
+@@ -10,7 +10,7 @@ import (
+ )
+ 
+ func TestCache(t *testing.T) {
+-	c := New()
++	c := New[string]()
+ 
+ 	// Test set and get.
+ 	c.Set("key1", "key1")
+@@ -32,7 +32,7 @@ func TestCache(t *testing.T) {
+ 	// Test delete.
+ 	c.Delete("key1")
+ 	v, ok = c.Get("key1")
+-	if ok || v != nil {
++	if ok || v != "" {
+ 		t.Fatalf("Unexpected value for key1 after delete: %v, %v", v, ok)
+ 	}
+ 
+@@ -40,7 +40,7 @@ func TestCache(t *testing.T) {
+ 	c.Set("key10", "key10")
+ 	c.Clear()
+ 	v, ok = c.Get("key10")
+-	if ok || v != nil {
++	if ok || v != "" {
+ 		t.Fatalf("Unexpected value for key10 after clear: %v, %v", v, ok)
+ 	}
+ 
+@@ -59,9 +59,7 @@ func TestCache(t *testing.T) {
+ 
+ 	// Test getting only the values.
+ 	vals := make([]string, 0, c.Count())
+-	for _, v := range c.Values() {
+-		vals = append(vals, v.(string))
+-	}
++	vals = append(vals, c.Values()...)
+ 	sort.Strings(vals)
+ 	sort.Strings(values)
+ 	if !cmp.Equal(values, vals) {
+@@ -83,7 +81,7 @@ func TestCache(t *testing.T) {
+ }
+ 
+ func TestCache_NewWithData(t *testing.T) {
+-	data := []CacheEntry{{"key1", "value1"}, {"key2", "value2"}, {"key3", "value3"}}
++	data := []CacheEntry[string]{{"key1", "value1"}, {"key2", "value2"}, {"key3", "value3"}}
+ 	c := NewWithData(data)
+ 
+ 	// Test the count.
+@@ -106,10 +104,10 @@ func TestCache_NewWithData(t *testing.T) {
+ 	}
+ }
+ 
+-func setupBenchmarks(b *testing.B) *Cache {
++func setupBenchmarks(b *testing.B) *Cache[string] {
+ 	b.Helper()
+ 
+-	c := New()
++	c := New[string]()
+ 
+ 	for i := 0; i < 500_000; i++ {
+ 		key := fmt.Sprintf("key%d", i)
+@@ -120,7 +118,7 @@ func setupBenchmarks(b *testing.B) *Cache {
+ }
+ 
+ func BenchmarkSet(b *testing.B) {
+-	c := New()
++	c := New[string]()
+ 
+ 	for i := 0; i < b.N; i++ {
+ 		key := fmt.Sprintf("key%d", i)
+diff --git a/pkg/sources/github/github_test.go b/pkg/sources/github/github_test.go
+index 70575be13..2e777eb08 100644
+--- a/pkg/sources/github/github_test.go
++++ b/pkg/sources/github/github_test.go
+@@ -380,7 +380,7 @@ func TestEnumerateUnauthenticated(t *testing.T) {
+ 		JSON([]map[string]string{{"full_name": "super-secret-org/super-secret-repo", "clone_url": "https://github.com/super-secret-org/super-secret-repo.git"}})
+ 
+ 	s := initTestSource(nil)
+-	s.orgsCache = memory.New()
++	s.orgsCache = memory.New[string]()
+ 	s.orgsCache.Set("super-secret-org", "super-secret-org")
+ 	s.enumerateUnauthenticated(context.Background(), apiEndpoint)
+ 	assert.Equal(t, 1, s.filteredRepoCache.Count())
+@@ -764,3 +764,24 @@ func TestExtractGistID(t *testing.T) {
+ 		assert.Equal(t, tt.expected, got)
+ 	}
+ }
++
++func TestNewFilteredRepoCache(t *testing.T) {
++	s := &Source{}
++	s.log = logr.Discard()
++
++	c := memory.New[string]()
++	frc := s.newFilteredRepoCache(c, []string{"include-*"}, []string{"exclude-*"})
++
++	frc.Set("include-repo", "include-repo")
++	frc.Set("exclude-repo", "exclude-repo")
++	frc.Set("other-repo", "other-repo")
++
++	assert.True(t, frc.Exists("include-repo"))
++	assert.False(t, frc.Exists("exclude-repo"))
++	assert.False(t, frc.Exists("other-repo"))
++	assert.Equal(t, 1, frc.Count())
++
++	v, ok := frc.Get("include-repo")
++	assert.True(t, ok)
++	assert.Equal(t, "include-repo", v)
++}
+diff --git a/pkg/cache/memory/memory_generic_test.go b/pkg/cache/memory/memory_generic_test.go
+new file mode 100644
+index 000000000..2aede3ed4
+--- /dev/null
++++ b/pkg/cache/memory/memory_generic_test.go
+@@ -0,0 +1,266 @@
++package memory
++
++import (
++	"sort"
++	"testing"
++	"time"
++
++	"github.com/google/go-cmp/cmp"
++	"github.com/trufflesecurity/trufflehog/v3/pkg/cache"
++)
++
++func TestCache_ImplementsInterface(t *testing.T) {
++	var _ cache.Cache[string] = (*Cache[string])(nil)
++	var _ cache.Cache[int] = (*Cache[int])(nil)
++}
++
++func TestCache_IntType(t *testing.T) {
++	c := New[int]()
++
++	c.Set("a", 42)
++	c.Set("b", 7)
++
++	v, ok := c.Get("a")
++	if !ok || v != 42 {
++		t.Fatalf("expected 42, got %v (ok=%v)", v, ok)
++	}
++
++	vals := c.Values()
++	sort.Ints(vals)
++	expected := []int{7, 42}
++	if !cmp.Equal(expected, vals) {
++		t.Fatalf("expected %v, got %v", expected, vals)
++	}
++}
++
++func TestCache_StructType(t *testing.T) {
++	type entry struct {
++		Name string
++		Age  int
++	}
++
++	c := New[entry]()
++	c.Set("alice", entry{Name: "Alice", Age: 30})
++
++	v, ok := c.Get("alice")
++	if !ok || v.Name != "Alice" || v.Age != 30 {
++		t.Fatalf("unexpected value: %+v (ok=%v)", v, ok)
++	}
++}
++
++func TestCache_GetMissing(t *testing.T) {
++	c := New[string]()
++	v, ok := c.Get("nonexistent")
++	if ok {
++		t.Fatal("expected ok to be false for missing key")
++	}
++	if v != "" {
++		t.Fatalf("expected zero value for missing key, got %q", v)
++	}
++}
++
++func TestCache_GetMissingInt(t *testing.T) {
++	c := New[int]()
++	v, ok := c.Get("nonexistent")
++	if ok {
++		t.Fatal("expected ok to be false for missing key")
++	}
++	if v != 0 {
++		t.Fatalf("expected zero value for missing int key, got %d", v)
++	}
++}
++
++func TestCache_ValuesEmpty(t *testing.T) {
++	c := New[string]()
++	vals := c.Values()
++	if len(vals) != 0 {
++		t.Fatalf("expected empty values, got %v", vals)
++	}
++}
++
++func TestCache_WithExpirationInterval(t *testing.T) {
++	c := New[string](WithExpirationInterval[string](1 * time.Hour))
++	c.Set("key", "value")
++
++	v, ok := c.Get("key")
++	if !ok || v != "value" {
++		t.Fatalf("expected value after setting with custom expiration, got %v (ok=%v)", v, ok)
++	}
++}
++
++func TestCache_WithPurgeInterval(t *testing.T) {
++	c := New[string](WithPurgeInterval[string](1 * time.Hour))
++	c.Set("key", "value")
++
++	v, ok := c.Get("key")
++	if !ok || v != "value" {
++		t.Fatalf("expected value after setting with custom purge interval, got %v (ok=%v)", v, ok)
++	}
++}
++
++func TestCache_WithBothOptions(t *testing.T) {
++	c := New[int](
++		WithExpirationInterval[int](2*time.Hour),
++		WithPurgeInterval[int](3*time.Hour),
++	)
++	c.Set("num", 99)
++
++	v, ok := c.Get("num")
++	if !ok || v != 99 {
++		t.Fatalf("expected 99 with both options, got %v (ok=%v)", v, ok)
++	}
++}
++
++func TestCache_NewWithDataGeneric(t *testing.T) {
++	data := []CacheEntry[int]{
++		{Key: "a", Value: 1},
++		{Key: "b", Value: 2},
++		{Key: "c", Value: 3},
++	}
++	c := NewWithData[int](data)
++
++	if c.Count() != 3 {
++		t.Fatalf("expected count 3, got %d", c.Count())
++	}
++
++	v, ok := c.Get("b")
++	if !ok || v != 2 {
++		t.Fatalf("expected 2 for key b, got %v (ok=%v)", v, ok)
++	}
++
++	vals := c.Values()
++	sort.Ints(vals)
++	if !cmp.Equal([]int{1, 2, 3}, vals) {
++		t.Fatalf("unexpected values: %v", vals)
++	}
++}
++
++func TestCache_NewWithDataAndOptions(t *testing.T) {
++	data := []CacheEntry[string]{
++		{Key: "x", Value: "hello"},
++	}
++	c := NewWithData[string](data, WithExpirationInterval[string](5*time.Hour))
++
++	v, ok := c.Get("x")
++	if !ok || v != "hello" {
++		t.Fatalf("expected hello, got %v (ok=%v)", v, ok)
++	}
++}
++
++func TestCache_DeleteAndGetZeroValue(t *testing.T) {
++	c := New[int]()
++	c.Set("k", 10)
++	c.Delete("k")
++
++	v, ok := c.Get("k")
++	if ok {
++		t.Fatal("expected ok=false after delete")
++	}
++	if v != 0 {
++		t.Fatalf("expected zero value after delete, got %d", v)
++	}
++}
++
++func TestCache_ClearAndVerifyEmpty(t *testing.T) {
++	c := New[string]()
++	c.Set("a", "1")
++	c.Set("b", "2")
++	c.Clear()
++
++	if c.Count() != 0 {
++		t.Fatalf("expected count 0 after clear, got %d", c.Count())
++	}
++	vals := c.Values()
++	if len(vals) != 0 {
++		t.Fatalf("expected no values after clear, got %v", vals)
++	}
++	keys := c.Keys()
++	if len(keys) != 0 {
++		t.Fatalf("expected no keys after clear, got %v", keys)
++	}
++}
++
++func TestCache_KeysAndContents(t *testing.T) {
++	c := New[int]()
++	c.Set("x", 1)
++	c.Set("y", 2)
++
++	keys := c.Keys()
++	sort.Strings(keys)
++	if !cmp.Equal([]string{"x", "y"}, keys) {
++		t.Fatalf("unexpected keys: %v", keys)
++	}
++
++	contents := c.Contents()
++	parts := make([]string, 0)
++	if contents != "" {
++		for _, p := range []string{"x", "y"} {
++			for _, s := range splitContents(contents) {
++				if s == p {
++					parts = append(parts, s)
++				}
++			}
++		}
++	}
++	if len(parts) != 2 {
++		t.Fatalf("expected 2 keys in contents, got contents=%q", contents)
++	}
++}
++
++func splitContents(s string) []string {
++	result := make([]string, 0)
++	current := ""
++	for _, c := range s {
++		if c == ',' {
++			result = append(result, current)
++			current = ""
++		} else {
++			current += string(c)
++		}
++	}
++	if current != "" {
++		result = append(result, current)
++	}
++	return result
++}
++
++func TestCache_ExistsAfterSetAndDelete(t *testing.T) {
++	c := New[string]()
++
++	if c.Exists("k") {
++		t.Fatal("expected Exists=false for unset key")
++	}
++
++	c.Set("k", "v")
++	if !c.Exists("k") {
++		t.Fatal("expected Exists=true after Set")
++	}
++
++	c.Delete("k")
++	if c.Exists("k") {
++		t.Fatal("expected Exists=false after Delete")
++	}
++}
++
++func TestCacheEntry_Fields(t *testing.T) {
++	e := CacheEntry[string]{Key: "test", Value: "val"}
++	if e.Key != "test" || e.Value != "val" {
++		t.Fatalf("unexpected entry: %+v", e)
++	}
++
++	ei := CacheEntry[int]{Key: "num", Value: 42}
++	if ei.Key != "num" || ei.Value != 42 {
++		t.Fatalf("unexpected int entry: %+v", ei)
++	}
++}
++
++func TestCacheOption_Type(t *testing.T) {
++	called := false
++	var opt CacheOption[string] = func(c *Cache[string]) {
++		called = true
++	}
++	_ = New[string](opt)
++	if !called {
++		t.Fatal("expected CacheOption to be called during construction")
++	}
++}

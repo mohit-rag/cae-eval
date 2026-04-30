@@ -1,0 +1,307 @@
+diff --git a/bin/UTscapy b/bin/UTscapy
+deleted file mode 100755
+index 17c4f874..00000000
+--- a/bin/UTscapy
++++ /dev/null
+@@ -1,27 +0,0 @@
+-#! /usr/bin/env python
+-
+-
+-#############################################################################
+-##                                                                         ##
+-## UTscapy.py --- Unit Tests with scapy                                    ##
+-##                see http://www.secdev.org/projects/UTscapy/              ##
+-##                for more informations                                    ##
+-##                                                                         ##
+-## Copyright (C) 2005  Philippe Biondi <phil@secdev.org>                   ##
+-##                                                                         ##
+-## This program is free software; you can redistribute it and/or modify it ##
+-## under the terms of the GNU General Public License version 2 as          ##
+-## published by the Free Software Foundation.                              ##
+-##                                                                         ##
+-## This program is distributed in the hope that it will be useful, but     ##
+-## WITHOUT ANY WARRANTY; without even the implied warranty of              ##
+-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU        ##
+-## General Public License for more details.                                ##
+-##                                                                         ##
+-#############################################################################
+-
+-
+-import sys
+-from scapy.tools.UTscapy import main
+-
+-exit(main(sys.argv[1:]))
+diff --git a/bin/UTscapy.bat b/bin/UTscapy.bat
+deleted file mode 100755
+index 590245d5..00000000
+--- a/bin/UTscapy.bat
++++ /dev/null
+@@ -1,4 +0,0 @@
+-@echo off
+-REM Use Python to run the UTscapy script from the current directory, passing all parameters
+-title UTscapy
+-"%~dp0..\python" "%~dp0\UTscapy" %*
+diff --git a/bin/scapy b/bin/scapy
+deleted file mode 100755
+index 39e36aab..00000000
+--- a/bin/scapy
++++ /dev/null
+@@ -1,25 +0,0 @@
+-#! /usr/bin/env python
+-
+-#############################################################################
+-##                                                                         ##
+-## scapy.py --- Interactive packet manipulation tool                       ##
+-##              see http://www.secdev.org/projects/scapy/                  ##
+-##              for more informations                                      ##
+-##                                                                         ##
+-## Copyright (C) Philippe Biondi <phil@secdev.org>                         ##
+-##                                                                         ##
+-## This program is free software; you can redistribute it and/or modify it ##
+-## under the terms of the GNU General Public License version 2 as          ##
+-## published by the Free Software Foundation.                              ##
+-##                                                                         ##
+-## This program is distributed in the hope that it will be useful, but     ##
+-## WITHOUT ANY WARRANTY; without even the implied warranty of              ##
+-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU       ##
+-## General Public License for more details.                                ##
+-##                                                                         ##
+-#############################################################################
+-
+-
+-from scapy.main import interact
+-
+-interact()
+diff --git a/bin/scapy.bat b/bin/scapy.bat
+deleted file mode 100755
+index 9e6744ae..00000000
+--- a/bin/scapy.bat
++++ /dev/null
+@@ -1,4 +0,0 @@
+-@echo off
+-REM Use Python to run the Scapy script from the current directory, passing all parameters
+-title scapy
+-"%~dp0..\python" "%~dp0\scapy" %*
+diff --git a/run_scapy b/run_scapy
+index 7256d5de..cdd36d73 100755
+--- a/run_scapy
++++ b/run_scapy
+@@ -1,5 +1,4 @@
+ #! /bin/sh
+ DIR=$(dirname $0)
+-PYTHONDONTWRITEBYTECODE=True
+-PYTHON=${PYTHON:-python}
++PYTHON=${PYTHON:-python3}
+ PYTHONPATH=$DIR exec $PYTHON -m scapy $@
+diff --git a/run_scapy.bat b/run_scapy.bat
+index d31cacd2..332df020 100644
+--- a/run_scapy.bat
++++ b/run_scapy.bat
+@@ -1,8 +1,8 @@
+ @echo off
+-call run_scapy_py2.bat --nopause
+-if errorlevel 1 (
+-   call run_scapy_py3.bat --nopause
+-)
+-if errorlevel 1 (
+-   PAUSE
+-)
+\ No newline at end of file
++set PYTHONPATH=%~dp0
++IF "%PYTHON%" == "" set PYTHON=python3
++WHERE %PYTHON% >nul 2>&1
++IF %ERRORLEVEL% NEQ 0 set PYTHON=python
++%PYTHON% -m scapy %*
++title Scapy - dead
++PAUSE
+\ No newline at end of file
+diff --git a/run_scapy_py2.bat b/run_scapy_py2.bat
+index ac55133d..857c39b1 100644
+--- a/run_scapy_py2.bat
++++ b/run_scapy_py2.bat
+@@ -1,13 +1,4 @@
+ @echo off
+ set PYTHONPATH=%~dp0
+-set PYTHONDONTWRITEBYTECODE=True
+-if "%1"=="--nopause" (
+-  set nopause="True"
+-  python -m scapy
+-) else (
+-  set nopause="False"
+-  python -m scapy %*
+-)
+-if %errorlevel%==1 if NOT "%nopause%"=="True" (
+-   PAUSE
+-)
++set PYTHON=python
++call run_scapy.bat
+\ No newline at end of file
+diff --git a/run_scapy_py3.bat b/run_scapy_py3.bat
+index 10414936..89490be5 100644
+--- a/run_scapy_py3.bat
++++ b/run_scapy_py3.bat
+@@ -1,13 +1,4 @@
+ @echo off
+ set PYTHONPATH=%~dp0
+-set PYTHONDONTWRITEBYTECODE=True
+-if "%1"=="--nopause" (
+-  set nopause="True"
+-  python3 -m scapy
+-) else (
+-  set nopause="False"
+-  python3 -m scapy %*
+-)
+-if %errorlevel%==1 if NOT "%nopause%"=="True" (
+-   PAUSE
+-)
++set PYTHON=python3
++call run_scapy.bat
+\ No newline at end of file
+diff --git a/scapy/tools/UTscapy.py b/scapy/tools/UTscapy.py
+index acda8204..2f085011 100644
+--- a/scapy/tools/UTscapy.py
++++ b/scapy/tools/UTscapy.py
+@@ -775,7 +775,8 @@ def resolve_testfiles(TESTFILES):
+     return TESTFILES
+ 
+ 
+-def main(argv):
++def main():
++    argv = sys.argv[1:]
+     ignore_globals = list(six.moves.builtins.__dict__.keys())
+ 
+     # Parse arguments
+@@ -984,9 +985,9 @@ if __name__ == "__main__":
+             # Let's discover the garbage waste
+             warnings.simplefilter('error')
+             print("### Warning mode enabled ###")
+-            res = main(sys.argv[1:])
++            res = main()
+             if cw:
+                 res = 1
+         sys.exit(res)
+     else:
+-        sys.exit(main(sys.argv[1:]))
++        sys.exit(main())
+diff --git a/setup.py b/setup.py
+index 08f082e8..ea63402d 100755
+--- a/setup.py
++++ b/setup.py
+@@ -4,48 +4,19 @@
+ Distutils setup file for Scapy.
+ """
+ 
+-
+-from distutils import archive_util
+ try:
+-    from setuptools import setup
+-except ImportError:
+-    from distutils.core import setup
++    from setuptools import setup, find_packages
++except:
++    raise ImportError("setuptools is required to install scapy !")
+ import io
+ import os
+ 
+ 
+-EZIP_HEADER = """#! /bin/sh
+-PYTHONPATH=$0/%s exec python -m scapy
+-"""
+-
+-
+-def make_ezipfile(base_name, base_dir, verbose=0, dry_run=0, **kwargs):
+-    fname = archive_util.make_zipfile(base_name, base_dir, verbose, dry_run)
+-    ofname = fname + ".old"
+-    os.rename(fname, ofname)
+-    of = open(ofname)
+-    f = open(fname, "w")
+-    f.write(EZIP_HEADER % base_dir)
+-    while True:
+-        data = of.read(8192)
+-        if not data:
+-            break
+-        f.write(data)
+-    f.close()
+-    os.system("zip -A '%s'" % fname)
+-    of.close()
+-    os.unlink(ofname)
+-    os.chmod(fname, 0o755)
+-    return fname
+-
+-
+-archive_util.ARCHIVE_FORMATS["ezip"] = (
+-    make_ezipfile, [], 'Executable ZIP file')
+-
+-
+ def get_long_description():
++    """Extract description from README.md, for PyPI's usage"""
+     try:
+-        with io.open(os.path.join(os.path.dirname(__file__), "README.md"), encoding="utf-8") as f:
++        fpath = os.path.join(os.path.dirname(__file__), "README.md")
++        with io.open(fpath, encoding="utf-8") as f:
+             readme = f.read()
+             desc = readme.partition("<!-- start_ppi_description -->")[2]
+             desc = desc.partition("<!-- stop_ppi_description -->")[0]
+@@ -54,41 +25,34 @@ def get_long_description():
+         return None
+ 
+ 
+-SCRIPTS = ['bin/scapy', 'bin/UTscapy']
+-# On Windows we also need additional batch files to run the above scripts
+-if os.name == "nt":
+-    SCRIPTS += ['bin/scapy.bat', 'bin/UTscapy.bat']
+-
++# https://packaging.python.org/guides/distributing-packages-using-setuptools/
+ setup(
+     name='scapy',
+     version=__import__('scapy').VERSION,
+-    packages=[
+-        'scapy',
+-        'scapy/arch',
+-        'scapy/arch/bpf',
+-        'scapy/arch/windows',
+-        'scapy/contrib',
+-        'scapy/contrib/automotive',
+-        'scapy/contrib/automotive/bmw',
+-        'scapy/contrib/automotive/gm',
+-        'scapy/contrib/automotive/obd',
+-        'scapy/contrib/automotive/obd/pid',
+-        'scapy/contrib/automotive/obd/iid',
+-        'scapy/contrib/automotive/obd/tid',
+-        'scapy/contrib/automotive/obd/mid',
+-        'scapy/layers',
+-        'scapy/layers/tls',
+-        'scapy/layers/tls/crypto',
+-        'scapy/modules',
+-        'scapy/modules/krack',
+-        'scapy/asn1',
+-        'scapy/tools',
+-    ],
+-    scripts=SCRIPTS,
++    packages=find_packages(),
+     data_files=[('share/man/man1', ["doc/scapy.1"])],
+     package_data={
+         'scapy': ['VERSION'],
+     },
++    # Build starting scripts automatically
++    entry_points={
++        'console_scripts': [
++            'scapy = scapy.main:interact',
++            'UTscapy = scapy.tools.UTscapy:main'
++        ]
++    },
++    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4',
++    extras_require={
++        'basic': ["ipython"],
++        'complete': [
++            'ipython>=7;  python_version>="3"',
++            'ipython<6;  python_version<"3"',
++            'pyx>=0.14; python_version>="3"',
++            'pyx==0.12.1; python_version<"3"',
++            'cryptography',
++            'matplotlib'
++        ]
++    },
+ 
+     # Metadata
+     author='Philippe BIONDI',

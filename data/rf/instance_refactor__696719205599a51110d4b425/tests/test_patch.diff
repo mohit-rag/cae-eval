@@ -1,0 +1,235 @@
+diff --git a/packages/api-queries/src/__tests__/site-plugins.test.ts b/packages/api-queries/src/__tests__/site-plugins.test.ts
+new file mode 100644
+index 00000000000..7cbab160da2
+--- /dev/null
++++ b/packages/api-queries/src/__tests__/site-plugins.test.ts
+@@ -0,0 +1,97 @@
++jest.mock( '@automattic/api-core', () => ( {
++	deactivateSitePlugin: jest.fn().mockResolvedValue( {} ),
++	disableSitePluginAutoupdate: jest.fn().mockResolvedValue( {} ),
++	removeSitePlugin: jest.fn().mockResolvedValue( {} ),
++	activateSitePlugin: jest.fn(),
++	updateSitePlugin: jest.fn(),
++	enableSitePluginAutoupdate: jest.fn(),
++	installSitePlugin: jest.fn(),
++	fetchUserSitesPlugins: jest.fn(),
++	fetchSitePlugins: jest.fn(),
++	fetchSiteCorePlugins: jest.fn(),
++	fetchSitePlugin: jest.fn(),
++} ) );
++
++jest.mock( '../query-client', () => ( {
++	queryClient: {
++		invalidateQueries: jest.fn(),
++		resetQueries: jest.fn(),
++	},
++} ) );
++
++import {
++	sitePluginDeactivateMutation,
++	sitePluginAutoupdateDisableMutation,
++	sitePluginRemoveMutation,
++} from '../site-plugins';
++import { queryClient } from '../query-client';
++
++beforeEach( () => {
++	jest.clearAllMocks();
++} );
++
++describe( 'sitePluginDeactivateMutation', () => {
++	it( 'invalidates queries on success by default', () => {
++		const options = sitePluginDeactivateMutation();
++		options.onSuccess!( {}, { siteId: 123 }, undefined as any );
++		expect( queryClient.invalidateQueries ).toHaveBeenCalled();
++	} );
++
++	it( 'supports suppressing query invalidation on success', () => {
++		const options = sitePluginDeactivateMutation( false );
++		if ( options.onSuccess ) {
++			options.onSuccess( {}, { siteId: 123 }, undefined as any );
++		}
++		expect( queryClient.invalidateQueries ).not.toHaveBeenCalled();
++	} );
++
++	it( 'invalidates queries when explicitly passed true', () => {
++		const options = sitePluginDeactivateMutation( true );
++		options.onSuccess!( {}, { siteId: 123 }, undefined as any );
++		expect( queryClient.invalidateQueries ).toHaveBeenCalled();
++	} );
++} );
++
++describe( 'sitePluginAutoupdateDisableMutation', () => {
++	it( 'invalidates queries on success by default', () => {
++		const options = sitePluginAutoupdateDisableMutation();
++		options.onSuccess!( {}, { siteId: 789 }, undefined as any );
++		expect( queryClient.invalidateQueries ).toHaveBeenCalled();
++	} );
++
++	it( 'supports suppressing query invalidation on success', () => {
++		const options = sitePluginAutoupdateDisableMutation( false );
++		if ( options.onSuccess ) {
++			options.onSuccess( {}, { siteId: 789 }, undefined as any );
++		}
++		expect( queryClient.invalidateQueries ).not.toHaveBeenCalled();
++	} );
++
++	it( 'invalidates queries when explicitly passed true', () => {
++		const options = sitePluginAutoupdateDisableMutation( true );
++		options.onSuccess!( {}, { siteId: 789 }, undefined as any );
++		expect( queryClient.invalidateQueries ).toHaveBeenCalled();
++	} );
++} );
++
++describe( 'sitePluginRemoveMutation', () => {
++	it( 'invalidates queries on success by default', () => {
++		const options = sitePluginRemoveMutation();
++		options.onSuccess!( {}, { siteId: 321 }, undefined as any );
++		expect( queryClient.invalidateQueries ).toHaveBeenCalled();
++	} );
++
++	it( 'supports suppressing query invalidation on success', () => {
++		const options = sitePluginRemoveMutation( false );
++		if ( options.onSuccess ) {
++			options.onSuccess( {}, { siteId: 321 }, undefined as any );
++		}
++		expect( queryClient.invalidateQueries ).not.toHaveBeenCalled();
++	} );
++
++	it( 'invalidates queries when explicitly passed true', () => {
++		const options = sitePluginRemoveMutation( true );
++		options.onSuccess!( {}, { siteId: 321 }, undefined as any );
++		expect( queryClient.invalidateQueries ).toHaveBeenCalled();
++	} );
++} );
+diff --git a/client/dashboard/plugins/plugin/test/sites-with-this-plugin.test.tsx b/client/dashboard/plugins/plugin/test/sites-with-this-plugin.test.tsx
+new file mode 100644
+index 00000000000..a1b2c3d4e5f
+--- /dev/null
++++ b/client/dashboard/plugins/plugin/test/sites-with-this-plugin.test.tsx
+@@ -0,0 +1,126 @@
++/**
++ * @jest-environment jsdom
++ */
++const mockMutateAsync = jest.fn().mockResolvedValue( {} );
++
++jest.mock( '@automattic/api-queries', () => ( {
++	sitePluginActivateMutation: jest.fn( () => ( { mutationFn: jest.fn() } ) ),
++	sitePluginDeactivateMutation: jest.fn( () => ( { mutationFn: jest.fn() } ) ),
++	sitePluginAutoupdateDisableMutation: jest.fn( () => ( { mutationFn: jest.fn() } ) ),
++	sitePluginAutoupdateEnableMutation: jest.fn( () => ( { mutationFn: jest.fn() } ) ),
++	sitePluginRemoveMutation: jest.fn( () => ( { mutationFn: jest.fn() } ) ),
++	sitePluginUpdateMutation: jest.fn( () => ( { mutationFn: jest.fn() } ) ),
++	invalidatePlugins: jest.fn(),
++	resetPlugins: jest.fn(),
++} ) );
++
++jest.mock( '@tanstack/react-query', () => ( {
++	useMutation: jest.fn( () => ( { mutateAsync: mockMutateAsync } ) ),
++} ) );
++
++jest.mock( '@wordpress/dataviews', () => {
++	const React = require( 'react' );
++	return {
++		DataViews: jest.fn( ( props: any ) =>
++			React.createElement(
++				'div',
++				{ 'data-testid': 'dataviews' },
++				props.actions?.map( ( action: any ) =>
++					action.RenderModal
++						? React.createElement( action.RenderModal, {
++								key: action.id,
++								items: [],
++								closeModal: jest.fn(),
++						  } )
++						: null
++				)
++			)
++		),
++		filterSortAndPaginate: jest.fn( () => ( { data: [], paginationInfo: {} } ) ),
++	};
++} );
++
++jest.mock( '../../manage/components/action-render-modal', () => ( {
++	__esModule: true,
++	default: () => null,
++	getModalHeader: jest.fn( () => 'Header' ),
++} ) );
++
++jest.mock( '../../manage/components/plugins-header-actions', () => ( {
++	PluginsHeaderActions: () => null,
++} ) );
++
++jest.mock( '../../manage/utils', () => ( {
++	buildBulkSitesPluginAction: jest.fn( () => jest.fn() ),
++} ) );
++
++jest.mock( '../../utils/update-filters', () => ( {
++	getViewFilteredByUpdates: jest.fn(),
++} ) );
++
++jest.mock( '../components/action-render-modal-wrapper', () => ( {
++	ActionRenderModalWrapper: () => null,
++} ) );
++
++jest.mock( '../components/active-toggle', () => ( { ActiveToggle: () => null } ) );
++jest.mock( '../components/autoupdate-toggle', () => ( { AutoupdateToggle: () => null } ) );
++jest.mock( '../components/plugin-site-field-content', () => ( {
++	PluginSiteFieldContent: () => null,
++} ) );
++
++jest.mock( '../../../utils/site-name', () => ( {
++	getSiteDisplayName: jest.fn( () => 'Test Site' ),
++} ) );
++
++jest.mock( '../../../utils/site-url', () => ( {
++	getSiteDisplayUrl: jest.fn( () => 'test.example.com' ),
++} ) );
++
++jest.mock( '../utils/get-allowed-plugin-actions', () => ( {
++	getAllowedPluginActions: jest.fn( () => ( { autoupdate: true, isManagedPlugin: false } ) ),
++} ) );
++
++jest.mock( '../utils/map-to-plugin-list-row', () => ( {
++	mapToPluginListRow: jest.fn( () => ( { id: 'test-plugin', siteIds: [] } ) ),
++} ) );
++
++import { render, screen } from '@testing-library/react';
++import { SitesWithThisPlugin } from '../sites-with-this-plugin';
++import {
++	sitePluginDeactivateMutation,
++	sitePluginAutoupdateDisableMutation,
++	sitePluginRemoveMutation,
++} from '@automattic/api-queries';
++import { buildBulkSitesPluginAction } from '../../manage/utils';
++
++const defaultProps = {
++	pluginSlug: 'test-plugin',
++	isLoading: false,
++	plugin: undefined,
++	pluginBySiteId: new Map(),
++	setOptimisticDelete: jest.fn(),
++	sitesWithThisPlugin: [],
++};
++
++describe( 'SitesWithThisPlugin', () => {
++	beforeEach( () => {
++		jest.clearAllMocks();
++	} );
++
++	it( 'renders the component with plugin data views', () => {
++		render( <SitesWithThisPlugin { ...defaultProps } /> );
++		expect( screen.getByTestId( 'dataviews' ) ).toBeInTheDocument();
++	} );
++
++	it( 'initializes bulk action handlers from mutation hooks', () => {
++		render( <SitesWithThisPlugin { ...defaultProps } /> );
++		expect( buildBulkSitesPluginAction ).toHaveBeenCalled();
++	} );
++
++	it( 'configures delete modal mutations with query invalidation suppressed', () => {
++		render( <SitesWithThisPlugin { ...defaultProps } /> );
++		expect( sitePluginDeactivateMutation ).toHaveBeenCalledWith( false );
++		expect( sitePluginAutoupdateDisableMutation ).toHaveBeenCalledWith( false );
++		expect( sitePluginRemoveMutation ).toHaveBeenCalledWith( false );
++	} );
++} );

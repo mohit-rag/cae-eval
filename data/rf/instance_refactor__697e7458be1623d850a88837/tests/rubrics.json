@@ -1,0 +1,206 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "fa463c257bd966c1b65c94d321db4b2a",
+    "title": "1.1: Adds an optional parameter to SyncEvent.mark_as_taken for claiming stale events",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that SyncEvent.mark_as_taken in app/models.py accepts an optional parameter allow_taken_older_than of type Optional[Arrow] (defaulting to None) and returns bool, matching the interface specification.",
+      "evidence": "`gold.patch` line 16: `app/models.py` signature changes from mark_as_taken(self) to mark_as_taken(self, allow_taken_older_than: Optional[Arrow] = None) -> bool.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states mark_as_taken should 'handle not just unclaimed events but also events that have been sitting in a taken state for too long, while still preserving its current behavior for existing callers that do not need that capability', which requires a new optional parameter. [2: Implicit Codebase Constraint] The interface section of the prompt specifies the exact contract: Input 'self, allow_taken_older_than: Optional[Arrow] = None' and Output 'bool'. [5: Conclusion] Any correct solution must add this optional parameter to mark_as_taken matching the interface contract."
+    }
+  },
+  {
+    "id": "0fd10ed8617c05b8b265c0e409aa9e44",
+    "title": "1.2: Enables claiming events whose taken_time is older than a given threshold",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that when allow_taken_older_than is provided, mark_as_taken can successfully claim events that have a non-NULL taken_time older than the threshold, in addition to still claiming unclaimed (NULL taken_time) events.",
+      "evidence": "`gold.patch` lines 17-24: `app/models.py` when allow_taken_older_than is provided, the WHERE clause includes (taken_time IS NULL OR taken_time < :taken_older_than).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'SyncEvent.mark_as_taken() only works for events with a NULL taken_time, which means events that were previously claimed by a stalled or crashed runner get stuck forever and are never retried'. [3: Logical Necessity] Dead letter events returned by get_dead_letter() have non-NULL taken_time; if mark_as_taken cannot claim them, the dead letter recovery path is broken. [5: Conclusion] Any correct solution must allow claiming events with stale taken_time when a threshold is provided."
+    }
+  },
+  {
+    "id": "6c40a5cc27cef2b5776ae969836731d0",
+    "title": "1.3: Preserves default mark_as_taken behavior for callers that do not pass a threshold",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that when allow_taken_older_than is not provided (defaults to None), mark_as_taken behaves identically to the original implementation: it only claims events where taken_time IS NULL. Existing callers such as PostgresEventSource (events/event_source.py line 62) must continue to work without modification.",
+      "evidence": "`gold.patch` line 17: `app/models.py` the base condition 'taken_time IS NULL' is always present; the stale threshold condition is only added when allow_taken_older_than is provided.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states mark_as_taken should handle stale events 'while still preserving its current behavior for existing callers that do not need that capability'. [2: Implicit Codebase Constraint] PostgresEventSource at events/event_source.py line 62 calls mark_as_taken() without arguments and relies on it rejecting already-taken events to prevent duplicate processing. [5: Conclusion] Any correct solution must preserve the default NULL-only claiming behavior when no threshold is passed."
+    }
+  },
+  {
+    "id": "bd615f856c06dd3b31512ecffef385d0",
+    "title": "1.4: Extracts dead letter event processing logic into a separate DeadLetterEventSource.execute_loop method",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the event fetching, claiming, and dispatching logic is extracted from the infinite loop in DeadLetterEventSource.run into a new method named execute_loop, matching the interface specification. The method should accept on_event: Callable[[SyncEvent], NoReturn] and return list[SyncEvent].",
+      "evidence": "`gold.patch` lines 36-51: `events/event_source.py` a new execute_loop method is defined with signature (self, on_event: Callable[[SyncEvent], NoReturn]) -> list[SyncEvent].",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the event processing logic should also be separated from the infinite loop so it can be called and tested on its own'. [2: Implicit Codebase Constraint] The interface section of the prompt specifies DeadLetterEventSource.execute_loop with Input: 'self, on_event: Callable[[SyncEvent], NoReturn]' and Output: 'list[SyncEvent]'. [5: Conclusion] Any correct solution must extract the processing logic into execute_loop matching the interface contract."
+    }
+  },
+  {
+    "id": "f37045b0fce2d598d755d199c62990e4",
+    "title": "1.5: Claims each dead letter event via mark_as_taken before dispatching it in execute_loop",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that inside execute_loop, each dead letter event is claimed by calling mark_as_taken before being dispatched to the callback, and that only successfully claimed events are dispatched.",
+      "evidence": "`gold.patch` lines 48-50: `events/event_source.py` for each event, mark_as_taken(allow_taken_older_than=threshold) is called, and on_event is only invoked if it returns True.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the dead letter source should claim each event before processing it, and only process events it successfully claimed'. [3: Logical Necessity] Without claiming before dispatching, multiple runners can still process the same event concurrently, which is the race condition the prompt asks to fix. [5: Conclusion] Any correct solution must claim each event and check the result before dispatching."
+    }
+  },
+  {
+    "id": "b0acc17bcf295440b8fd5a9e187c0c9a",
+    "title": "1.6: Delegates to execute_loop from DeadLetterEventSource.run",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the run method's infinite loop delegates event processing to execute_loop rather than containing the fetch/claim/dispatch logic inline. The run method should call self.execute_loop(on_event) and use its return value to determine whether to sleep.",
+      "evidence": "`gold.patch` line 71: `events/event_source.py` the run method's try block is reduced to 'events = self.execute_loop(on_event)' followed by Session.close() and the sleep logic.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires separating processing logic from the infinite loop. [3: Logical Necessity] If run does not delegate to execute_loop, the extraction has no effect and the method cannot be called or tested independently. [5: Conclusion] Any correct solution must have run call execute_loop to perform the actual event processing."
+    }
+  },
+  {
+    "id": "e1cd625dbe19365a9a43f1abdc41f1f1",
+    "title": "1.7: Creates the oneshot backfill script at oneshot/send_plan_change_events.py",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that a new Python script exists at oneshot/send_plan_change_events.py that can be executed as a standalone script.",
+      "evidence": "`gold.patch` lines 75-143: new file `oneshot/send_plan_change_events.py` is created.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'we also need a oneshot backfill script at oneshot/send_plan_change_events.py'. [5: Conclusion] Any correct solution must create this file at the specified path."
+    }
+  },
+  {
+    "id": "4a1d017d9690756230f4dec4acba4615",
+    "title": "1.8: Iterates over PartnerUser records in batches in the oneshot script",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the oneshot script queries PartnerUser records from the database and processes them in batches rather than loading all records at once.",
+      "evidence": "`gold.patch` lines 113-118: `oneshot/send_plan_change_events.py` PartnerUser records are queried in batches using a range-based filter.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the script 'should go through PartnerUser records in batches'. [2: Implicit Codebase Constraint] PartnerUser (app/models.py line 3652) is a database model; loading all records at once would be impractical for large datasets. [5: Conclusion] Any correct solution must process PartnerUser records in batches."
+    }
+  },
+  {
+    "id": "67d7ffeae952ddb6ba6f6912cbb9f044",
+    "title": "1.9: Checks each user's active subscription end time excluding partner subscriptions",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that for each PartnerUser, the script retrieves the user's active subscription end time with partner subscriptions excluded (e.g. by calling get_active_subscription_end with include_partner_subscription=False or equivalent logic).",
+      "evidence": "`gold.patch` lines 120-121: `oneshot/send_plan_change_events.py` calls partner_user.user.get_active_subscription_end(include_partner_subscription=False).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the script should 'check each user's active subscription end time (excluding partner subscriptions)'. [2: Implicit Codebase Constraint] The User model (app/models.py line 729) has get_active_subscription_end(include_partner_subscription: bool) which is the existing API for this. [5: Conclusion] Any correct solution must retrieve subscription end time while excluding partner subscriptions."
+    }
+  },
+  {
+    "id": "594a53909e7cbfc97b2240034c2623a5",
+    "title": "1.10: Dispatches a UserPlanChanged event with plan_end_time for each PartnerUser",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the script constructs a UserPlanChanged event with the appropriate plan end time and dispatches it (e.g. via EventDispatcher.send_event or equivalent) for each PartnerUser record processed.",
+      "evidence": "`gold.patch` lines 127-130: `oneshot/send_plan_change_events.py` creates UserPlanChanged(plan_end_time=end_timestamp) and dispatches via EventDispatcher.send_event.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the script should 'fire a UserPlanChanged event with the appropriate plan end time'. [2: Implicit Codebase Constraint] UserPlanChanged is defined in app/events/generated/event_pb2.py and EventDispatcher.send_event (app/events/event_dispatcher.py line 49) is the existing dispatch mechanism. [5: Conclusion] Any correct solution must dispatch UserPlanChanged events with plan_end_time for each PartnerUser."
+    }
+  },
+  {
+    "id": "c28d28aad4796a5db44fde0d12291240",
+    "title": "1.11: Supports command line arguments for PartnerUser ID range in the oneshot script",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the oneshot script accepts command line arguments to specify a start and end PartnerUser ID range (e.g. via argparse, sys.argv, or similar CLI parsing).",
+      "evidence": "`gold.patch` lines 92-100: `oneshot/send_plan_change_events.py` uses argparse with --start_pu_id and --end_pu_id arguments.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the script 'should support command line arguments for the PartnerUser ID range'. [5: Conclusion] Any correct solution must accept CLI arguments for specifying the ID range to process."
+    }
+  },
+  {
+    "id": "18193fcbb39e4e02ca2dada54e163d4f",
+    "title": "1.12: Prints progress as the oneshot script runs",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the oneshot script outputs progress information to stdout as it processes batches, so the operator can monitor execution.",
+      "evidence": "`gold.patch` lines 108, 140-142: `oneshot/send_plan_change_events.py` prints starting range and per-batch progress.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the script should 'print progress as it runs'. [5: Conclusion] Any correct solution must print progress output during batch processing."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b1a4f613f1a0a6fc8a331d4c461234c7",
+    "title": "4.1: Removes or breaks the existing run method's loop, sleep, or error handling behavior in DeadLetterEventSource",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the solution removes, replaces, or breaks the existing infinite loop structure in DeadLetterEventSource.run, including its sleep-when-idle behavior, exception handling, or Session.close() call. The refactor should extract processing logic into execute_loop but must preserve run's role as the long-lived loop with error recovery.",
+      "evidence": "Codebase `events/event_source.py` lines 88-112: run contains a while True loop with try/except, Session.close(), conditional sleep, and error logging that must be preserved.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'separate the event processing logic from the infinite loop', implying the loop itself must remain intact. [2: Implicit Codebase Constraint] DeadLetterEventSource.run is called by the event runner infrastructure and must remain a long-lived blocking loop with error recovery, as it is the entry point for dead letter processing. [5: Conclusion] Removing or breaking run's loop structure, sleep logic, or error handling breaks the dead letter processing lifecycle."
+    }
+  }
+]

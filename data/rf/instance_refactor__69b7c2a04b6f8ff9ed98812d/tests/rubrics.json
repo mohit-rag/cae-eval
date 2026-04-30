@@ -1,0 +1,254 @@
+[
+  {
+    "id": "8a9318679bdb26719276055ef4c84d3e",
+    "title": "Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies the innochecksum refactoring improves correctness and maintainability of doublewrite buffer detection, multi-file tablespace support, and code organization.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "07d46f723840435832f6787ac8e592e8",
+    "title": "1.1: Refactors is_page_doublewritebuffer to use actual doublewrite block locations instead of hardcoded page range",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that is_page_doublewritebuffer() no longer uses a hardcoded page number range to determine doublewrite buffer membership, and instead bases its decision on the actual doublewrite block locations recorded in the tablespace.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 62-77: is_page_doublewritebuffer() replaces the fixed range check (cur_page_num >= extent_size && cur_page_num < extent_size * 3) with a comparison against stored block locations (dblwr_1, dblwr_2) declared at lines 17-18.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'is_page_doublewritebuffer() uses a hardcoded page number range' and 'should be refactored to use the real doublewrite block locations'. [2: Implicit Code Base Constraint] The InnoDB TRX_SYS page stores the actual doublewrite buffer block positions at TRX_SYS_DOUBLEWRITE_BLOCK1 and TRX_SYS_DOUBLEWRITE_BLOCK2. [5: Conclusion] Any correct solution must replace the hardcoded range check with logic that uses actual doublewrite block locations."
+    }
+  },
+  {
+    "id": "7233c160464db9292daed3c600f8d112",
+    "title": "1.2: Reads doublewrite block positions from the TRX_SYS page",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that the code reads the doublewrite buffer block1 and block2 positions from the TRX_SYS page (page type FIL_PAGE_TYPE_TRX_SYS) using the TRX_SYS_DOUBLEWRITE offset, and stores them for use by the doublewrite buffer detection logic.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 108-118: inside parse_page()'s FIL_PAGE_TYPE_TRX_SYS case, dblwr_1 and dblwr_2 are read from the TRX_SYS page at offsets TRX_SYS_DOUBLEWRITE + TRX_SYS_DOUBLEWRITE_BLOCK1 and TRX_SYS_DOUBLEWRITE_BLOCK2, guarded by the magic number check.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the doublewrite buffer location 'depends on what's recorded in the TRX_SYS page of the system tablespace'. [3: Logical Necessity] To compare against real block locations, the code must first read those locations from the TRX_SYS page using the documented offsets (TRX_SYS_DOUBLEWRITE_BLOCK1, TRX_SYS_DOUBLEWRITE_BLOCK2). [5: Conclusion] Without reading the block positions from TRX_SYS, the refactored detection has no source of truth for doublewrite buffer locations."
+    }
+  },
+  {
+    "id": "8a15781b82586857aa7f33691e79ca81",
+    "title": "1.3: Restricts doublewrite buffer detection to the system tablespace",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that is_page_doublewritebuffer() only identifies pages as doublewrite buffer when operating on the system tablespace (space 0), returning false for all other tablespaces.",
+      "evidence": "In gold.patch, extra/innochecksum.cc line 73: is_page_doublewritebuffer() checks 'if (cur_space != 0) return false;' as its first statement.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the doublewrite buffer detection 'should only apply to the system tablespace (space 0)'. [2: Implicit Code Base Constraint] The InnoDB doublewrite buffer only exists in the system tablespace (space id 0). [5: Conclusion] Any correct solution must guard the doublewrite detection to only operate on space 0."
+    }
+  },
+  {
+    "id": "b6e7f1606ab53f6bb97bd0d5b10bf9e8",
+    "title": "1.4: Skips doublewrite buffer pages in parse_page when skip_freed_pages is enabled",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that parse_page() skips processing for doublewrite buffer pages when the skip_freed_pages option is enabled, so they are not included in page type statistics or summary output.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 96-98: inside parse_page(), within the 'if (skip_freed_pages)' block, an early return is added when is_page_doublewritebuffer() returns true.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'When skip_freed_pages is enabled, parse_page() should skip doublewrite buffer pages entirely'. [5: Conclusion] Any correct solution must add logic in parse_page() to skip doublewrite buffer pages when skip_freed_pages is active."
+    }
+  },
+  {
+    "id": "4a312bc41d4c2212afe7aadfa17edad4",
+    "title": "1.5: Skips checksum rewriting based on doublewrite buffer detection during page-by-page processing",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that the main processing loop in main() guards the checksum rewrite operation (e.g. rewrite_checksum call) so that doublewrite buffer pages are not rewritten.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 332-336: the rewrite_checksum call in main()'s page loop is guarded with '!is_page_doublewritebuffer() &&' before calling rewrite_checksum.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the main loop should also avoid rewriting checksums for doublewrite buffer pages'. [3: Logical Necessity] Writing checksums to doublewrite buffer pages would corrupt the doublewrite buffer area. [5: Conclusion] Any correct solution must prevent checksum rewriting for doublewrite buffer pages."
+    }
+  },
+  {
+    "id": "d901d48ea886d5d4612dbb452c744c12",
+    "title": "1.6: Adds a --tablespace-flags command line option to innochecksum",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that innochecksum accepts a --tablespace-flags option that allows users to pass InnoDB tablespace flags directly, so the tool can initialize the correct page size without relying on page 0.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 126-128: a new entry is added to innochecksum_options[] with name 'tablespace-flags', type GET_UINT, REQUIRED_ARG, default USE_FSP_FLAGS (UINT32_MAX).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Add a --tablespace-flags command line option that lets users pass InnoDB tablespace flags directly, so the tool can initialize the correct page size without relying on reading flags from page 0'. [5: Conclusion] Any correct solution must add this CLI option to innochecksum."
+    }
+  },
+  {
+    "id": "09cc036850a7dc2e3313e1ddf3935782",
+    "title": "1.7: Rejects invalid tablespace flag values",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that when a user provides a --tablespace-flags value, the tool validates it and rejects invalid flag values with an error rather than proceeding with corrupted state.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 136-143: innochecksum_get_one_option() adds a default case that validates tablespace_flags using fil_space_t::is_valid_flags(tablespace_flags, false) and is_valid_flags(tablespace_flags, true), printing an error and returning true if neither passes.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Invalid flag values should be rejected'. [3: Logical Necessity] Proceeding with invalid tablespace flags would cause incorrect page size initialization and potentially corrupt data. [5: Conclusion] Any correct solution must validate the provided flags value."
+    }
+  },
+  {
+    "id": "89210f356f3719d516de1e37ab7abc2f",
+    "title": "1.8: Reports a helpful error suggesting --tablespace-flags for non-page-0 files without user-provided flags",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that when --tablespace-flags is not provided and the first page in the file is not page 0, the tool reports a helpful error message suggesting the use of --tablespace-flags, rather than crashing or producing confusing output.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 194-202: read_and_validate_page0() checks 'if (cur_page_num)' when tablespace_flags == USE_FSP_FLAGS, and prints an error mentioning the page number and suggesting '--tablespace-flags option', then returns false.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'When no flags are provided and the file doesn't start at page 0, the tool should report a helpful error suggesting the --tablespace-flags option'. [4: Qualitative Requirement] Providing an actionable error message with the correct option name is essential for usability. [5: Conclusion] Any correct solution must detect non-zero first page and guide the user to provide --tablespace-flags."
+    }
+  },
+  {
+    "id": "a5d476909a1decac8790ec7e328b3775",
+    "title": "1.9: Extracts page 0 reading and initialization logic into a separate function",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that the page 0 reading and initialization logic previously inline in main() has been extracted into one or more dedicated functions, so that main() delegates this responsibility rather than containing it inline.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 156-230: a new static function read_and_validate_page0(FILE*, byte*) is introduced, encapsulating page reading, flag extraction, page size initialization, and error handling. main() calls it at line 250 instead of inline logic.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The page 0 reading and initialization logic currently inline in main() should be pulled into its own function to handle both cases cleanly'. [4: Qualitative Requirement] Extracting this logic improves readability and reduces the complexity of main(). [5: Conclusion] Any correct solution must move the page 0 handling out of main() into a dedicated function."
+    }
+  },
+  {
+    "id": "694766a99b763809b94fa7ced0563114",
+    "title": "1.10: Refactors init_page_size to accept flags as a parameter",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that init_page_size (or its renamed equivalent, e.g. init_page_size_from_flags) accepts the tablespace flags as a function parameter instead of reading them internally from a page buffer.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 39-40: init_page_size(const byte* buf) is renamed to init_page_size_from_flags(const uint32_t flags), and the internal mach_read_from_4(buf + FIL_PAGE_DATA + FSP_SPACE_FLAGS) call at former lines 42-43 is removed.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The init_page_size() function currently reads flags from the page buffer internally. Refactor it to accept the flags as a parameter instead.' [5: Conclusion] Any correct solution must change init_page_size to take flags as input rather than reading from a buffer."
+    }
+  },
+  {
+    "id": "60b07d4f06117c81ed4656c9a3e826f6",
+    "title": "1.11: Adjusts all 3 UNIV_INNOCHECKSUM preprocessor guards (trx0sys.h, fsp0types.h, trx0undo.h) so doublewrite definitions are visible to innochecksum",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that the UNIV_INNOCHECKSUM preprocessor guards in trx0sys.h, fsp0types.h, and trx0undo.h are adjusted so that the doublewrite buffer definitions (e.g. TRX_SYS_DOUBLEWRITE offsets and magic constants) remain visible when compiling innochecksum, while the full transaction system types are still excluded.",
+      "evidence": "In gold.patch: (1) storage/innobase/include/trx0sys.h lines 368, 376, 385, 393: adds #ifndef/#endif UNIV_INNOCHECKSUM guards around the header includes and transaction types, keeping the doublewrite definitions (lines 378-382) visible. (2) storage/innobase/include/fsp0types.h lines 348, 356: adds guards to exclude fsp_reserve_t-related code while keeping XDES constants visible. (3) storage/innobase/include/trx0undo.h lines 402-405: moves #include trx0sys.h outside the UNIV_INNOCHECKSUM guard so the doublewrite constants are available.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the UNIV_INNOCHECKSUM preprocessor guards in trx0sys.h, fsp0types.h, and trx0undo.h need to be adjusted so the doublewrite definitions remain visible while the full transaction system types are excluded'. [3: Logical Necessity] Without these guard adjustments, innochecksum cannot access the TRX_SYS_DOUBLEWRITE_* constants needed for the refactored detection. [5: Conclusion] Any correct solution must adjust the guards in all three header files."
+    }
+  },
+  {
+    "id": "24abe19842b96c688acce0c7bf043e6a",
+    "title": "1.12: Makes parse_page static",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that the parse_page() function in extra/innochecksum.cc is declared with the static keyword, limiting its linkage to the translation unit.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 85-86: the parse_page declaration changes from 'void' to 'static void parse_page('.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'parse_page() should be made static'. [2: Implicit Code Base Constraint] parse_page() is only called within innochecksum.cc, so it should have internal linkage. [5: Conclusion] Any correct solution must add the static qualifier to parse_page()."
+    }
+  },
+  {
+    "id": "4f3cd00011c71b7a822f2fd38595ef05",
+    "title": "1.13: Removes the page buffer parameter from is_page_doublewritebuffer",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that is_page_doublewritebuffer() no longer takes a page buffer pointer as a parameter, since the refactored function works from stored state rather than reading from the page buffer directly.",
+      "evidence": "In gold.patch, extra/innochecksum.cc line 64: is_page_doublewritebuffer(const byte* page) is changed to is_page_doublewritebuffer() with no parameters. The call site at line 315 changes from is_page_doublewritebuffer(buf) to is_page_doublewritebuffer().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the function 'no longer needs the page buffer as a parameter since it can work from stored state'. [3: Logical Necessity] Since the refactored detection uses pre-read block positions rather than page contents, the buffer parameter is unnecessary and its removal simplifies the API. [5: Conclusion] Any correct solution must remove the page buffer parameter from is_page_doublewritebuffer()."
+    }
+  },
+  {
+    "id": "f7a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6",
+    "title": "1.14: Processes non-page-0 files when --tablespace-flags is provided",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that when --tablespace-flags is provided, the tool initializes page size from the provided flags and bypasses the page-0 requirement, allowing processing of any file in the tablespace regardless of whether it starts at page 0.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 160-163: when tablespace_flags != USE_FSP_FLAGS, read_and_validate_page0() calls init_page_size_from_flags(tablespace_flags) and sets initial_page_size from physical_page_size. Lines 185-191 vs 192-203: the non-page-0 rejection (cur_page_num check that returns false) is inside the else branch (tablespace_flags == USE_FSP_FLAGS), so it is bypassed when flags are provided.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'With --tablespace-flags provided, the tool should be able to process any file in the tablespace regardless of whether it starts at page 0'. [3: Logical Necessity] Multi-file system tablespaces (ibdata2, ibdata3) do not start at page 0, so the tool must use provided flags to determine page size without requiring page 0. [5: Conclusion] Any correct solution must bypass the page-0 requirement when --tablespace-flags is provided."
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1.15: Warns about flag mismatch when provided flags differ from stored flags on page 0",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Checks that when --tablespace-flags is provided and the file starts at page 0, the tool compares the provided flags against the flags stored in the file's FSP header. If they differ, the tool warns about the mismatch.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 185-190: when tablespace_flags != USE_FSP_FLAGS, read_and_validate_page0() checks 'if (cur_page_num == 0 && flags != tablespace_flags)' and prints 'Error: Mismatch between provided tablespace flags (0x%x) and file flags (0x%x)'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'If the file starts at page 0 and the provided flags differ from the stored flags, the tool should warn about the mismatch'. [3: Logical Necessity] Flag mismatches indicate the user may have specified wrong flags, which could lead to incorrect page size initialization and checksum failures. [5: Conclusion] Any correct solution must detect and warn about flag mismatches on page-0 files."
+    }
+  },
+  {
+    "id": "c3a8f210b7e94d5a8b1c6f2e3d4a5b6c",
+    "title": "Documentation Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Documentation Maintainability",
+      "description": "No standalone documentation changes are required by the prompt. All comment updates in gold.patch accompany code changes and are covered under Code Maintainability.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "d4b9e321c8fa5e6b9c2d7f3e4a5b6c7d",
+    "title": "Artifact Cleanup",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Artifact Cleanup",
+      "description": "No standalone artifact cleanup is required by the prompt. Old code removal (hardcoded range check, inline page 0 logic) is part of the refactoring and covered under Code Maintainability.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "0248934eb1b30de7faea157dd07d4b5d",
+    "title": "Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Negative Rubrics",
+      "description": "Verifies that the refactoring does not introduce regressions, break existing functionality, or violate the prompt constraints.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "05e956f0b190cf3bd71c05320a06927b",
+    "title": "4.1: Removes existing innochecksum command line options (such as --skip-freed-pages) or their functionality",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "Checks if existing innochecksum CLI options (such as --skip-freed-pages/-r, --page/-p, --strict-check/-C, --count/-c, --log/-l, --leaf/-f, --merge/-m, etc.) or their behavior are removed or broken. The refactoring should only add new options and modify internal logic.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 122-128: the existing innochecksum_options[] entries (--skip-freed-pages at line 123, etc.) are preserved and a new --tablespace-flags entry is appended. No existing option is removed or modified.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'make the minimal changes to non-test source files only', implying preservation of existing functionality. [3: Logical Necessity] Removing existing options would break backward compatibility and the existing test suite. [5: Conclusion] Any solution that removes or breaks existing CLI options must be rejected."
+    }
+  },
+  {
+    "id": "9150602d8cd145a11a4530c37fc7df18",
+    "title": "4.2: Breaks existing checksum verification or page processing for non-doublewrite pages by incorrectly passing flags or skipping normal pages",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "Checks if the refactoring introduces regressions in how innochecksum verifies checksums or processes regular (non-doublewrite) pages. The existing checksum verification logic, page type detection, and page iteration in the main loop must continue to work correctly for all standard InnoDB pages.",
+      "evidence": "In gold.patch, extra/innochecksum.cc lines 294-296, 304-306, 324-325: verify_checksum and rewrite_checksum calls in main() change from local 'flags' to 'tablespace_flags'. Lines 332-336 add a !is_page_doublewritebuffer() guard before rewrite_checksum. These changes must not alter behavior for non-doublewrite pages.",
+      "justification": "[3: Logical Necessity] The refactoring changes how flags are passed to verify_checksum and rewrite_checksum, and adds conditional skipping of doublewrite pages. An incorrect implementation could accidentally skip verification for normal pages or pass wrong flags to the checksum functions. [5: Conclusion] Any solution must preserve correct checksum verification behavior for all non-doublewrite pages."
+    }
+  }
+]

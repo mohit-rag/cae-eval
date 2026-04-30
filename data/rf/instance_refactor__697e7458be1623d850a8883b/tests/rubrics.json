@@ -1,0 +1,206 @@
+[
+  {
+    "annotations": {
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent"
+    },
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that EcuState is refactored to be a generic, protocol-agnostic state container that only stores the parameters explicitly provided to it.",
+      "evidence": "gold.patch ecu.py diff lines 31-36: new __init__(self, **kwargs) implementation that iterates over kwargs and sets them as instance attributes",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'refactor EcuState to be a generic, protocol-agnostic state container that only stores the parameters explicitly provided to it'. [3: Logical Necessity] Protocol-agnostic design requires no protocol-specific defaults baked into the class. [5: Conclusion] Therefore, any correct answer must refactor EcuState to only store explicitly provided parameters.",
+      "type": "positive hli verifier"
+    },
+    "id": "ba9d322a7d35ec5f449c95c2308a21bf",
+    "title": "1.1: Refactors EcuState to only store parameters explicitly provided to it using **kwargs in the constructor"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that the __eq__ method is updated to compare all stored state attributes rather than only the hardcoded UDS-specific fields, ensuring protocol-agnostic equality checks.",
+      "evidence": "gold.patch ecu.py diff lines 60-72: new __eq__ implementation that compares all keys in self.__dict__ with other.__dict__",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The class should compare all stored state attributes for equality'. [2: Implicit Codebase Constraint] The original __eq__ only compared session, tp, misc, and security_level, ignoring dynamic state. [5: Conclusion] Therefore, any correct answer must implement equality comparison that covers all stored state.",
+      "type": "positive hli verifier"
+    },
+    "id": "a4b0c4461b90e1eef0e8fc590460767e",
+    "title": "1.2: Implements equality comparison that compares all stored state (such as comparing all instance attributes)"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that EcuState provides a readable string representation with key-value pairs concatenated in alphabetical order by key for debugging purposes.",
+      "evidence": "gold.patch ecu.py diff lines 55-58: new __repr__ implementation that iterates over sorted __dict__.items() to build the string",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'provide a readable string representation for debugging - for consistency, the repr should concatenate key-value pairs in alphabetical order by key (e.g., EcuState(a=1, b=2) produces \"a1b2\")'. [5: Conclusion] Therefore, any correct answer must provide a __repr__ that concatenates key-value pairs in alphabetical order.",
+      "type": "positive hli verifier"
+    },
+    "id": "a0ba36c8de687315e4ded55d1ad3badf",
+    "title": "1.3: Implements __repr__ that concatenates sorted key-value pairs without separators (e.g., EcuState(a=1, b=2) returns 'a1b2')"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that the Ecu class is modified to explicitly set UDS-style default parameters (session, security_level, communication_control) when initializing or resetting EcuState. Since EcuState is refactored to only store explicitly provided parameters, the Ecu class must now be responsible for providing UDS defaults.",
+      "evidence": "gold.patch ecu.py diff lines 158-162: Ecu.reset() sets default UDS state (session=1, security_level=0, communication_control=0) after calling state.reset()",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The existing Ecu class that uses EcuState should continue to work with UDS-style state parameters after the refactoring'. [2: Implicit Codebase Constraint] Since EcuState no longer provides default values, the Ecu class must be modified to inject UDS defaults explicitly. [3: Logical Necessity] Without Ecu class modifications, accessing session/security_level on a default Ecu() would raise AttributeError. [5: Conclusion] Therefore, any correct answer must modify the Ecu class to provide UDS-style default state.",
+      "type": "positive hli verifier"
+    },
+    "id": "fdba4c2334b7c37c7bd310198646d986",
+    "title": "1.4: Modifies Ecu class to provide UDS-style default state (such as session=1, security_level=0) since EcuState no longer has defaults"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that EcuState supports dictionary-style read access to state attributes via bracket notation.",
+      "evidence": "gold.patch ecu.py diff lines 44-46: implements __getitem__ returning self.__dict__[item]",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'support dictionary-style access to state attributes' and the interface specifies __getitem__. [3: Logical Necessity] Dictionary-style read access enables protocol-agnostic state retrieval. [5: Conclusion] Therefore, any correct answer must implement __getitem__ on EcuState.",
+      "type": "positive hli verifier"
+    },
+    "id": "755bd08afc1abab7f3f7b1fe7a58b744",
+    "title": "1.5: Implements dictionary-style read access to state attributes via __getitem__ in EcuState"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that EcuState supports dictionary-style write access to state attributes via bracket notation.",
+      "evidence": "gold.patch ecu.py diff lines 51-53: implements __setitem__ setting self.__dict__[key] = value",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'support dictionary-style access to state attributes' and the interface specifies __setitem__. [3: Logical Necessity] Dictionary-style write access enables protocol-agnostic state modification. [5: Conclusion] Therefore, any correct answer must implement __setitem__ on EcuState.",
+      "type": "positive hli verifier"
+    },
+    "id": "a9e5ed2ee8fc337e6925d73fee3c9af8",
+    "title": "1.6: Implements dictionary-style write access to state attributes via __setitem__ in EcuState"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that EcuState supports checking whether another EcuState's values are contained within this state.",
+      "evidence": "gold.patch ecu.py diff lines 74-85: implements __contains__ that checks if item's attribute values are found within self's iterable values",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'containment checks for partial state matching' and the interface specifies __contains__. [3: Logical Necessity] Containment checking enables protocol-agnostic partial state comparison. [5: Conclusion] Therefore, any correct answer must implement __contains__ on EcuState.",
+      "type": "positive hli verifier"
+    },
+    "id": "4eb35d42c8cefa79eab5c344e2d9bc39",
+    "title": "1.7: Implements containment checking via __contains__ in EcuState"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that EcuState supports less-than comparison for ordering: states with fewer attributes are smaller, and for equal attribute counts, compares values in sorted key order.",
+      "evidence": "gold.patch ecu.py diff lines 91-131: implements __lt__ based on attribute count and sorted key-value comparison",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'ordering for sorting (states with fewer attributes are smaller; for equal counts, compare values in sorted key order)'. [5: Conclusion] Therefore, any correct answer must implement __lt__ with this ordering logic.",
+      "type": "positive hli verifier"
+    },
+    "id": "0229db0aa307444a0bb67be2b7504bc6",
+    "title": "1.8: Implements __lt__ ordering by attribute count first, then by values in sorted key order"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that __lt__ raises TypeError when comparing attributes of incompatible types.",
+      "evidence": "gold.patch ecu.py diff lines 109-112: raises TypeError when attribute types don't match",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'raising TypeError for incompatible types' as part of the ordering requirement. [5: Conclusion] Therefore, any correct answer must raise TypeError when comparing incompatible types in __lt__.",
+      "type": "positive hli verifier"
+    },
+    "id": "7a0647a286cb7225db6c375645014079",
+    "title": "1.9: Raises TypeError in __lt__ when comparing attributes of incompatible types"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that EcuState has a command method that returns a recreatable string in the format EcuState(key=repr(value), ...) with keys sorted alphabetically.",
+      "evidence": "gold.patch ecu.py diff lines 148-152: implements command() returning 'EcuState(' + sorted key=repr(value) pairs + ')'",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'serialize the state into a recreatable command string in the format EcuState(key=repr(value), ...) with keys sorted alphabetically' and the interface specifies command(). [5: Conclusion] Therefore, any correct answer must implement command() returning the specified format with alphabetically sorted keys.",
+      "type": "positive hli verifier"
+    },
+    "id": "451cabb4de1d75c39ac5eacc08ff1e72",
+    "title": "1.10: Implements command() returning recreatable string in the format EcuState(key=repr(value), ...) with keys sorted alphabetically"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that EcuState.reset() clears all stored state attributes, returning the instance to an empty state.",
+      "evidence": "gold.patch ecu.py diff lines 142-146: reset() deletes all keys from __dict__",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'clearing all state via the existing reset method'. [5: Conclusion] Therefore, any correct answer must implement reset() that clears all stored state attributes.",
+      "type": "positive hli verifier"
+    },
+    "id": "910aa5ae91f502552ba4d93ce1e8055f",
+    "title": "1.11: Refactors reset() to remove all attributes from the EcuState instance"
+  },
+  {
+    "annotations": {
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent"
+    },
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability"
+  },
+  {
+    "annotations": {
+      "description": "Verifies that a docstring is added or updated for the EcuState class explaining its new protocol-agnostic design and how it stores state for different protocols.",
+      "evidence": "gold.patch ecu.py diff lines 26-30: adds docstring 'Stores the state of an Ecu. The state is defined by a protocol, for example UDS or GMLAN.'",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "justification": "[3: Logical Necessity] A significant refactoring to support multiple protocols benefits from documentation explaining the new design. [4: Quality Necessity] Clear documentation helps future maintainers understand the class's purpose. [5: Conclusion] Therefore, any correct answer should add or update documentation for the refactored EcuState class.",
+      "type": "positive hli verifier"
+    },
+    "id": "4013c7b423e709914b03e79a1310acfe",
+    "title": "2.1: Adds or updates docstring for EcuState explaining its protocol-agnostic design"
+  },
+  {
+    "annotations": {
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent"
+    },
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics"
+  },
+  {
+    "annotations": {
+      "description": "Detects if the refactoring omits at least one existing public API method from EcuState. Answer YES if reset, __eq__, __ne__, __lt__, __hash__, or __repr__ is missing from the refactored EcuState class.",
+      "evidence": "gold.patch ecu.py: original EcuState has these public methods: reset, __eq__, __ne__, __lt__, __hash__, __repr__. Check if the agent's EcuState includes all of them.",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'clearing all state via the existing reset method' and 'existing Ecu class that uses EcuState should continue to work', implying API preservation. [3: Logical Necessity] Removing public API methods would break existing code that depends on them. [5: Conclusion] Therefore, any correct answer must NOT remove existing public API methods from EcuState.",
+      "type": "negative hli verifier"
+    },
+    "id": "528ba326f0201227cce2be26f614460e",
+    "title": "4.1: Omits at least one existing public API method from EcuState (reset, __eq__, __ne__, __lt__, __hash__, or __repr__)"
+  },
+  {
+    "annotations": {
+      "description": "Detects if EcuState.__init__ still contains hardcoded UDS-specific default values (such as session=1, security_level=0, communication_control=0) instead of being a generic container that only stores explicitly provided parameters.",
+      "evidence": "gold.patch ecu.py: original code had def __init__(self, session=1, tester_present=False, security_level=0, communication_control=0, **kwargs). The refactored code should only have def __init__(self, **kwargs).",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'refactor EcuState to be a generic, protocol-agnostic state container that only stores the parameters explicitly provided to it'. [2: Implicit Codebase Constraint] The prompt explicitly identifies 'hardcoded fields like session, security_level, and communication_control that are specific to UDS' as the problem to fix. [5: Conclusion] Therefore, any correct answer must NOT keep hardcoded UDS-specific default values in EcuState.__init__.",
+      "type": "negative hli verifier"
+    },
+    "id": "4ec8bf60664429946ad854b4c76aa5d6",
+    "title": "4.2: Keeps hardcoded UDS-specific default values in EcuState.__init__ (such as session=1, security_level=0)"
+  }
+]

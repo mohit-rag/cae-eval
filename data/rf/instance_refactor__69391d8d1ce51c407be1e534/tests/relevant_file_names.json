@@ -1,0 +1,13 @@
+{
+  "files": [
+    {
+      "name": "pkg/cache/memory/memory_generic_test.go"
+    },
+    {
+      "name": "pkg/cache/memory/memory_test.go"
+    },
+    {
+      "name": "pkg/sources/github/github_test.go"
+    }
+  ]
+}

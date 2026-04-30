@@ -1,0 +1,170 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+    "title": "1.1: Creates `set_mailboxes_for_alias()` function in `app/alias_mailbox_utils.py` for alias mailbox validation and assignment",
+    "annotations": {
+      "importance": "must have",
+      "description": "A utility function named set_mailboxes_for_alias() must be created in app/alias_mailbox_utils.py to handle mailbox validation and assignment for aliases. This consolidates the duplicated logic from the API views.",
+      "evidence": "gold.patch lines 7-60 show creation of app/alias_mailbox_utils.py with set_mailboxes_for_alias(user_id: int, alias: Alias, mailbox_ids: List[int]) -> Optional[CannotSetMailboxesForAliasCause] function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'I'd like to consolidate this into reusable utilities.' The provided interface specifies set_mailboxes_for_alias as a function in app/alias_mailbox_utils.py with Input: 'user_id: int, alias: Alias, mailbox_ids: List[int]' and Output: 'Optional[CannotSetMailboxesForAliasCause]'. [2: Implicit Codebase Constraint] The codebase already has custom_domain_utils.py with set_custom_domain_mailboxes() as a pattern for utility functions. [5: Conclusion] Therefore, any correct answer must create a reusable utility function for alias mailbox validation and assignment.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7",
+    "title": "1.2: Creates `CannotSetMailboxesForAliasCause` enum with all 3 error values (Forbidden, EmptyMailboxes, TooManyMailboxes) for mailbox validation failures",
+    "annotations": {
+      "importance": "must have",
+      "description": "An enum named CannotSetMailboxesForAliasCause must be created to represent the different reasons why mailboxes cannot be set for an alias, including values for Forbidden, EmptyMailboxes, and TooManyMailboxes.",
+      "evidence": "gold.patch lines 17-20 show class CannotSetMailboxesForAliasCause(Enum) with values Forbidden, EmptyMailboxes, and TooManyMailboxes.",
+      "justification": "[1: Explicit Prompt Requirement] The provided interface specifies CannotSetMailboxesForAliasCause as an Enum class in app/alias_mailbox_utils.py with 'Values include Forbidden, EmptyMailboxes, and TooManyMailboxes.' [2: Implicit Codebase Constraint] The codebase uses enums for error causes (e.g., CannotSetCustomDomainMailboxesCause in custom_domain_utils.py). [3: Logical Necessity] The utility function needs to return structured error information to allow callers to handle different failure cases appropriately. [5: Conclusion] Therefore, any correct answer must create an enum for mailbox validation error causes.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+    "title": "1.3: Adds an upper bound limit of 20 mailboxes that can be assigned to an alias",
+    "annotations": {
+      "importance": "must have",
+      "description": "The solution must enforce a maximum of 20 mailboxes that can be assigned to a single alias in the validation logic to prevent unbounded assignment.",
+      "evidence": "gold.patch line 14 shows _MAX_MAILBOXES_PER_ALIAS = 20 constant, and lines 34-35 show the limit being enforced in the utility function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'Right now we also don't have any upper bound on how many mailboxes can be assigned, which could be a problem - let's cap it at 20 mailboxes per alias.' The provided interface description mentions 'too many mailboxes' as a validation failure case. [2: Implicit Codebase Constraint] The codebase already has _MAX_MAILBOXES_PER_DOMAIN = 20 in custom_domain_utils.py as a pattern for limiting mailboxes. [5: Conclusion] Therefore, any correct answer must add an upper bound limit of 20 on mailbox assignments.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "title": "1.4: Refactors `app/api/views/alias.py` to use `set_mailboxes_for_alias()` instead of inline logic",
+    "annotations": {
+      "importance": "must have",
+      "description": "The alias.py API view must be refactored to call the set_mailboxes_for_alias() utility function instead of containing inline mailbox validation and assignment logic.",
+      "evidence": "gold.patch lines 61-117 show alias.py being modified to replace the inline mailbox assignment code block with a call to the set_mailboxes_for_alias() utility function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Both app/api/views/alias.py and app/api/views/custom_domain.py have nearly identical code' and 'reduce the duplication.' [2: Implicit Codebase Constraint] alias.py is explicitly named as one of the files with duplicated code. [3: Logical Necessity] To reduce duplication, alias.py must delegate to a utility. [5: Conclusion] Therefore, any correct answer must refactor alias.py to use the utility function.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+    "title": "1.5: Refactors `app/api/views/custom_domain.py` to leverage the existing `set_custom_domain_mailboxes()` in `custom_domain_utils.py` instead of inline logic",
+    "annotations": {
+      "importance": "must have",
+      "description": "The custom_domain.py API view must be refactored to use the existing mailbox assignment utility in custom_domain_utils.py instead of containing inline mailbox validation and assignment logic.",
+      "evidence": "gold.patch lines 118-165 show custom_domain.py being modified to replace the inline mailbox assignment code block with a call to set_custom_domain_mailboxes() from custom_domain_utils.py.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'custom_domain_utils.py already has a mailbox assignment utility for custom domains, so the duplication in custom_domain.py can be resolved by leveraging it.' [2: Implicit Codebase Constraint] The codebase already has set_custom_domain_mailboxes() in custom_domain_utils.py, establishing the pattern for extracting mailbox assignment logic into utility functions. [3: Logical Necessity] To reduce duplication, custom_domain.py must delegate to the existing utility. [5: Conclusion] Therefore, any correct answer must refactor custom_domain.py to use the existing utility in custom_domain_utils.py.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
+    "title": "1.6: Rejects mailbox assignment when an empty mailbox list is provided",
+    "annotations": {
+      "importance": "must have",
+      "description": "The utility function must reject operations where an empty list of mailbox IDs is provided, as an alias must have at least one mailbox.",
+      "evidence": "gold.patch lines 32-33 show 'if len(mailbox_ids) == 0: return CannotSetMailboxesForAliasCause.EmptyMailboxes'. Original alias.py behavior returns 'Must choose at least one mailbox' error.",
+      "justification": "[1: Explicit Prompt Requirement] The provided interface description states the function 'Returns None on success, or a CannotSetMailboxesForAliasCause error if validation fails (empty list, too many mailboxes, or forbidden mailboxes).' [2: Implicit Codebase Constraint] The original code in alias.py rejects empty mailbox lists with a specific error message. [3: Logical Necessity] This validation ensures data integrity as aliases must have at least one mailbox. [5: Conclusion] Therefore, any correct answer must reject empty mailbox lists.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+    "title": "1.7: Preserves the storage pattern of first mailbox in `alias.mailbox_id` and additional mailboxes in `AliasMailbox` table",
+    "annotations": {
+      "importance": "must have",
+      "description": "The solution must preserve the existing behavior where the first mailbox is stored in alias.mailbox_id and any additional mailboxes are stored in the AliasMailbox table.",
+      "evidence": "gold.patch lines 54-58 show 'for i, mailbox in enumerate(mailboxes): if i == 0: alias.mailbox_id = mailboxes[0].id else: AliasMailbox.create(alias_id=alias.id, mailbox_id=mailbox.id)'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The current behavior stores the first mailbox in alias.mailbox_id and any additional mailboxes in the AliasMailbox table. This pattern should be preserved.' [5: Conclusion] Therefore, any correct answer must preserve this storage pattern.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
+    "title": "3.1: Removes unused imports (AliasMailbox from alias.py, Mailbox and DomainMailbox from custom_domain.py) after refactoring",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "After refactoring, imports that are no longer used in the API view files should be removed for cleaner code.",
+      "evidence": "gold.patch line 78 shows AliasMailbox removed from alias.py imports. Lines 128-130 show Mailbox and DomainMailbox removed from custom_domain.py imports.",
+      "justification": "[4: Qualitative Requirement] Removing unused imports improves code clarity and reduces maintenance burden. [5: Conclusion] Therefore, any correct answer should remove imports that become unused after refactoring.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+    "title": "4.1: Allows assigning mailboxes owned by a different user to an alias or custom domain",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the refactoring does not introduce a security vulnerability by allowing users to assign mailboxes owned by other users to their aliases.",
+      "evidence": "Original alias.py checks 'mailbox.user_id != user.id'. gold.patch lines 40-41 preserve this with 'Mailbox.user_id == user_id' filter.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt describes existing behavior as 'checking ownership' which must be preserved. The provided interface description mentions 'forbidden mailboxes' as a validation failure case, which includes ownership violations. [2: Implicit Codebase Constraint] The original code enforces ownership validation. [4: Qualitative Requirement] Removing ownership validation would create a critical security vulnerability. [5: Conclusion] Therefore, any correct answer must NOT allow assigning mailboxes owned by other users.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+    "title": "4.2: Allows assigning unverified mailboxes to an alias or custom domain",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the refactoring does not weaken security by allowing unverified mailboxes to be assigned to aliases.",
+      "evidence": "Original alias.py checks 'not mailbox.verified'. gold.patch line 42 preserves this with 'Mailbox.verified == True' filter.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt describes existing behavior as 'verifying the mailbox is verified' which must be preserved. The provided interface description mentions 'forbidden mailboxes' as a validation failure case, which includes unverified mailboxes. [2: Implicit Codebase Constraint] The original code enforces verification check. [4: Qualitative Requirement] Allowing unverified mailboxes would bypass email ownership verification. [5: Conclusion] Therefore, any correct answer must NOT allow assigning unverified mailboxes.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

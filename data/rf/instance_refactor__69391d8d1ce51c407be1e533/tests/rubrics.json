@@ -1,0 +1,134 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "abf03b45e91985bb0356a8a8e179715e",
+    "title": "1.1: Creates delete_custom_domain(domain: CustomDomain) function in app/custom_domain_utils.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that a new function is created in a utility module to handle the custom domain deletion logic. The function should encapsulate the deletion scheduling behavior that was previously inline in the controller.",
+      "evidence": "gold.patch lines 28-37 in app/custom_domain_utils.py show the creation of def delete_custom_domain(domain: CustomDomain): function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'Extract the custom domain deletion logic from the controller into a dedicated utility function'. The provided interface specifies `delete_custom_domain(domain: CustomDomain)` in `app/custom_domain_utils.py`. [2: Implicit Codebase Constraint] The codebase already has app/custom_domain_utils.py as the utility module for custom domain operations (create_custom_domain, can_domain_be_used, etc.), establishing a pattern that deletion logic should follow. [5: Conclusion] Therefore, any correct answer must create delete_custom_domain in the existing utility module."
+    }
+  },
+  {
+    "id": "26eb3051aa66626eb1535431f143dd05",
+    "title": "1.2: Calls delete_custom_domain from the domain detail controller",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the controller (domain_detail.py) calls the newly created utility function instead of having the deletion logic inline. The inline code block that created the Job and set pending_deletion should be replaced with a function call.",
+      "evidence": "gold.patch line 86 in app/dashboard/views/domain_detail.py shows delete_custom_domain(custom_domain) replacing the inline logic.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The controller should call this new function instead of having the deletion code inline'. [3: Logical Necessity] Once the deletion logic is extracted to a utility function, the controller must call that function to trigger deletion; otherwise the deletion flow would be broken. [5: Conclusion] Therefore, any correct answer must replace the inline deletion code with a call to delete_custom_domain."
+    }
+  },
+  {
+    "id": "87f9e9004105d8d56e727716665bbcc0",
+    "title": "1.3: Sets pending_deletion flag to True in delete_custom_domain",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the extracted utility function includes the logic to set domain.pending_deletion = True. This flag marks the domain as being in the process of deletion.",
+      "evidence": "gold.patch line 31 in app/custom_domain_utils.py shows domain.pending_deletion = True inside the new function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Keep the existing behavior unchanged'. [2: Implicit Codebase Constraint] The pending_deletion flag is used by other parts of the system to identify domains awaiting deletion and prevent operations on them. [3: Logical Necessity] The original controller code sets pending_deletion = True before creating the deletion job, so the extracted function must preserve this behavior to maintain system consistency. [5: Conclusion] Therefore, any correct answer must set pending_deletion = True in delete_custom_domain."
+    }
+  },
+  {
+    "id": "691deca772163910c9f07dc818fff6be",
+    "title": "1.4: Schedules deletion job in delete_custom_domain using Job.create",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the extracted utility function schedules the domain deletion job. The job creation should include the necessary parameters to identify the domain to be deleted.",
+      "evidence": "gold.patch lines 32-37 in app/custom_domain_utils.py show Job.create(name=JOB_DELETE_DOMAIN, payload={'custom_domain_id': domain.id}, run_at=arrow.now(), commit=True).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Keep the existing behavior unchanged'. [2: Implicit Codebase Constraint] The job_runner.py expects jobs with name=JOB_DELETE_DOMAIN and payload containing 'custom_domain_id' to process domain deletions. [3: Logical Necessity] The original controller creates a Job to schedule asynchronous deletion, so the extracted function must preserve this exact job creation to maintain the deletion pipeline. [5: Conclusion] Therefore, any correct answer must schedule the deletion job with correct parameters in delete_custom_domain."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "1c6060d1aa1080f1617c74f99692088c",
+    "title": "3.1: Removes all 4 unused imports (arrow, JOB_DELETE_DOMAIN, Job, LOG) from the domain detail controller",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that all imports that became unused after extracting the deletion logic are removed from the controller. These were only used in the deletion block which is now in the utility function.",
+      "evidence": "gold.patch shows removal of: 'import arrow' (line 45), 'JOB_DELETE_DOMAIN' from config import (line 52), 'from app.log import LOG' (line 58), and 'Job' from models import (line 66) in app/dashboard/views/domain_detail.py.",
+      "justification": "[3: Logical Necessity] After extracting the deletion logic to delete_custom_domain, these 4 imports are no longer used in the controller since their usages (arrow.now(), JOB_DELETE_DOMAIN, Job.create(), LOG.w()) all moved to the utility function. [4: Qualitative Requirement] A seasoned SWE would remove imports that are no longer used after refactoring. [5: Conclusion] Therefore, a thorough refactor should remove all 4 unused imports from the controller."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "8841b4dfa303924e7b0e9a196ab1c10c",
+    "title": "4.1: Removes the domain deletion functionality entirely instead of extracting it",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the solution removes the deletion functionality altogether rather than extracting it to a utility function. The deletion behavior (setting pending_deletion and creating a Job) must still exist somewhere in the codebase.",
+      "evidence": "gold.patch preserves all deletion behavior: lines 28-37 in custom_domain_utils.py contain the full deletion logic, and line 86 in domain_detail.py calls the function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Keep the existing behavior unchanged'. [2: Implicit Codebase Constraint] The domain deletion functionality is a critical user-facing feature that allows users to delete their custom domains. [3: Logical Necessity] Removing the deletion functionality would break the application's domain management workflow and leave users unable to delete domains. [5: Conclusion] Therefore, removing the deletion functionality instead of extracting it is a failure."
+    }
+  },
+  {
+    "id": "5ce21be322edb48fb641f11d1a5299a8",
+    "title": "4.2: Changes any of the 2 deletion job parameters (JOB_DELETE_DOMAIN name, custom_domain_id payload key)",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the solution modifies the deletion behavior in a way that would break the deletion process. The job must be created with the correct name (JOB_DELETE_DOMAIN) and include the domain identifier in the payload.",
+      "evidence": "gold.patch lines 32-37 show Job.create preserves original behavior: name=JOB_DELETE_DOMAIN and payload={'custom_domain_id': domain.id}.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Keep the existing behavior unchanged'. [3: Logical Necessity] The job runner expects JOB_DELETE_DOMAIN name and custom_domain_id in payload to process the deletion correctly. Changing these would cause the deletion to fail silently. [5: Conclusion] Therefore, changing the existing deletion behavior is a failure."
+    }
+  }
+]

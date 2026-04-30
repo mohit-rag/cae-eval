@@ -1,0 +1,230 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the refactoring improves code maintainability by properly handling and propagating decoding errors in the packet decoding layer.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+    "title": "1.1: Changes decoder function signatures to return int status code",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that all 15 decoder functions in decode-*.c files named in the task prompt (ethernet, ipv4, ipv6, tcp, udp, icmpv4, icmpv6, gre, vlan, ppp, pppoe, raw, sctp, sll, teredo) are changed from returning void to returning an int status code indicating success or failure.",
+      "evidence": "Gold patch shows signature changes from 'void DecodeEthernet(...)' to 'int DecodeEthernet(...)' across decode-ethernet.c, decode-gre.c, decode-icmpv4.c, decode-icmpv6.c, decode-ipv4.c, decode-ipv6.c, decode-ppp.c, decode-pppoe.c, decode-raw.c, decode-sctp.c, decode-sll.c, decode-tcp.c, decode-udp.c, decode-vlan.c, decode-teredo.c",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states 'Change all decoder function signatures to return an int status code indicating success or failure.' [5: Conclusion] This rubric verifies the core signature change requirement."
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+    "title": "1.2: Updates decoder declarations in the header file",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the corresponding decoder function declarations in decode.h are updated to reflect the new int return type.",
+      "evidence": "Gold patch shows decode.h changes from 'void DecodeEthernet(...)' to 'int DecodeEthernet(...)' etc. for all decoder functions (lines 828-843 in gold patch)",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Update the corresponding declarations in the decode header file.' [3: Logical Necessity] Header declarations must match implementation signatures. [5: Conclusion] This ensures API consistency between declarations and definitions."
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "title": "1.3: Returns failure status code on decoding errors",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that decoder functions return TM_ECODE_FAILED when decoding fails due to malformed data, insufficient length, or other errors, consistent with the int status contract in the decode header.",
+      "evidence": "Gold patch shows 'return TM_ECODE_FAILED' in early-exit error paths, including decode-ethernet.c for ETHERNET_PKT_TOO_SMALL and decode-ipv4.c when DecodeIPV4Packet fails",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires an 'int status code indicating success or failure.' [3: Logical Necessity] Decoding errors must be distinguishable from success to enable proper error handling. [5: Conclusion] This verifies the error propagation mechanism works."
+    }
+  },
+  {
+    "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+    "title": "1.4: Returns success status code on successful decoding",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that decoder functions return TM_ECODE_OK when decoding completes successfully, consistent with the int status contract in the decode header.",
+      "evidence": "Gold patch shows 'return TM_ECODE_OK' at successful completion paths in all decoder functions",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires an 'int status code indicating success or failure.' [3: Logical Necessity] Callers need to distinguish successful decoding from failure. [5: Conclusion] This verifies the success path returns appropriate status."
+    }
+  },
+  {
+    "id": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
+    "title": "1.5: Returns failed tunnel packets to packet pool",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that when tunnel decoding fails, the tunneled packet is returned to the packet pool rather than being enqueued for further processing.",
+      "evidence": "Gold patch in decode.c PacketTunnelPktSetup returns the tunneled packet to the packet pool on decode failure (non-TM_ECODE_OK path) before returning NULL, without enqueueing it for further processing.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'When tunnel decoding fails, ensure the tunneled packet is properly returned to the packet pool rather than being enqueued for further processing.' [5: Conclusion] This prevents invalid packets from being processed."
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+    "title": "1.6: Consolidates tunnel packet setup pattern into helper function",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the repetitive pattern of setting up a pseudo packet, calling the tunnel decoder, checking the result, and either enqueuing or freeing the packet is unified into a single helper function that is called from all four tunnel decoders (GRE, IPv4, IPv6, and Teredo).",
+      "evidence": "Gold patch introduces PacketTunnelPktSetup function in decode.c that handles the pattern, and updates decode-gre.c, decode-ipv4.c, decode-ipv6.c, decode-teredo.c to use PacketTunnelPktSetup instead of the old PacketPseudoPktSetup + DecodeTunnel pattern",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Consolidate the repetitive pattern of setting up a pseudo packet, calling the tunnel decoder, checking the result, and either enqueuing or freeing the packet... should be unified into a single helper function.' [4: Qualitative Requirement] This reduces code duplication and improves maintainability. [5: Conclusion] This verifies the DRY principle is applied to tunnel handling."
+    }
+  },
+  {
+    "id": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
+    "title": "1.7: Does not modify original fragment packet on defrag decode failure",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that if decoding a reassembled (defragmented) packet fails, the original fragment packet is not modified: it is neither marked as a tunnel packet nor has detection disabled, matching both constraints stated in the task prompt.",
+      "evidence": "Gold patch shows defrag.c: DecodeIPV4/DecodeIPV6 runs on the reassembled packet, PacketDefragPktFinishSetup runs on the parent only after successful decode, and failed decode paths do not apply tunnel-parent setup or otherwise alter the original fragment's inspection state.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'For defragmented packets, ensure that if decoding the reassembled packet fails, the original fragment packet is not modified (e.g., not marked as a tunnel packet or having detection disabled).' [5: Conclusion] This prevents corruption of the original packet state on decode failure."
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+    "title": "1.8: Adds warn_unused_result attribute to DecodeTunnel",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the DecodeTunnel function declaration includes __attribute__((warn_unused_result)) or another compiler-supported attribute with the same intent so callers are warned if the return value is unused.",
+      "evidence": "Gold patch shows in decode.h: 'int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *, uint8_t) __attribute__ ((warn_unused_result));'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The tunnel decoder function should be marked with a compiler attribute to warn if its return value is unused.' [5: Conclusion] This ensures callers handle decode failures at compile time."
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+    "title": "1.9: Updates DecodeTunnel to return int status code",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the DecodeTunnel function signature is changed from void to int and properly propagates the status code from the underlying decoder.",
+      "evidence": "Gold patch shows decode.c DecodeTunnel changed from 'void DecodeTunnel(...)' to 'int DecodeTunnel(...)' and returns the status from the selected underlying decoder ('return DecodeIPV4(...)', 'return DecodeIPV6(...)', and similar).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires changing decoder function signatures to return int. [3: Logical Necessity] DecodeTunnel calls other decoders and must propagate their status. [5: Conclusion] This ensures error propagation through the tunnel decoding path."
+    }
+  },
+  {
+    "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+    "title": "1.10: Updates Defrag function signature to accept PacketQueue",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "Code Maintainability",
+      "description": "Verifies that the Defrag function signature is updated to accept a PacketQueue parameter so it can pass it to the decoder for reassembled packets.",
+      "evidence": "Gold patch shows defrag.h and defrag.c changes: 'Packet *Defrag(ThreadVars *, DecodeThreadVars *, Packet *)' to 'Packet *Defrag(ThreadVars *, DecodeThreadVars *, Packet *, PacketQueue *)'",
+      "justification": "[3: Logical Necessity] The Defrag function needs to call the decoder on reassembled packets, and decoders require a PacketQueue parameter for tunnel handling. [5: Conclusion] This enables proper decoder integration within defragmentation."
+    }
+  },
+  {
+    "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "Documentation Maintainability",
+      "description": "Verifies that documentation comments are updated to reflect the new function signatures and return values.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8",
+    "title": "2.1: Updates function documentation for Teredo decoder return value",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Documentation Maintainability",
+      "description": "Verifies that the documentation comment for the Teredo decoder in decode-teredo.c (named in the task prompt) reflects return semantics using TM_ECODE_FAILED and TM_ECODE_OK instead of the prior 0/1 retval documentation.",
+      "evidence": "Gold patch shows decode-teredo.c comment changed from '\\retval 0 if packet is not a Teredo packet, 1 if it is' to '\\retval TM_ECODE_FAILED if packet is not a Teredo packet, TM_ECODE_OK if it is'",
+      "justification": "[4: Qualitative Requirement] Documentation should accurately reflect function behavior. [5: Conclusion] This ensures developers understand the new return value semantics."
+    }
+  },
+  {
+    "id": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "Artifact Cleanup",
+      "description": "Verifies removal of obsolete code patterns and dead code resulting from the refactor.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
+    "title": "3.1: Removes redundant DecodeTunnel calls from tunnel decoders",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "Verifies that explicit DecodeTunnel calls are removed from all four tunnel decoders (GRE, IPv4, IPv6, and Teredo) since the consolidated helper function handles this internally.",
+      "evidence": "Gold patch shows removal of 'DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq, ...)' calls from decode-gre.c, decode-ipv4.c, decode-ipv6.c, decode-teredo.c",
+      "justification": "[3: Logical Necessity] Since the helper function now calls DecodeTunnel internally, the explicit calls are redundant. [4: Qualitative Requirement] Removing redundant code improves maintainability. [5: Conclusion] This prevents duplicate decoding attempts."
+    }
+  },
+  {
+    "id": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+    "title": "3.2: Removes unreachable control flow after return in DecodeIPV6",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "Artifact Cleanup",
+      "description": "Verifies that unreachable statements following a return in the IPPROTO_UDP branch of DecodeIPV6 in decode-ipv6.c are removed as dead code after the void-to-int return refactor.",
+      "evidence": "Gold patch removes redundant return-plus-break sequences in that branch in favor of a single return TM_ECODE_OK on the success path.",
+      "justification": "[4: Qualitative Requirement] Dead code should be removed for clarity. [5: Conclusion] This removes unreachable code that existed in the original."
+    }
+  },
+  {
+    "id": "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "Negative Rubrics",
+      "description": "Verifies that the implementation does not introduce breaking changes, regressions, or anti-patterns.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
+    "title": "4.1: Marks parent fragment packet as tunnel on defrag decode failure",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "Detects if the implementation marks the original fragment packet as a tunnel packet (via SET_TUNNEL_PKT or similar) when decoding the reassembled packet fails.",
+      "evidence": "Prompt requirement: 'For defragmented packets, ensure that if decoding the reassembled packet fails, the original fragment packet is not modified (e.g., not marked as a tunnel packet or having detection disabled).'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly requires the original fragment to remain unmodified on decode failure. [5: Conclusion] This rubric passes (detects violation) if parent packet state is modified despite decode failure."
+    }
+  },
+  {
+    "id": "d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7",
+    "title": "4.2: Removes decoder functions from public API in decode.h",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "Negative Rubrics",
+      "description": "Detects if the implementation removes the decoder function declarations from decode.h, breaking the public API that other modules depend on.",
+      "evidence": "The gold patch shows decoder declarations are retained and updated in decode.h, not removed.",
+      "justification": "[2: Implicit Code Base Constraint] Other modules include decode.h and call these functions. [3: Logical Necessity] Removing declarations would cause compilation failures. [5: Conclusion] This rubric passes (detects violation) if decoder declarations are removed from the header."
+    }
+  }
+]

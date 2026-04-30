@@ -1,0 +1,1688 @@
+diff --git a/src/Makefile.am b/src/Makefile.am
+index ff962da84..df39bd32e 100755
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -584,6 +584,7 @@ EXTRA_DIST = \
+ 	tests/detect-bsize.c \
+ 	tests/detect.c \
+ 	tests/detect-engine-alert.c \
++	tests/detect-engine-analyzer.c \
+ 	tests/detect-engine-content-inspection.c \
+ 	tests/detect-file-data.c \
+ 	tests/detect-http2.c \
+diff --git a/src/runmode-unittests.c b/src/runmode-unittests.c
+index dfe1437ad..7672f93ca 100644
+--- a/src/runmode-unittests.c
++++ b/src/runmode-unittests.c
+@@ -105,6 +105,9 @@
+ 
+ #include "util-streaming-buffer.h"
+ #include "util-lua.h"
++#include "detect-engine-analyzer.h"
++#include "conf-yaml-loader.h"
++#include "util-conf.h"
+ 
+ #ifdef OS_WIN32
+ #include "win32-syscall.h"
+@@ -119,6 +122,8 @@
+ #include <nss.h>
+ #endif
+ 
++#include "tests/detect-engine-analyzer.c"
++
+ #endif /* UNITTESTS */
+ 
+ void TmqhSetup (void);
+@@ -211,6 +216,7 @@ static void RegisterUnittests(void)
+ #endif
+     SCProtoNameRegisterTests();
+     UtilCIDRTests();
++    DetectEngineAnalyzerRegisterTests();
+ }
+ #endif
+ 
+diff --git a/src/tests/detect-engine-analyzer.c b/src/tests/detect-engine-analyzer.c
+new file mode 100644
+index 000000000..501098697
+--- /dev/null
++++ b/src/tests/detect-engine-analyzer.c
+@@ -0,0 +1,1639 @@
++/* Copyright (C) 2023 Open Information Security Foundation
++ *
++ * You can copy, redistribute or modify this Program under the terms of
++ * the GNU General Public License version 2 as published by the Free
++ * Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * version 2 along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include "../suricata-common.h"
++#include "../suricata.h"
++#include "../detect.h"
++#include "../detect-engine.h"
++#include "../detect-engine-analyzer.h"
++#include "../detect-engine-build.h"
++#include "../detect-engine-mpm.h"
++#include "../detect-parse.h"
++#include "../runmodes.h"
++#include "../conf.h"
++#include "../conf-yaml-loader.h"
++#include "../util-conf.h"
++#include "../util-unittest.h"
++
++static int EngineAnalysisInitYamlConf(const char *conf)
++{
++    ConfCreateContextBackup();
++    ConfInit();
++    return ConfYamlLoadString(conf, strlen(conf));
++}
++
++static void EngineAnalysisDeInitYamlConf(void)
++{
++    ConfDeInit();
++    ConfRestoreContextBackup();
++}
++
++/**
++ * \test Verify DetectEngineCtx has the ea field and it starts NULL.
++ */
++static int DetectEngineAnalyzerTest01(void)
++{
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++
++    FAIL_IF_NOT_NULL(de_ctx->ea);
++
++    DetectEngineCtxFree(de_ctx);
++    PASS;
++}
++
++/**
++ * \test Verify DetectEngineCtx has the relocated hash tables and
++ *       the new pcre fields for classification and reference config parsing.
++ */
++static int DetectEngineAnalyzerTest02(void)
++{
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++
++    FAIL_IF_NULL(de_ctx->class_conf_ht);
++    FAIL_IF_NULL(de_ctx->reference_conf_ht);
++
++    FAIL_IF_NOT_NULL(de_ctx->class_conf_regex);
++    FAIL_IF_NOT_NULL(de_ctx->class_conf_regex_study);
++    FAIL_IF_NOT_NULL(de_ctx->reference_conf_regex);
++    FAIL_IF_NOT_NULL(de_ctx->reference_conf_regex_study);
++
++    DetectEngineCtxFree(de_ctx);
++    PASS;
++}
++
++/**
++ * \test SetupEngineAnalysis with analysis disabled returns false for both
++ *       output booleans.
++ */
++static int DetectEngineAnalyzerTest03(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: no\n"
++        "  rules: no\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++
++    bool fp_analysis = true;
++    bool rule_analysis = true;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++
++    FAIL_IF(fp_analysis);
++    FAIL_IF(rule_analysis);
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/**
++ * \test SetupEngineAnalysis with rule analysis enabled sets rule_analysis
++ *       to true and allocates ea context.
++ */
++static int DetectEngineAnalyzerTest05(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++
++    FAIL_IF_NOT(rule_analysis);
++    FAIL_IF_NULL(de_ctx->ea);
++
++    CleanupEngineAnalysis(de_ctx);
++    FAIL_IF_NOT_NULL(de_ctx->ea);
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/**
++ * \test SetupEngineAnalysis with both analyzers enabled.
++ */
++static int DetectEngineAnalyzerTest06(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++
++    FAIL_IF_NOT(fp_analysis);
++    FAIL_IF_NOT(rule_analysis);
++    FAIL_IF_NULL(de_ctx->ea);
++
++    CleanupEngineAnalysis(de_ctx);
++    FAIL_IF_NOT_NULL(de_ctx->ea);
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/**
++ * \test CleanupEngineAnalysis with NULL ea is a safe no-op.
++ */
++static int DetectEngineAnalyzerTest07(void)
++{
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++
++    FAIL_IF_NOT_NULL(de_ctx->ea);
++    CleanupEngineAnalysis(de_ctx);
++    FAIL_IF_NOT_NULL(de_ctx->ea);
++
++    DetectEngineCtxFree(de_ctx);
++    PASS;
++}
++
++/**
++ * \test Verify rule_engine_analysis_set is a bool (extern variable type
++ *       change from int to bool).
++ */
++static int DetectEngineAnalyzerTest13(void)
++{
++    extern bool rule_engine_analysis_set;
++
++    bool saved = rule_engine_analysis_set;
++    rule_engine_analysis_set = true;
++    FAIL_IF_NOT(rule_engine_analysis_set == true);
++    rule_engine_analysis_set = false;
++    FAIL_IF_NOT(rule_engine_analysis_set == false);
++    rule_engine_analysis_set = saved;
++
++    PASS;
++}
++
++/**
++ * \test Rule analysis creates rules_analysis.txt with prefix.
++ */
++static int DetectEngineAnalyzerTest15(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInitWithPrefix("rtest");
++    FAIL_IF_NULL(de_ctx);
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rtest.rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    fclose(f);
++
++    CleanupEngineAnalysis(de_ctx);
++    FAIL_IF_NOT_NULL(de_ctx->ea);
++
++    unlink("/tmp/suricata-test-log/rtest.rules_analysis.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/**
++ * \test EngineAnalysisRules with a TCP content rule exercises
++ *       EngineAnalysisItemsInit, the analyzer_items array, and
++ *       the analysis output path including EngineAnalysisRulesPrintFP.
++ */
++static int DetectEngineAnalyzerTest16(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(fp_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert tcp any any -> any any (content:\"test\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "== Sid: 1 =="));
++    FAIL_IF_NULL(strstr(buf, "1 content options"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/**
++ * \test EngineAnalysisRules called on two signatures exercises
++ *       the EngineAnalysisItemsReset path on the second invocation.
++ */
++static int DetectEngineAnalyzerTest17(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule1 = "alert tcp any any -> any any (content:\"abc\"; sid:1; rev:1;)";
++    Signature *s1 = DetectEngineAppendSig(de_ctx, rule1);
++    FAIL_IF_NULL(s1);
++
++    const char *rule2 = "alert tcp any any -> any any (content:\"def\"; sid:2; rev:1;)";
++    Signature *s2 = DetectEngineAppendSig(de_ctx, rule2);
++    FAIL_IF_NULL(s2);
++
++    EngineAnalysisRules(de_ctx, s1, rule1);
++    EngineAnalysisRules(de_ctx, s2, rule2);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "== Sid: 1 =="));
++    FAIL_IF_NULL(strstr(buf, "== Sid: 2 =="));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/**
++ * \test EngineAnalysisFP exercises the fast pattern analysis path.
++ *       With no mpm_sm set, the "No content present" path is taken.
++ */
++static int DetectEngineAnalyzerTest18(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(fp_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert tcp any any -> any any (content:\"test\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    char line[] = "alert tcp any any -> any any (content:\"test\"; sid:1; rev:1;)";
++    EngineAnalysisFP(de_ctx, s, line);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "== Sid: 1 =="));
++    FAIL_IF_NULL(strstr(buf, "Fast Pattern analysis"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/**
++ * \test EngineAnalysisRules with a PCRE-only rule (no content) triggers
++ *       the warn_pcre_no_content warning path.
++ */
++static int DetectEngineAnalyzerTest19(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert tcp any any -> any any (pcre:\"/test/\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "== Sid: 1 =="));
++    FAIL_IF_NULL(strstr(buf, "Warning: Rule uses pcre without a content option present"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/**
++ * \test EngineAnalysisRules2 creates the JSON output file using
++ *       the per-engine file prefix path in the ea context.
++ */
++static int DetectEngineAnalyzerTest20(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert tcp any any -> any any (content:\"test\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules2(de_ctx, s);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules.json", "r");
++    FAIL_IF_NULL(f);
++    fclose(f);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    unlink("/tmp/suricata-test-log/rules.json");
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/**
++ * \test EngineAnalysisRulesFailure writes failure details for an
++ *       invalid rule to the per-engine analysis output file.
++ */
++static int DetectEngineAnalyzerTest21(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(fp_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    char line[] = "alert tcp any any -> any any (content:\"bad; sid:999;)";
++    char sigfile[] = "test.rules";
++    EngineAnalysisRulesFailure(de_ctx, line, sigfile, 42);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_fast_pattern.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "== Sid: UNKNOWN =="));
++    FAIL_IF_NULL(strstr(buf, "FAILURE: invalid rule"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/**
++ * \test EngineAnalysisRules with an http_uri content rule containing
++ *       percent encoding triggers the encoding warning via PerCentEncodingMatch.
++ */
++static int DetectEngineAnalyzerTest22(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert tcp any any -> any any (content:\"%2F\"; http_uri; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "percent encoded content"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test TCP content rule without flow or flags triggers warn_tcp_no_flow. */
++static int DetectEngineAnalyzerTest23(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert tcp any any -> any any (content:\"hello\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "TCP rule without a flow or flags option"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test HTTP rule with mixed plain and http_* content triggers warn_content_http_content. */
++static int DetectEngineAnalyzerTest24(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert http any any -> any any (content:\"plain\"; content:\"c\"; http_cookie; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "content with http_* and content without http_*"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test HTTP rule with http content and bare pcre triggers warn_pcre_http_content. */
++static int DetectEngineAnalyzerTest25(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert http any any -> any any (content:\"a\"; http_uri; pcre:\"/foo/\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "pcre options without http modifiers"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test HTTP-only pcre without http modifiers triggers warn_pcre_http. */
++static int DetectEngineAnalyzerTest26(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert http any any -> any any (pcre:\"/./\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "pcre options do not have http modifiers"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test HTTP plain content without http_* triggers warn_content_http. */
++static int DetectEngineAnalyzerTest27(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert http any any -> any any (content:\"plainonly\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "content options do not have http_* modifiers"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test Well-formed TCP rule with flow prints the no-warnings branch. */
++static int DetectEngineAnalyzerTest28(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert tcp any any -> any any (flow:to_server,established; content:\"hello\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "No warnings for this rule"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test HTTP URI rule exercises buffer match reporting without warnings. */
++static int DetectEngineAnalyzerTest29(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert http any any -> any any (flow:to_server; content:\"/index\"; http_uri; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "http uri buffer"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test TLS rule prints app-layer protocol line in analysis output. */
++static int DetectEngineAnalyzerTest30(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert tls any any -> any any (flow:to_server,established; content:\"|16 03|\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "App layer protocol is"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test EngineAnalysisFP prefilter branch after SigAddressPrepareStage4. */
++static int DetectEngineAnalyzerTest31(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(fp_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert tcp any any -> any any (content:\"abc\"; fast_pattern; prefilter; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    FAIL_IF(SigAddressPrepareStage1(de_ctx) != 0);
++    FAIL_IF(SigAddressPrepareStage2(de_ctx) != 0);
++    FAIL_IF(SigAddressPrepareStage3(de_ctx) != 0);
++    FAIL_IF(SigAddressPrepareStage4(de_ctx) != 0);
++
++    char line[] =
++        "alert tcp any any -> any any (content:\"abc\"; fast_pattern; prefilter; sid:1; rev:1;)";
++    EngineAnalysisFP(de_ctx, s, line);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "Prefilter on:"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test tcp-pkt rule reports packet payload matching. */
++static int DetectEngineAnalyzerTest32(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert tcp-pkt any any -> any any (content:\"a\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "Rule matches on packets"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test TCP rule with flow and stream match reports reassembled stream. */
++static int DetectEngineAnalyzerTest33(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert tcp any any -> any any (flow:established,to_server; content:\"a\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "reassembled stream"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test engine-analysis.rules: warnings-only suppresses output when no warnings. */
++static int DetectEngineAnalyzerTest34(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: warnings-only\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert tcp any any -> any any (flow:to_server,established; content:\"quiet\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NOT_NULL(strstr(buf, "== Sid: 1 =="));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test warnings-only still emits analysis when a warning is present. */
++static int DetectEngineAnalyzerTest35(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: warnings-only\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert tcp any any -> any any (content:\"warnme\"; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules(de_ctx, s, rule);
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[8192];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "== Sid: 1 =="));
++    FAIL_IF_NULL(strstr(buf, "TCP rule without a flow or flags option"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test EngineAnalysisFP detailed path: RetrieveFPForSig then FP (matches loader order). */
++static int DetectEngineAnalyzerTest37(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(fp_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule = "alert tcp any any -> any any (content:\"abcdef\"; offset:1; depth:8; "
++                       "nocase; fast_pattern; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    RetrieveFPForSig(de_ctx, s);
++
++    char line[] =
++        "alert tcp any any -> any any (content:\"abcdef\"; offset:1; depth:8; nocase; fast_pattern; "
++        "sid:1; rev:1;)";
++    EngineAnalysisFP(de_ctx, s, line);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[16384];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "Fast pattern matcher"));
++    FAIL_IF_NULL(strstr(buf, "content\n"));
++    FAIL_IF_NULL(strstr(buf, "Offset"));
++    FAIL_IF_NULL(strstr(buf, "Depth"));
++    FAIL_IF_NULL(strstr(buf, "Nocase"));
++    FAIL_IF_NULL(strstr(buf, "Original content"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test EngineAnalysisFP with negated fast-pattern content (Negated flag). */
++static int DetectEngineAnalyzerTest38(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(fp_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert tcp any any -> any any (content:!\"abcdef\"; fast_pattern; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    RetrieveFPForSig(de_ctx, s);
++
++    char line[] =
++        "alert tcp any any -> any any (content:!\"abcdef\"; fast_pattern; sid:1; rev:1;)";
++    EngineAnalysisFP(de_ctx, s, line);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[16384];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "Negated"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test EngineAnalysisFP with fast_pattern:only and fast_pattern chop variants. */
++static int DetectEngineAnalyzerTest39(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(fp_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule_only =
++        "alert tcp any any -> any any (content:\"abcdefghijklmnop\"; fast_pattern:only; sid:1; rev:1;)";
++    Signature *s1 = DetectEngineAppendSig(de_ctx, rule_only);
++    FAIL_IF_NULL(s1);
++    RetrieveFPForSig(de_ctx, s1);
++    char line1[] =
++        "alert tcp any any -> any any (content:\"abcdefghijklmnop\"; fast_pattern:only; sid:1; rev:1;)";
++    EngineAnalysisFP(de_ctx, s1, line1);
++
++    const char *rule_chop =
++        "alert tcp any any -> any any (content:\"0123456789ABCDEF\"; fast_pattern:4,8; sid:2; rev:1;)";
++    Signature *s2 = DetectEngineAppendSig(de_ctx, rule_chop);
++    FAIL_IF_NULL(s2);
++    RetrieveFPForSig(de_ctx, s2);
++    char line2[] =
++        "alert tcp any any -> any any (content:\"0123456789ABCDEF\"; fast_pattern:4,8; sid:2; rev:1;)";
++    EngineAnalysisFP(de_ctx, s2, line2);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[32768];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "Fast pattern only set: yes"));
++    FAIL_IF_NULL(strstr(buf, "Fast pattern chop set: yes"));
++    FAIL_IF_NULL(strstr(buf, "Summary:"));
++    FAIL_IF_NULL(strstr(buf, "smallest pattern"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test SigLoadSignatures in engine-analysis mode runs loader FP + cleanup path. */
++static int DetectEngineAnalyzerTest40(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    const char *rules_path = "/tmp/suricata-test-log/eng_analysis_loader.rules";
++    FILE *wf = fopen(rules_path, "w");
++    FAIL_IF_NULL(wf);
++    fprintf(wf, "alert tcp any any -> any any (content:\"ZZTOP\"; fast_pattern; sid:77; rev:1;)\n");
++    fclose(wf);
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    int saved_rm = run_mode;
++    run_mode = RUNMODE_ENGINE_ANALYSIS;
++
++    char *sigpath = SCStrdup(rules_path);
++    FAIL_IF_NULL(sigpath);
++    FAIL_IF(SigLoadSignatures(de_ctx, sigpath, TRUE) != 0);
++    SCFree(sigpath);
++
++    run_mode = saved_rm;
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[32768];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "Fast pattern matcher"));
++
++    unlink(rules_path);
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test EngineAnalysisFP on HTTP buffer lists buffer name (non-PMATCH list). */
++static int DetectEngineAnalyzerTest41(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(fp_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert http any any -> any any (content:\"/index.html\"; http_uri; fast_pattern; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    RetrieveFPForSig(de_ctx, s);
++
++    char line[] =
++        "alert http any any -> any any (content:\"/index.html\"; http_uri; fast_pattern; sid:1; rev:1;)";
++    EngineAnalysisFP(de_ctx, s, line);
++
++    CleanupEngineAnalysis(de_ctx);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules_analysis.txt", "r");
++    FAIL_IF_NULL(f);
++    char buf[16384];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "Fast pattern matcher"));
++    FAIL_IF_NULL(strstr(buf, "http"));
++
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++/** \test EngineAnalysisRules2 JSON dump with multiple HTTP buffers. */
++static int DetectEngineAnalyzerTest36(void)
++{
++    const char *conf =
++        "%YAML 1.1\n"
++        "---\n"
++        "engine-analysis:\n"
++        "  rules-fast-pattern: yes\n"
++        "  rules: yes\n";
++
++    FAIL_IF(EngineAnalysisInitYamlConf(conf) == -1);
++    ConfigSetLogDirectory("/tmp/suricata-test-log");
++
++    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
++    FAIL_IF_NULL(de_ctx);
++    de_ctx->flags |= DE_QUIET;
++
++    bool fp_analysis = false;
++    bool rule_analysis = false;
++    SetupEngineAnalysis(de_ctx, &fp_analysis, &rule_analysis);
++    FAIL_IF_NOT(rule_analysis);
++
++    const char *rule =
++        "alert http any any -> any any (flow:to_server; content:\"GET\"; http_method; content:\"/\"; "
++        "http_uri; content:\"Host\"; http_header; sid:1; rev:1;)";
++    Signature *s = DetectEngineAppendSig(de_ctx, rule);
++    FAIL_IF_NULL(s);
++
++    EngineAnalysisRules2(de_ctx, s);
++
++    FILE *f = fopen("/tmp/suricata-test-log/rules.json", "r");
++    FAIL_IF_NULL(f);
++    char buf[32768];
++    size_t total = 0, bytes;
++    while ((bytes = fread(buf + total, 1, sizeof(buf) - total - 1, f)) > 0)
++        total += bytes;
++    buf[total] = '\0';
++    fclose(f);
++
++    FAIL_IF_NULL(strstr(buf, "http_method"));
++    FAIL_IF_NULL(strstr(buf, "http_uri"));
++
++    CleanupEngineAnalysis(de_ctx);
++
++    unlink("/tmp/suricata-test-log/rules.json");
++    unlink("/tmp/suricata-test-log/rules_analysis.txt");
++    unlink("/tmp/suricata-test-log/rules_fast_pattern.txt");
++
++    DetectEngineCtxFree(de_ctx);
++    EngineAnalysisDeInitYamlConf();
++    PASS;
++}
++
++void DetectEngineAnalyzerRegisterTests(void)
++{
++    UtRegisterTest("DetectEngineAnalyzerTest01", DetectEngineAnalyzerTest01);
++    UtRegisterTest("DetectEngineAnalyzerTest02", DetectEngineAnalyzerTest02);
++    UtRegisterTest("DetectEngineAnalyzerTest03", DetectEngineAnalyzerTest03);
++    UtRegisterTest("DetectEngineAnalyzerTest05", DetectEngineAnalyzerTest05);
++    UtRegisterTest("DetectEngineAnalyzerTest06", DetectEngineAnalyzerTest06);
++    UtRegisterTest("DetectEngineAnalyzerTest07", DetectEngineAnalyzerTest07);
++    UtRegisterTest("DetectEngineAnalyzerTest13", DetectEngineAnalyzerTest13);
++    UtRegisterTest("DetectEngineAnalyzerTest15", DetectEngineAnalyzerTest15);
++    UtRegisterTest("DetectEngineAnalyzerTest16", DetectEngineAnalyzerTest16);
++    UtRegisterTest("DetectEngineAnalyzerTest17", DetectEngineAnalyzerTest17);
++    UtRegisterTest("DetectEngineAnalyzerTest18", DetectEngineAnalyzerTest18);
++    UtRegisterTest("DetectEngineAnalyzerTest19", DetectEngineAnalyzerTest19);
++    UtRegisterTest("DetectEngineAnalyzerTest20", DetectEngineAnalyzerTest20);
++    UtRegisterTest("DetectEngineAnalyzerTest21", DetectEngineAnalyzerTest21);
++    UtRegisterTest("DetectEngineAnalyzerTest22", DetectEngineAnalyzerTest22);
++    UtRegisterTest("DetectEngineAnalyzerTest23", DetectEngineAnalyzerTest23);
++    UtRegisterTest("DetectEngineAnalyzerTest24", DetectEngineAnalyzerTest24);
++    UtRegisterTest("DetectEngineAnalyzerTest25", DetectEngineAnalyzerTest25);
++    UtRegisterTest("DetectEngineAnalyzerTest26", DetectEngineAnalyzerTest26);
++    UtRegisterTest("DetectEngineAnalyzerTest27", DetectEngineAnalyzerTest27);
++    UtRegisterTest("DetectEngineAnalyzerTest28", DetectEngineAnalyzerTest28);
++    UtRegisterTest("DetectEngineAnalyzerTest29", DetectEngineAnalyzerTest29);
++    UtRegisterTest("DetectEngineAnalyzerTest30", DetectEngineAnalyzerTest30);
++    UtRegisterTest("DetectEngineAnalyzerTest31", DetectEngineAnalyzerTest31);
++    UtRegisterTest("DetectEngineAnalyzerTest32", DetectEngineAnalyzerTest32);
++    UtRegisterTest("DetectEngineAnalyzerTest33", DetectEngineAnalyzerTest33);
++    UtRegisterTest("DetectEngineAnalyzerTest34", DetectEngineAnalyzerTest34);
++    UtRegisterTest("DetectEngineAnalyzerTest35", DetectEngineAnalyzerTest35);
++    UtRegisterTest("DetectEngineAnalyzerTest36", DetectEngineAnalyzerTest36);
++    UtRegisterTest("DetectEngineAnalyzerTest37", DetectEngineAnalyzerTest37);
++    UtRegisterTest("DetectEngineAnalyzerTest38", DetectEngineAnalyzerTest38);
++    UtRegisterTest("DetectEngineAnalyzerTest39", DetectEngineAnalyzerTest39);
++    UtRegisterTest("DetectEngineAnalyzerTest40", DetectEngineAnalyzerTest40);
++    UtRegisterTest("DetectEngineAnalyzerTest41", DetectEngineAnalyzerTest41);
++}

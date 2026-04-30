@@ -1,0 +1,37 @@
+{
+  "tests": [
+    {
+      "name": "tests/test_alias_mailbox_utils.py::test_set_mailboxes_for_alias_empty_list"
+    },
+    {
+      "name": "tests/test_alias_mailbox_utils.py::test_set_mailboxes_for_alias_mailbox_for_other_user"
+    },
+    {
+      "name": "tests/test_alias_mailbox_utils.py::test_set_mailboxes_for_alias_mailbox_not_exists"
+    },
+    {
+      "name": "tests/test_alias_mailbox_utils.py::test_set_mailboxes_for_alias_mailbox_success"
+    },
+    {
+      "name": "tests/test_alias_mailbox_utils.py::test_set_mailboxes_for_alias_too_many_mailboxes"
+    },
+    {
+      "name": "tests/test_alias_mailbox_utils.py::test_set_mailboxes_for_alias_unverified_mailbox"
+    },
+    {
+      "name": "tests/test_alias_mailbox_utils.py::test_set_mailboxes_for_alias_single_mailbox"
+    },
+    {
+      "name": "tests/api/test_alias.py::test_update_alias_mailbox_ids_with_empty_list_returns_error"
+    },
+    {
+      "name": "tests/api/test_alias.py::test_update_alias_mailbox_ids_with_other_user_mailbox_returns_forbidden"
+    },
+    {
+      "name": "tests/api/test_alias.py::test_update_alias_mailbox_ids_with_valid_mailboxes_succeeds"
+    },
+    {
+      "name": "tests/api/test_alias.py::test_update_alias_mailbox_ids_with_unverified_mailbox_returns_forbidden"
+    }
+  ]
+}

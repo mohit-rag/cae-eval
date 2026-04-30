@@ -1,0 +1,230 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "bc88426569b1b2b34f3b8138354bcffc",
+    "title": "1.1: Consolidates all 3 separate log buffer state-tracking fields (buf_free, lsn, and lsn_lock) in the log_t struct in storage/innobase/include/log0log.h into fewer combined fields",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the log_t struct no longer tracks log buffer position through multiple separate synchronized fields (buf_free, lsn, and a lock protecting them), and instead uses a consolidated representation with fewer fields.",
+      "evidence": "Gold patch: log0log.h removes the buf_free atomic, the lsn atomic, and the lsn_lock, replacing them with a single write_lsn_offset atomic and a base_lsn atomic. The buf_free_LOCK constant and max_buf_free field are also removed.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the log buffer state is tracked through several separate fields that all need to stay consistent, leading to an overly complex locking mechanism.' It then asks to 'simplify the data structures.' [2: Implicit Code Base Constraint] In the original log_t struct (storage/innobase/include/log0log.h), buf_free tracks the buffer offset, lsn tracks the current LSN, and lsn_lock/buf_free_LOCK coordinate access between them. These three separate pieces of state must be kept consistent on every allocation. [3: Logical Necessity] Reducing the number of separate fields that must be atomically coordinated is the direct structural simplification the prompt demands. [5: Conclusion] Therefore, any correct answer must consolidate these separate fields into fewer combined fields in the log_t struct."
+    }
+  },
+  {
+    "id": "a1695315c1aa6e9500ca86c3ef82f895",
+    "title": "1.2: Removes the custom spin-lock acquisition function (lock_lsn) from the log buffer allocation path in storage/innobase/mtr/mtr0mtr.cc",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the lock_lsn() function, which implements the custom spin-lock for LSN allocation using buf_free's embedded lock bit, is removed from the allocation path.",
+      "evidence": "Gold patch: log0log.h removes the lock_lsn() declaration. mtr0mtr.cc removes the entire lock_lsn() implementation.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states there is 'an overly complex locking mechanism with platform-specific assembly code' and asks to 'simplify the data structures, reduce the number of atomic operations on the hot path.' [2: Implicit Code Base Constraint] In the original codebase, lock_lsn() uses buf_free.fetch_or() with a lock bit to implement a custom spin-lock on the allocation hot path. This is the core of the 'overly complex locking mechanism' the prompt identifies. [3: Logical Necessity] If the data structures are simplified so that a single atomic operation replaces the multi-step lock-allocate-unlock sequence, lock_lsn() becomes unnecessary. [5: Conclusion] Therefore, any correct answer must remove lock_lsn() as part of the simplification."
+    }
+  },
+  {
+    "id": "ea5fe9f82cf39a8655c1a3914548b9ec",
+    "title": "1.3: Introduces at least one new LSN accessor in log_t (storage/innobase/include/log0log.h) that provides approximate or non-exclusive-locking LSN reads for callers not requiring exact current LSN",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that log_t gains at least one new public method or associated free function that returns an LSN value with lower synchronization cost than the exact get_lsn(), suitable for callers that only need a rough estimate or the durable LSN.",
+      "evidence": "Gold patch: log0log.h adds get_lsn_approx() as a new method on log_t, and log0log.cc adds log_get_lsn() as a free function that acquires the latch, reads get_lsn(), and releases it.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'many callers across the codebase fetch the exact current LSN even though they only need the durable (flushed) LSN or a rough estimate, adding unnecessary synchronization overhead' and asks to 'ensure callers use the appropriate level of LSN precision.' [3: Logical Necessity] To enable callers to use appropriate precision, there must be at least one alternative accessor with lower synchronization requirements than the exact get_lsn(). Without a new accessor, callers have no lower-cost alternative to switch to. [5: Conclusion] Therefore, any correct answer must introduce at least one new LSN accessor that provides a lower-synchronization read."
+    }
+  },
+  {
+    "id": "d9d801f62a4712ad7e683a10462ba6a1",
+    "title": "1.4: Updates buf_page_check_lsn in storage/innobase/buf/buf0buf.cc to compare against the durable (flushed) LSN instead of the exact current LSN",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the buf_page_check_lsn function, which validates whether a page's LSN is ahead of the current log position, uses the flushed (durable) LSN rather than the exact current LSN for the comparison.",
+      "evidence": "Gold patch: buf0buf.cc changes 'lsn_t current_lsn= log_sys.get_lsn()' to 'lsn_t current_lsn= log_sys.get_flushed_lsn(std::memory_order_relaxed)' inside buf_page_check_lsn.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states callers 'only need the durable (flushed) LSN' and asks to 'ensure callers use the appropriate level of LSN precision.' [2: Implicit Code Base Constraint] buf_page_check_lsn validates that a page read from disk does not have an LSN ahead of what has been written to the log. A page cannot exist on disk before its log records are durable, so the flushed LSN is the semantically correct comparand, not the in-memory current LSN which may include unflushed data. [3: Logical Necessity] Using flushed LSN is both more correct and avoids the synchronization overhead of reading the exact current LSN. [5: Conclusion] Therefore, any correct answer must update buf_page_check_lsn to use the flushed LSN."
+    }
+  },
+  {
+    "id": "377805355ca167789c700dbc5bba91f9",
+    "title": "1.5: Sets the innodb_log_spin_wait_delay comment to 'Deprecated parameter with no effect' via PLUGIN_VAR_DEPRECATED in storage/innobase/handler/ha_innodb.cc",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the MYSQL_SYSVAR declaration for innodb_log_spin_wait_delay in ha_innodb.cc includes the PLUGIN_VAR_DEPRECATED flag and has its comment set to 'Deprecated parameter with no effect', following the standard MariaDB convention for deprecated system variables.",
+      "evidence": "Gold patch: ha_innodb.cc changes the MYSQL_SYSVAR_UINT(log_spin_wait_delay, ...) declaration to include 'PLUGIN_VAR_OPCMDARG | PLUGIN_VAR_DEPRECATED' in the flags, changes the comment to 'Deprecated parameter with no effect', and sets both the check and update callbacks to nullptr.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The spin wait delay parameter should be deprecated with the description Deprecated parameter with no effect, since it would no longer serve a purpose.' [2: Implicit Code Base Constraint] In the MariaDB codebase, the standard way to deprecate a plugin system variable is to add the PLUGIN_VAR_DEPRECATED flag to its declaration. This is the convention used by innodb_buffer_pool_chunk_size, innodb_lru_flush_size, innodb_prefix_index_cluster_optimization, and innodb_purge_rseg_truncate_frequency, all of which use PLUGIN_VAR_DEPRECATED with the comment 'Deprecated parameter with no effect.' [5: Conclusion] Therefore, any correct answer must mark innodb_log_spin_wait_delay with PLUGIN_VAR_DEPRECATED and set the comment to 'Deprecated parameter with no effect'."
+    }
+  },
+  {
+    "id": "4e583195e3d41f67a61537e063007350",
+    "title": "1.6: Simplifies the append_prepare allocation function in storage/innobase/mtr/mtr0mtr.cc by eliminating the spin vs non-spin code path branching",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the log_t::append_prepare function in mtr0mtr.cc no longer has two separate code paths for spin-lock vs non-spin-lock allocation, reducing the function's template parameters or branching complexity.",
+      "evidence": "Gold patch: mtr0mtr.cc changes append_prepare from 'template<bool spin,bool mmap>' to 'template<bool mmap>', removing the spin template parameter entirely. The function body no longer branches on spin for lock acquisition (lock_lsn vs lsn_lock.wr_lock) or release (buf_free.store vs lsn_lock.wr_unlock).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The LSN allocation path performs too many atomic read-modify-write operations for what should be a fast, concurrent code path' and 'The innodb_log_spin_wait_delay system variable and its associated spin loop infrastructure exist only to service this locking complexity and would be unnecessary with a simpler design.' [2: Implicit Code Base Constraint] In the original code, append_prepare is templated on 'bool spin' which selects between lock_lsn() (spin-only, uses buf_free_LOCK bit) and lsn_lock.wr_lock() (blocking). This doubles the code paths through the hot allocation function. [3: Logical Necessity] If the data structures are simplified so that a single atomic operation handles allocation, the spin vs non-spin branching becomes unnecessary and should be eliminated. [5: Conclusion] Therefore, any correct answer must simplify append_prepare by eliminating the spin vs non-spin code path branching."
+    }
+  },
+  {
+    "id": "eca6a30e5537198785c8f6239506ecd1",
+    "title": "1.7: Simplifies the mini-transaction finish path in storage/innobase/mtr/mtr0mtr.cc by removing the spin-related template parameter from finish_writer",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the mtr_t::finish_writer function in mtr0mtr.cc no longer carries a spin-related template parameter, and the finisher function pointer selection in the commit path no longer branches based on spin_wait_delay.",
+      "evidence": "Gold patch: mtr0mtr.cc changes finish_writer from 'template<bool spin,bool mmap>' to 'template<bool mmap>'. The finisher_update function changes from selecting between four instantiations (spin x mmap combinations) to selecting between two (mmap only).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies 'the mini-transaction commit path in storage/innobase/mtr/mtr0mtr.cc' as a core area and states the spin loop infrastructure 'would be unnecessary with a simpler design.' [2: Implicit Code Base Constraint] In the original code, finisher_update selects finish_writer<true,true> or finish_writer<false,true> based on spin_wait_delay, creating four template instantiations that double the code in the commit path. [3: Logical Necessity] When the spin infrastructure is removed from the allocation function, the spin template parameter in the caller chain (finish_writer -> append_prepare) must also be removed for the simplification to be complete. [5: Conclusion] Therefore, any correct answer must remove the spin-related template parameter from finish_writer."
+    }
+  },
+  {
+    "id": "37e0a592cef25cacb578e443283f87ec",
+    "title": "1.8: Updates all 5 LSN callers (af_needed_for_redo, page_cleaner_flush_pages_recommendation, log_make_checkpoint, buf_flush_sync_batch, and buf_pool_t::print_flush_info) in storage/innobase/buf/buf0flu.cc to use appropriate-precision accessors instead of the exact get_lsn()",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the background flushing and checkpoint code in buf0flu.cc (af_needed_for_redo, page_cleaner_flush_pages_recommendation, log_make_checkpoint, buf_flush_sync_batch, and buf_pool_t::print_flush_info) no longer calls log_sys.get_lsn() for LSN reads that only need approximate values for heuristic flushing decisions or status reporting.",
+      "evidence": "Gold patch: buf0flu.cc changes af_needed_for_redo from 'log_sys.get_lsn() - oldest_lsn' to 'log_sys.get_lsn_approx() - oldest_lsn', changes page_cleaner_flush_pages_recommendation from 'log_sys.get_lsn()' to 'log_sys.get_lsn_approx()' for cur_lsn, updates log_make_checkpoint and buf_flush_sync_batch to use log_get_lsn(), and changes print_flush_info from 'log_sys.get_lsn()' to 'log_get_lsn()'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'many callers across the codebase fetch the exact current LSN even though they only need the durable (flushed) LSN or a rough estimate' and asks to 'ensure callers use the appropriate level of LSN precision.' [2: Implicit Code Base Constraint] The adaptive flushing functions (af_needed_for_redo, page_cleaner_flush_pages_recommendation) use the LSN only to estimate checkpoint age and decide whether to trigger background flushing. log_make_checkpoint, buf_flush_sync_batch, and print_flush_info similarly do not need exact-instant precision. [3: Logical Necessity] buf0flu.cc contains some of the highest-frequency LSN reads in the background page cleaner thread. Leaving them on the exact accessor would fail to address the synchronization overhead the prompt identifies. [5: Conclusion] Therefore, any correct answer must update these flushing callers in buf0flu.cc to use appropriate-precision LSN accessors."
+    }
+  },
+  {
+    "id": "e3adfb3e86152e23ec84791e5bb2524b",
+    "title": "1.9: Removes the innodb_log_spin_wait_delay update callback function from storage/innobase/handler/ha_innodb.cc so the deprecated parameter has no runtime effect",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the update callback for innodb_log_spin_wait_delay (innodb_log_spin_cpu_set or equivalent function that propagated the value to mtr_t::spin_wait_delay) is removed or set to nullptr, ensuring that setting the variable at runtime has no side effects.",
+      "evidence": "Gold patch: ha_innodb.cc removes the innodb_log_spin_wait_delay_update function entirely and sets the update callback to nullptr in the MYSQL_SYSVAR_UINT declaration.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'The innodb_log_spin_wait_delay system variable and its associated spin loop infrastructure exist only to service this locking complexity and would be unnecessary with a simpler design' and asks for the parameter to be 'deprecated with the description Deprecated parameter with no effect.' [2: Implicit Code Base Constraint] The original update callback (innodb_log_spin_wait_delay_update) writes the value into mtr_t::spin_wait_delay, which is read on the allocation hot path. Removing this callback is necessary to fully decouple the deprecated variable from the allocation logic. [3: Logical Necessity] A deprecated parameter 'with no effect' must not propagate its value to internal data structures at runtime. If the update callback remains, setting the variable would still alter internal state, contradicting the deprecation. [5: Conclusion] Therefore, any correct answer must remove or nullify the update callback for innodb_log_spin_wait_delay."
+    }
+  },
+  {
+    "id": "be6f29c1e6570da0c1b613d5a72c4b1f",
+    "title": "1.10: Updates all 3 recovery code functions (parse, set_recovered, and recv_recovery_from_checkpoint_start) in storage/innobase/log/log0recv.cc to use the durable (flushed) LSN instead of the exact current LSN",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that the crash recovery code in log0recv.cc replaces calls to log_sys.get_lsn() with calls to log_sys.get_flushed_lsn() or equivalent durable LSN accessor, since during recovery the LSN represents the recovered (durable) state, not an in-flight allocation.",
+      "evidence": "Gold patch: log0recv.cc changes 'lsn > log_sys.get_lsn()' to 'lsn > log_sys.get_flushed_lsn(std::memory_order_relaxed)' in the recovery validation, changes 'recv_sys.lsn == get_lsn()' to 'recv_sys.lsn == get_flushed_lsn()', and changes 'log_sys.get_lsn() >= recv_sys.scanned_lsn' to 'log_sys.get_flushed_lsn() >= recv_sys.scanned_lsn' in multiple assertions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'ensure callers use the appropriate level of LSN precision.' [2: Implicit Code Base Constraint] During crash recovery in log0recv.cc, the server processes redo log records up to a known durable point. The recovery code validates LSNs against what has been recovered and flushed, not against in-flight write allocations. Using get_flushed_lsn() is semantically correct because at recovery time the flushed LSN equals the recovered LSN. [3: Logical Necessity] The recovery code is one of the callers that fetches the exact LSN unnecessarily, since no concurrent writers are active during recovery. Updating it is part of comprehensively ensuring appropriate precision. [5: Conclusion] Therefore, any correct answer must update the recovery code in log0recv.cc to use the durable LSN."
+    }
+  },
+  {
+    "id": "7aae095bd6022bb3e2b6d68c5186a378",
+    "title": "1.11: Updates srv_prepare_to_delete_redo_log_file in storage/innobase/srv/srv0start.cc to use the durable (flushed) LSN instead of the exact current LSN for log file management at startup",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that srv_prepare_to_delete_redo_log_file and related startup functions in srv0start.cc replace calls to log_sys.get_lsn() with the durable (flushed) LSN accessor, since during startup and log file management the relevant LSN is the durable state.",
+      "evidence": "Gold patch: srv0start.cc changes 'lsn_t flushed_lsn{log_sys.get_lsn()}' to 'lsn_t flushed_lsn{log_sys.get_flushed_lsn(std::memory_order_relaxed)}' in srv_prepare_to_delete_redo_log_file, and changes the assertion 'flushed_lsn == log_sys.get_lsn()' to 'flushed_lsn == log_get_lsn()'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'ensure callers use the appropriate level of LSN precision.' [2: Implicit Code Base Constraint] srv_prepare_to_delete_redo_log_file runs during controlled shutdown or log file resize. At this point all pending writes have been flushed, so the flushed LSN equals the current LSN. Using get_flushed_lsn() is semantically accurate for code that deals with durable log file state. [3: Logical Necessity] The startup and shutdown code paths are among the callers the prompt identifies as adding unnecessary synchronization. Updating them completes the LSN precision audit. [5: Conclusion] Therefore, any correct answer must update the startup code in srv0start.cc to use the durable LSN."
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "0937828da65a2ad96fc9c7e24905b092",
+    "title": "3.1: Removes the mtr_t::spin_wait_delay static member from storage/innobase/include/mtr0mtr.h since the spin wait infrastructure is no longer used",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the static member variable mtr_t::spin_wait_delay is removed from mtr0mtr.h (and its initialization from mtr0mtr.cc), since nothing reads it after the spin infrastructure is removed.",
+      "evidence": "Gold patch: mtr0mtr.h removes 'static unsigned spin_wait_delay;' from the mtr_t class definition, and mtr0mtr.cc removes 'unsigned mtr_t::spin_wait_delay;' definition.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states this infrastructure 'would be unnecessary with a simpler design,' implying its artifacts should be cleaned up. [4: Quality Necessity] After the spin template parameter is removed from finish_writer and append_prepare, mtr_t::spin_wait_delay is dead code: nothing reads it and the update callback that wrote to it is removed. Leaving dead members in a performance-critical struct is poor code hygiene. [5: Conclusion] Therefore, any correct answer should remove the mtr_t::spin_wait_delay member."
+    }
+  },
+  {
+    "id": "655726416234319e6a712eb7f5489264",
+    "title": "3.2: Removes all 3 obsolete spin-lock helpers (lsn_delay, lsn_lock_bts, and LOCK_TSET macro) from storage/innobase/mtr/mtr0mtr.cc",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the lsn_delay() helper function and the platform-specific assembly implementations (lsn_lock_bts for ARM with inline asm, LOCK_TSET macro for x86) are removed after the custom spin-lock mechanism is eliminated.",
+      "evidence": "Gold patch: mtr0mtr.cc removes the lsn_delay() function, the lsn_lock_bts() function containing ARM assembly, and the LOCK_TSET macro containing x86 assembly.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly calls out 'platform-specific assembly code' as part of the complexity to be addressed. [4: Quality Necessity] After lock_lsn() is removed and the allocation path no longer uses a custom spin-lock, the lsn_delay, lsn_lock_bts, and LOCK_TSET helpers become orphaned dead code with no callers. Platform-specific assembly that is no longer used is a maintenance burden. [5: Conclusion] Therefore, any correct answer should remove these obsolete helper functions and assembly macros."
+    }
+  },
+  {
+    "id": "ead46a36440ffac915b8f3647e13c862",
+    "title": "3.3: Removes both the buf_free_LOCK constant and buf_free_ok() method from log_t in storage/innobase/include/log0log.h",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "Verifies that the buf_free_LOCK constant (the most significant bit used as an embedded lock flag in buf_free) and the associated logic that sets/clears/tests this bit are removed from the log_t struct.",
+      "evidence": "Gold patch: log0log.h removes 'static constexpr size_t buf_free_LOCK= ~(~size_t{0} >> 1);' and the buf_free_ok() method that tested this bit. The buf_free field itself is removed entirely.",
+      "justification": "[3: Logical Necessity] Consolidating the state fields (criterion 1.1) inherently makes the embedded lock flag obsolete. [4: Quality Necessity] buf_free_LOCK is the mechanism by which lock_lsn() embeds a lock flag in the buf_free field's most significant bit. Once lock_lsn() and the buf_free field are removed, this constant and its testing logic become orphaned. [5: Conclusion] Therefore, any correct answer should remove buf_free_LOCK and its bit manipulation logic."
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "917e7f1a405ad5067bb5c241175f22a0",
+    "title": "4.1: Removes the innodb_log_spin_wait_delay system variable entirely instead of deprecating it",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the agent deletes the MYSQL_SYSVAR_UINT declaration for innodb_log_spin_wait_delay or removes it from the plugin's system variable array, making it completely unavailable rather than deprecated.",
+      "evidence": "Gold patch: ha_innodb.cc retains the MYSQL_SYSVAR_UINT(log_spin_wait_delay, ...) declaration and keeps it in the innodb_system_variables array, only adding the PLUGIN_VAR_DEPRECATED flag.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the parameter 'should be deprecated since it would no longer serve a purpose.' Deprecation means the variable still exists and is settable but is marked as obsolete, not that it is removed. [2: Implicit Code Base Constraint] MariaDB's deprecation convention (PLUGIN_VAR_DEPRECATED) keeps the variable accessible so that existing configurations and scripts referencing it do not break with hard errors. Removing it entirely would cause 'Unknown system variable' errors for users. [3: Logical Necessity] Removing a system variable is a backward-incompatible change, while deprecation maintains compatibility with a warning. [5: Conclusion] Therefore, any correct answer must NOT remove the variable entirely."
+    }
+  },
+  {
+    "id": "418b2b2a706eba7882b6264dc8a9ecf0",
+    "title": "4.2: Removes or breaks existing InnoDB functionality (such as DML operations, checkpoint, SHOW ENGINE INNODB STATUS, or status variable reporting)",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactoring inadvertently removes or breaks user-visible InnoDB functionality such as the ability to perform INSERT/UPDATE/DELETE, trigger checkpoints, view engine status, or query InnoDB status variables.",
+      "evidence": "Gold patch: all existing InnoDB functionality is preserved. DML operations, SHOW ENGINE INNODB STATUS (via log_print and srv_export_innodb_status), status variables (via srv_mon_process_existing_counter), and checkpoint operations all continue to work with the refactored code.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'refactor the redo log's LSN allocation' which is a structural improvement, not a functional change. The prompt says 'make the minimal changes,' implying no functional regressions. [3: Logical Necessity] The refactoring simplifies internal data structures and calling conventions but must preserve the external behavior visible to users through SQL operations, status output, and monitoring. Breaking any of these would be a regression beyond the scope of the refactoring. [5: Conclusion] Therefore, any correct answer must NOT remove or break existing InnoDB functionality."
+    }
+  }
+]

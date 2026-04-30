@@ -1,0 +1,122 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "2cae1cbf5fdbdbf31c40bffa24b591c3",
+    "title": "1.1: Extracts CLI flag-related logic from getRuntimeOptions into a separate reusable helper",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that CLI flag reading logic is moved into its own helper function that can be called and tested independently from environment variable processing.",
+      "evidence": "gold.patch lines 50-59: creates runtimeOptionsFromFlags function that extracts all flag reading (getNullString/getNullBool calls) into a dedicated helper returning RuntimeOptions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states getRuntimeOptions is 'doing all the flags' and requests to 'refactor into reusable and single purpose helpers'. [3: Logical Necessity] Separating flag extraction into its own helper achieves single-purpose design and enables isolated testing. [5: Conclusion] Therefore, ANY correct answer must extract CLI flag-related logic into a separate reusable helper."
+    }
+  },
+  {
+    "id": "b09b04a9404f5d640f27fa4b005e2ba8",
+    "title": "1.2: Extracts environment variable processing logic from getRuntimeOptions into a separate reusable helper",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that environment variable reading and processing logic is moved into its own helper function that can be called and tested independently from CLI flag processing.",
+      "evidence": "gold.patch lines 63-130: creates populateRuntimeOptionsFromEnv function that extracts all K6_* environment variable processing into a dedicated helper.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states getRuntimeOptions handles 'env vars' and requests 'single purpose helpers'. [3: Logical Necessity] Separating environment processing into its own helper achieves single-purpose design and enables isolated testing. [5: Conclusion] Therefore, ANY correct answer must extract environment variable processing logic into a separate reusable helper."
+    }
+  },
+  {
+    "id": "47ebca1d178f5997487a9a2bf03c2fac",
+    "title": "1.3: Refactors getRuntimeOptions to delegate to the extracted helpers",
+    "annotations": {
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "importance": "must have",
+      "description": "Verifies that getRuntimeOptions composes the new flag-extraction and environment-population helpers rather than retaining the original inline logic. The function should delegate to the extracted helpers and only keep orchestration concerns (such as the --env flag loop) itself.",
+      "evidence": "gold.patch lines 13-45: getRuntimeOptions calls populateRuntimeOptionsFromEnv(runtimeOptionsFromFlags(flags), environment) to delegate flag reading and env-var processing, retaining only the --env key-value loop and userEnvVarName validation inline.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requests to 'refactor into reusable and single purpose helpers', which implies getRuntimeOptions must actually use them rather than keeping inline logic alongside dead helper functions. [3: Logical Necessity] Creating helpers without wiring them into getRuntimeOptions would leave the original monolithic logic unchanged, defeating the purpose of the refactor. [5: Conclusion] Therefore, ANY correct answer must have getRuntimeOptions delegate to the extracted helpers."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "importance": "nice to have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "fa15adcd5076a095db5fa0a9c8adea91",
+    "title": "4.1: Removes or alters existing runtime option handling (such as dropping support for K6_COMPATIBILITY_MODE or changing how SSLKEYLOGFILE is processed)",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if any existing runtime option handling is removed or functionally altered. All environment variables and CLI flags must remain functional after refactoring.",
+      "evidence": "gold.patch lines 63-130 preserve all environment variable checks; lines 50-59 preserve all flag extractions; no option handling is removed.",
+      "justification": "[2: Implicit Codebase Constraint] The existing codebase has comprehensive test coverage in runtime_options_test.go that validates all option handling. [3: Logical Necessity] Removing option handling would break existing functionality and fail tests. [5: Conclusion] Therefore, ANY solution that removes or alters existing runtime option handling triggers this negative criterion."
+    }
+  },
+  {
+    "id": "b47778332b6918e49a75f523e1215258",
+    "title": "4.2: Changes the function signature of getRuntimeOptions (such as altering parameters, return type, or renaming the function)",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the public signature of getRuntimeOptions is changed. The function must continue to accept (flags *pflag.FlagSet, environment map[string]string) and return (lib.RuntimeOptions, error).",
+      "evidence": "gold.patch lines 13-16: getRuntimeOptions retains exact signature (flags *pflag.FlagSet, environment map[string]string) (lib.RuntimeOptions, error).",
+      "justification": "[2: Implicit Codebase Constraint] The function is called from internal/cmd/test_load.go and tests in runtime_options_test.go with specific argument types. [3: Logical Necessity] Changing the signature would cause compilation failures in callers. [5: Conclusion] Therefore, ANY solution that changes the function signature of getRuntimeOptions triggers this negative criterion."
+    }
+  },
+  {
+    "id": "3c854f4ee9f46a5705eb982c1894415c",
+    "title": "4.3: Reverses CLI flag precedence over environment variables",
+    "annotations": {
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "importance": "must have",
+      "description": "Detects if the refactored code changes the existing behavior where CLI flags take priority over environment variables. Environment values should only apply when CLI flag was not explicitly set.",
+      "evidence": "gold.patch lines 66-73: precedence checks like '!opts.TestType.Valid && ok' ensure env vars only apply when CLI flag was not explicitly set.",
+      "justification": "[2: Implicit Codebase Constraint] The existing code uses null.Bool/null.String Valid field to track CLI-set values and only applies env vars when Valid is false. [3: Logical Necessity] Reversing precedence would alter existing behavior and break test cases in runtime_options_test.go. [5: Conclusion] Therefore, ANY solution that reverses CLI flag precedence over environment variables triggers this negative criterion."
+    }
+  }
+]

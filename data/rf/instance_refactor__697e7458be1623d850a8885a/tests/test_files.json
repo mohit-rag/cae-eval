@@ -1,0 +1,13 @@
+{
+  "files": [
+    {
+      "name": "pkg/services/unifiedSearch/service_test.go"
+    },
+    {
+      "name": "public/app/features/search/service/searcher.test.ts"
+    },
+    {
+      "name": "public/app/features/search/service/unified.test.ts"
+    }
+  ]
+}

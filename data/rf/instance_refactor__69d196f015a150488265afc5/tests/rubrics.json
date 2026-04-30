@@ -1,0 +1,182 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7",
+    "title": "1.1: Exports `qGroupId` query matcher from `common.ts` that stores values under the 'groupId' key",
+    "annotations": {
+      "importance": "must have",
+      "description": "A query matcher named qGroupId must be exported from lib/modules/manager/gradle/parser/common.ts that captures a value and stores it in the token map under the key 'groupId'.",
+      "evidence": "gold.patch lines 29-31 show export const qGroupId = qValueMatcher.handler((ctx) => storeInTokenMap(ctx, 'groupId'));",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Consolidate these into common.ts'. [2: Implicit Codebase Constraint] The interface specifies qGroupId must be exported from common.ts with type q.QueryBuilder<Ctx, parser.Node>. [5: Conclusion] Therefore, any correct answer must export qGroupId from common.ts.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8",
+    "title": "1.2: Exports `qArtifactId` query matcher from `common.ts` that stores values under the 'artifactId' key",
+    "annotations": {
+      "importance": "must have",
+      "description": "A query matcher named qArtifactId must be exported from lib/modules/manager/gradle/parser/common.ts that captures a value and stores it in the token map under the key 'artifactId'.",
+      "evidence": "gold.patch lines 33-35 show export const qArtifactId = qValueMatcher.handler((ctx) => storeInTokenMap(ctx, 'artifactId'));",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Consolidate these into common.ts'. [2: Implicit Codebase Constraint] The interface specifies qArtifactId must be exported from common.ts with type q.QueryBuilder<Ctx, parser.Node>. [5: Conclusion] Therefore, any correct answer must export qArtifactId from common.ts.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9",
+    "title": "1.3: Exports `qVersion` query matcher from `common.ts` that stores values under the 'version' key",
+    "annotations": {
+      "importance": "must have",
+      "description": "A query matcher named qVersion must be exported from lib/modules/manager/gradle/parser/common.ts that captures a value and stores it in the token map under the key 'version'.",
+      "evidence": "gold.patch lines 37-39 show export const qVersion = qValueMatcher.handler((ctx) => storeInTokenMap(ctx, 'version'));",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Consolidate these into common.ts'. [2: Implicit Codebase Constraint] The interface specifies qVersion must be exported from common.ts with type q.QueryBuilder<Ctx, parser.Node>. [5: Conclusion] Therefore, any correct answer must export qVersion from common.ts.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+    "title": "1.4: Removes local `qGroupId`, `qArtifactId`, and `qVersion` definitions from `dependencies.ts` and imports them from `common.ts`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The local definitions of qGroupId, qArtifactId, and qVersion in dependencies.ts must be removed and replaced with imports from common.ts.",
+      "evidence": "gold.patch lines 48-53 show qArtifactId, qGroupId, qVersion added to imports from './common'. Lines 61-71 show removal of the three local const definitions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'have the other files import from there'. [3: Logical Necessity] After consolidating to common.ts, the local definitions become redundant and must be removed. [5: Conclusion] Therefore, any correct answer must remove local definitions from dependencies.ts and import from common.ts.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
+    "title": "1.5: Removes local `qVersion` definition from `plugins.ts` and imports it from `common.ts`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The local definition of qVersion in plugins.ts must be removed and replaced with an import from common.ts.",
+      "evidence": "gold.patch lines 84-85 show qValueMatcher replaced with qVersion in imports from './common'. Lines 91-93 show removal of the local qVersion const definition.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'have the other files import from there'. [3: Logical Necessity] After consolidating to common.ts, the local definition becomes redundant. [5: Conclusion] Therefore, any correct answer must remove local qVersion from plugins.ts and import from common.ts.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+    "title": "1.6: Removes local `qGroupId` and `qArtifactId` definitions from `version-catalogs.ts` and imports them from `common.ts`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The local definitions of qGroupId and qArtifactId in version-catalogs.ts must be removed and replaced with imports from common.ts.",
+      "evidence": "gold.patch lines 179-180 show qArtifactId, qGroupId added to imports from './common'. Lines 188-194 show removal of the two local const definitions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'have the other files import from there'. [3: Logical Necessity] After consolidating to common.ts, the local definitions become redundant. [5: Conclusion] Therefore, any correct answer must remove local definitions from version-catalogs.ts and import from common.ts.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
+    "title": "1.7: Extracts inline Maven artifact registry tree query in `registry-urls.ts` into a named constant",
+    "annotations": {
+      "importance": "must have",
+      "description": "The inline tree query for parsing Maven artifact registry configurations in registry-urls.ts must be extracted into a named constant for better readability.",
+      "evidence": "gold.patch lines 118-138 show creation of const qMavenArtifactRegistry with the tree query. Line 167 shows the inline query replaced with qMavenArtifactRegistry reference.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'Extract it into a named constant for better readability'. [4: Qualitative Requirement] Extracting complex inline queries into named constants improves code readability and maintainability. [5: Conclusion] Therefore, any correct answer must extract the inline tree query into a named constant.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+    "title": "1.8: Flattens unnecessary nested `q.alt()` in `qDotOrBraceExpr` function in `common.ts`",
+    "annotations": {
+      "importance": "must have",
+      "description": "The qDotOrBraceExpr function in common.ts has an unnecessary nested q.alt() call that must be flattened to simplify the code.",
+      "evidence": "gold.patch lines 9-18 show removal of nested q.alt<Ctx>() wrapper. Lines 19-26 show the flattened structure with q.op and q.tree as direct alternatives.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the qDotOrBraceExpr function in common.ts has an unnecessary nested q.alt() that can be flattened'. [4: Qualitative Requirement] Removing unnecessary nesting simplifies code and improves readability. [5: Conclusion] Therefore, any correct answer must flatten the nested q.alt() in qDotOrBraceExpr.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
+    "title": "3.1: Removes unused `qValueMatcher` import from `plugins.ts` after refactoring",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "After refactoring plugins.ts to import qVersion from common.ts, the qValueMatcher import is no longer needed and should be removed.",
+      "evidence": "gold.patch line 84 shows qValueMatcher removed from imports and replaced with qVersion.",
+      "justification": "[4: Qualitative Requirement] Removing unused imports improves code clarity and reduces maintenance burden. [5: Conclusion] Therefore, any correct answer should remove the unused qValueMatcher import from plugins.ts.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
+    "title": "4.1: Modifies test files",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the solution does not modify any test files, as the prompt explicitly states that test changes have already been handled separately.",
+      "evidence": "The prompt states 'I've already taken care of all changes to the test files. This means you DON'T have to modify the testing logic or any of the tests in any way!'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly forbids modifying test files. [5: Conclusion] Therefore, any correct answer must NOT modify any test files.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
+    "title": "4.2: Removes or renames existing public exports from `common.ts` (such as qDotOrBraceExpr, qValueMatcher, storeInTokenMap)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the refactoring does not remove or rename any existing public exports from common.ts that other modules depend on.",
+      "evidence": "gold.patch shows qDotOrBraceExpr is modified but its signature and export remain unchanged. Other existing exports like qValueMatcher and storeInTokenMap are preserved.",
+      "justification": "[2: Implicit Codebase Constraint] Other modules in the codebase import from common.ts. [3: Logical Necessity] Removing or renaming existing exports would break dependent modules. [5: Conclusion] Therefore, any correct answer must NOT remove or rename existing public exports.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

@@ -1,0 +1,372 @@
+diff --git a/api/v1/status_routes_test.go b/api/v1/status_routes_test.go
+index db15b0d47..89365b23d 100644
+--- a/api/v1/status_routes_test.go
++++ b/api/v1/status_routes_test.go
+@@ -101,6 +101,7 @@ func TestPatchStatus(t *testing.T) {
+ 	}
+ 
+ 	for name, testCase := range testData {
++		name, testCase := name, testCase
+ 		t.Run(name, func(t *testing.T) {
+ 			t.Parallel()
+ 
+@@ -136,6 +137,9 @@ func TestPatchStatus(t *testing.T) {
+ 				RunState:      testState,
+ 			}
+ 
++			stopEmission, err := execScheduler.Init(runCtx, samples)
++			require.NoError(t, err)
++
+ 			wg := &sync.WaitGroup{}
+ 			wg.Add(1)
+ 			defer func() {
+@@ -146,6 +150,7 @@ func TestPatchStatus(t *testing.T) {
+ 
+ 			go func() {
+ 				assert.ErrorContains(t, execScheduler.Run(globalCtx, runCtx, samples), "custom cancel signal")
++				stopEmission()
+ 				close(samples)
+ 				wg.Done()
+ 			}()
+diff --git a/cmd/tests/cmd_run_test.go b/cmd/tests/cmd_run_test.go
+index 79bbc1c1d..d409e8668 100644
+--- a/cmd/tests/cmd_run_test.go
++++ b/cmd/tests/cmd_run_test.go
+@@ -1020,15 +1020,7 @@ func TestAbortedByTestAbortInNonFirstInitCode(t *testing.T) {
+ 		export function handleSummary() { return {stdout: '\n\n\nbogus summary\n\n\n'};}
+ 	`
+ 
+-	t.Run("noLinger", func(t *testing.T) {
+-		t.Parallel()
+-		testAbortedByScriptTestAbort(t, script, runTestWithNoLinger)
+-	})
+-
+-	t.Run("withLinger", func(t *testing.T) {
+-		t.Parallel()
+-		testAbortedByScriptTestAbort(t, script, runTestWithLinger)
+-	})
++	testAbortedByScriptTestAbort(t, script, runTestWithNoLinger)
+ }
+ 
+ func TestAbortedByScriptAbortInVUCode(t *testing.T) {
+diff --git a/execution/scheduler_ext_test.go b/execution/scheduler_ext_test.go
+index 6e9f37c04..56129983c 100644
+--- a/execution/scheduler_ext_test.go
++++ b/execution/scheduler_ext_test.go
+@@ -88,6 +88,13 @@ func newTestScheduler(
+ 		}
+ 	}()
+ 
++	stopEmission, err := execScheduler.Init(ctx, samples)
++	require.NoError(t, err)
++	t.Cleanup(func() {
++		stopEmission()
++		close(samples)
++	})
++
+ 	return ctx, cancel, execScheduler, samples
+ }
+ 
+@@ -143,6 +150,12 @@ func TestSchedulerRunNonDefault(t *testing.T) {
+ 
+ 			done := make(chan struct{})
+ 			samples := make(chan metrics.SampleContainer)
++			defer close(samples)
++
++			stopEmission, err := execScheduler.Init(ctx, samples)
++			require.NoError(t, err)
++			defer stopEmission()
++
+ 			go func() {
+ 				assert.NoError(t, execScheduler.Run(ctx, ctx, samples))
+ 				close(done)
+@@ -254,6 +267,12 @@ func TestSchedulerRunEnv(t *testing.T) {
+ 
+ 			done := make(chan struct{})
+ 			samples := make(chan metrics.SampleContainer)
++			defer close(samples)
++
++			stopEmission, err := execScheduler.Init(ctx, samples)
++			require.NoError(t, err)
++			defer stopEmission()
++
+ 			go func() {
+ 				assert.NoError(t, execScheduler.Run(ctx, ctx, samples))
+ 				close(done)
+@@ -321,6 +340,12 @@ func TestSchedulerSystemTags(t *testing.T) {
+ 	defer cancel()
+ 
+ 	samples := make(chan metrics.SampleContainer)
++	defer close(samples)
++
++	stopEmission, err := execScheduler.Init(ctx, samples)
++	require.NoError(t, err)
++	defer stopEmission()
++
+ 	done := make(chan struct{})
+ 	go func() {
+ 		defer close(done)
+@@ -452,6 +477,12 @@ func TestSchedulerRunCustomTags(t *testing.T) {
+ 
+ 			done := make(chan struct{})
+ 			samples := make(chan metrics.SampleContainer)
++			defer close(samples)
++
++			stopEmission, err := execScheduler.Init(ctx, samples)
++			require.NoError(t, err)
++			defer stopEmission()
++
+ 			go func() {
+ 				defer close(done)
+ 				require.NoError(t, execScheduler.Run(ctx, ctx, samples))
+@@ -614,8 +645,13 @@ func TestSchedulerRunCustomConfigNoCrossover(t *testing.T) {
+ 	defer cancel()
+ 
+ 	samples := make(chan metrics.SampleContainer)
++
++	stopEmission, err := execScheduler.Init(ctx, samples)
++	require.NoError(t, err)
++
+ 	go func() {
+ 		assert.NoError(t, execScheduler.Run(ctx, ctx, samples))
++		stopEmission()
+ 		close(samples)
+ 	}()
+ 
+@@ -947,6 +983,12 @@ func TestSchedulerEndIterations(t *testing.T) {
+ 	require.NoError(t, err)
+ 
+ 	samples := make(chan metrics.SampleContainer, 300)
++	defer close(samples)
++
++	stopEmission, err := execScheduler.Init(ctx, samples)
++	require.NoError(t, err)
++	defer stopEmission()
++
+ 	require.NoError(t, execScheduler.Run(ctx, ctx, samples))
+ 
+ 	assert.Equal(t, uint64(100), execScheduler.GetState().GetFullIterationCount())
+@@ -1155,9 +1197,15 @@ func TestRealTimeAndSetupTeardownMetrics(t *testing.T) {
+ 	defer cancel()
+ 
+ 	done := make(chan struct{})
+-	sampleContainers := make(chan metrics.SampleContainer)
++	samples := make(chan metrics.SampleContainer)
++	defer close(samples)
++
++	stopEmission, err := execScheduler.Init(ctx, samples)
++	require.NoError(t, err)
++	defer stopEmission()
++
+ 	go func() {
+-		assert.NoError(t, execScheduler.Run(ctx, ctx, sampleContainers))
++		assert.NoError(t, execScheduler.Run(ctx, ctx, samples))
+ 		close(done)
+ 	}()
+ 
+@@ -1167,7 +1215,7 @@ func TestRealTimeAndSetupTeardownMetrics(t *testing.T) {
+ 		to *= time.Millisecond
+ 		for {
+ 			select {
+-			case sampleContainer := <-sampleContainers:
++			case sampleContainer := <-samples:
+ 				gotVus := false
+ 				for _, s := range sampleContainer.GetSamples() {
+ 					if s.Metric == piState.BuiltinMetrics.VUs || s.Metric == piState.BuiltinMetrics.VUsMax {
+@@ -1257,7 +1305,7 @@ func TestRealTimeAndSetupTeardownMetrics(t *testing.T) {
+ 
+ 	for {
+ 		select {
+-		case s := <-sampleContainers:
++		case s := <-samples:
+ 			t.Fatalf("Did not expect anything in the sample channel bug got %#v", s)
+ 		case <-time.After(3 * time.Second):
+ 			t.Fatalf("Local execScheduler took way to long to finish")
+@@ -1324,3 +1372,165 @@ func TestNewSchedulerHasWork(t *testing.T) {
+ 	require.Error(t, err)
+ 	require.Contains(t, err.Error(), "doesn't support pause and resume operations after its start")
+ }
++
++// TestSchedulerInitReturnsCleanupFunction verifies that Init returns a valid cleanup function
++// that can be called to stop VU metrics emission.
++func TestSchedulerInitReturnsCleanupFunction(t *testing.T) {
++	t.Parallel()
++	runner := &minirunner.MiniRunner{
++		Fn: func(_ context.Context, _ *lib.State, _ chan<- metrics.SampleContainer) error {
++			return nil
++		},
++	}
++
++	ctx, cancel := context.WithCancel(context.Background())
++	defer cancel()
++
++	opts, err := executor.DeriveScenariosFromShortcuts(lib.Options{
++		Iterations: null.IntFrom(1),
++		VUs:        null.IntFrom(1),
++	}.Apply(runner.GetOptions()), nil)
++	require.NoError(t, err)
++
++	testRunState := getTestRunState(t, getTestPreInitState(t), opts, runner)
++	execScheduler, err := execution.NewScheduler(testRunState)
++	require.NoError(t, err)
++
++	samples := make(chan metrics.SampleContainer, 100)
++	defer close(samples)
++
++	// Init should return a non-nil cleanup function
++	stopEmission, err := execScheduler.Init(ctx, samples)
++	require.NoError(t, err)
++	require.NotNil(t, stopEmission, "Init should return a non-nil cleanup function")
++
++	// Cleanup function should be callable without panic
++	stopEmission()
++}
++
++// TestSchedulerInitThenRun verifies the correct sequence of Init followed by Run.
++func TestSchedulerInitThenRun(t *testing.T) {
++	t.Parallel()
++	var iterationCount int64
++	runner := &minirunner.MiniRunner{
++		Fn: func(_ context.Context, _ *lib.State, _ chan<- metrics.SampleContainer) error {
++			atomic.AddInt64(&iterationCount, 1)
++			return nil
++		},
++	}
++
++	ctx, cancel := context.WithCancel(context.Background())
++	defer cancel()
++
++	opts, err := executor.DeriveScenariosFromShortcuts(lib.Options{
++		Iterations: null.IntFrom(5),
++		VUs:        null.IntFrom(1),
++	}.Apply(runner.GetOptions()), nil)
++	require.NoError(t, err)
++
++	testRunState := getTestRunState(t, getTestPreInitState(t), opts, runner)
++	execScheduler, err := execution.NewScheduler(testRunState)
++	require.NoError(t, err)
++
++	samples := make(chan metrics.SampleContainer, 100)
++	go func() {
++		for range samples {
++		}
++	}()
++
++	// First call Init
++	stopEmission, err := execScheduler.Init(ctx, samples)
++	require.NoError(t, err)
++
++	// Then call Run
++	err = execScheduler.Run(ctx, ctx, samples)
++	require.NoError(t, err)
++
++	// Cleanup
++	stopEmission()
++	close(samples)
++
++	// Verify iterations ran
++	assert.Equal(t, int64(5), atomic.LoadInt64(&iterationCount))
++}
++
++// TestSchedulerInitCleanupStopsMetricsEmission verifies that calling the cleanup function
++// returned by Init properly stops the VU metrics emission.
++func TestSchedulerInitCleanupStopsMetricsEmission(t *testing.T) {
++	t.Parallel()
++	runner := &minirunner.MiniRunner{
++		Fn: func(_ context.Context, _ *lib.State, _ chan<- metrics.SampleContainer) error {
++			return nil
++		},
++	}
++
++	ctx, cancel := context.WithCancel(context.Background())
++	defer cancel()
++
++	opts, err := executor.DeriveScenariosFromShortcuts(lib.Options{
++		Iterations: null.IntFrom(1),
++		VUs:        null.IntFrom(1),
++	}.Apply(runner.GetOptions()), nil)
++	require.NoError(t, err)
++
++	testRunState := getTestRunState(t, getTestPreInitState(t), opts, runner)
++	execScheduler, err := execution.NewScheduler(testRunState)
++	require.NoError(t, err)
++
++	samples := make(chan metrics.SampleContainer, 100)
++
++	stopEmission, err := execScheduler.Init(ctx, samples)
++	require.NoError(t, err)
++
++	// Call cleanup - this should stop metrics emission without blocking
++	done := make(chan struct{})
++	go func() {
++		stopEmission()
++		close(done)
++	}()
++
++	select {
++	case <-done:
++		// Success - cleanup completed
++	case <-time.After(5 * time.Second):
++		t.Fatal("Cleanup function blocked for too long")
++	}
++
++	close(samples)
++}
++
++// TestSchedulerInitMultipleCallsToCleanup verifies that calling the cleanup function
++// multiple times does not cause a panic.
++func TestSchedulerInitMultipleCallsToCleanup(t *testing.T) {
++	t.Parallel()
++	runner := &minirunner.MiniRunner{
++		Fn: func(_ context.Context, _ *lib.State, _ chan<- metrics.SampleContainer) error {
++			return nil
++		},
++	}
++
++	ctx, cancel := context.WithCancel(context.Background())
++	defer cancel()
++
++	opts, err := executor.DeriveScenariosFromShortcuts(lib.Options{
++		Iterations: null.IntFrom(1),
++		VUs:        null.IntFrom(1),
++	}.Apply(runner.GetOptions()), nil)
++	require.NoError(t, err)
++
++	testRunState := getTestRunState(t, getTestPreInitState(t), opts, runner)
++	execScheduler, err := execution.NewScheduler(testRunState)
++	require.NoError(t, err)
++
++	samples := make(chan metrics.SampleContainer, 100)
++	defer close(samples)
++
++	stopEmission, err := execScheduler.Init(ctx, samples)
++	require.NoError(t, err)
++
++	// Multiple calls to cleanup should not panic
++	assert.NotPanics(t, func() {
++		stopEmission()
++		stopEmission()
++	})
++}
+diff --git a/js/runner_test.go b/js/runner_test.go
+index 8ce8e92e4..19f6316d8 100644
+--- a/js/runner_test.go
++++ b/js/runner_test.go
+@@ -406,6 +406,9 @@ func TestDataIsolation(t *testing.T) {
+ 
+ 	require.Empty(t, runner.defaultGroup.Groups)
+ 
++	stopEmission, err := execScheduler.Init(runCtx, samples)
++	require.NoError(t, err)
++
+ 	errC := make(chan error)
+ 	go func() { errC <- execScheduler.Run(globalCtx, runCtx, samples) }()
+ 
+@@ -414,6 +417,7 @@ func TestDataIsolation(t *testing.T) {
+ 		runAbort(fmt.Errorf("unexpected abort"))
+ 		t.Fatal("Test timed out")
+ 	case err := <-errC:
++		stopEmission()
+ 		close(samples)
+ 		require.NoError(t, err)
+ 		waitForMetricsFlushed()

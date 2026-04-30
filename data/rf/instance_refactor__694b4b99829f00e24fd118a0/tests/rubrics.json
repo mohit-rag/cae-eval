@@ -1,0 +1,218 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "fda9f2948baf4147ccb0b310d66ce510",
+    "title": "1.1: Deduplicates GitLab projects globally by project ID in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Project enumeration returns each accessible project at most once, even if it appears in both user project listings and group project listings. Deduplication is global across all enumeration paths and uses gitlab.Project.ID.",
+      "evidence": "Gold patch lines 16-30 show uniqueProjects map keyed by project ID (line 16), processProjects function checking existence before adding (lines 23-30), and projects slice built via append (line 27).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'dedupe projects globally so each project appears only once (by project ID)'. [3: Logical Necessity] User and group enumeration can overlap for the same project, so a global ID-based dedupe is required to prevent duplicates reliably. [5: Conclusion] Therefore, any correct solution must dedupe globally by project ID."
+    }
+  },
+  {
+    "id": "cf77dd0a135c9700426e1f2015170ebe",
+    "title": "1.2: Returns the same GitLab project slice order given the same API responses from getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The returned []*gitlab.Project ordering is deterministic given the same API responses. The implementation avoids building the output list via Go map iteration (which is nondeterministic).",
+      "evidence": "Gold patch lines 18, 27, 121 show projects declared as slice (line 18), built via ordered append in processProjects (line 27), and returned directly (line 121) instead of iterating over map.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'make the returned project list deterministic given the same API responses'. [3: Logical Necessity] Go map iteration order is randomized, so using a map as the source of the returned ordering violates determinism. [5: Conclusion] Therefore, any correct solution must avoid map iteration for the returned ordering."
+    }
+  },
+  {
+    "id": "086d59a6a2fdcd619f3f29e136d06ef0",
+    "title": "1.3: Uses PerPage=100 when listing user projects in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "User project listing uses the GitLab API maximum supported page size (100) to reduce request volume on large instances. Pagination still proceeds across pages until completion.",
+      "evidence": "Gold patch lines 36-38, 43 show paginationLimit = 100 (line 36), listOpts with PerPage: paginationLimit (line 38), and ListProjectsOptions using ListOptions: listOpts (line 43).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'reduce API calls by using the maximum page size (100) on the relevant list endpoints'. [3: Logical Necessity] The GitLab client defaults to a smaller page size, which increases request count and slows enumeration. [5: Conclusion] Therefore, any correct solution must set PerPage to 100 for user project listing."
+    }
+  },
+  {
+    "id": "81bd072ab20f49b1ef886e2863693187",
+    "title": "1.4: Uses PerPage=100 when listing groups in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Group listing uses PerPage=100 to reduce request volume during enumeration. Pagination iterates through all pages of groups.",
+      "evidence": "Gold patch line 63 shows ListGroupsOptions with ListOptions: listOpts, where listOpts has PerPage: 100 (defined at lines 36-38).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires max page size (100) on relevant listing endpoints. [3: Logical Necessity] Group enumeration can be large on enterprise GitLab instances and is a major source of API requests if the page size remains small. [5: Conclusion] Therefore, any correct solution must use PerPage=100 for group listing."
+    }
+  },
+  {
+    "id": "338a52fac1be7bd0d1e2222ce8a989c8",
+    "title": "1.5: Uses PerPage=100 when listing group projects in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Group project listing uses PerPage=100 to reduce request volume when enumerating projects across groups (including subgroups). Pagination iterates through all pages for each group\u2019s project list.",
+      "evidence": "Gold patch line 88 shows ListGroupProjectsOptions with ListOptions: listOpts, where listOpts has PerPage: 100 (defined at lines 36-38).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires max page size (100) on relevant listing endpoints. [3: Logical Necessity] Group project enumeration is often the largest contributor to listing call volume; leaving the default page size increases requests dramatically. [5: Conclusion] Therefore, any correct solution must use PerPage=100 for group project listing."
+    }
+  },
+  {
+    "id": "60075c541797653e1faa5947aabd43d7",
+    "title": "1.6: Includes subgroup projects when enumerating group projects in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Group project enumeration continues to include subgroup projects so coverage matches the previous behavior (and the prompt\u2019s requirement). This preserves the effective set of accessible projects when --repo is not specified.",
+      "evidence": "Gold patch line 90 shows IncludeSubGroups: gitlab.Bool(true) preserved in ListGroupProjectsOptions.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'Keep the same effective set of accessible projects (user projects plus group projects including subgroups)'. [3: Logical Necessity] Disabling subgroup inclusion changes scan coverage and breaks expected behavior. [5: Conclusion] Therefore, any correct solution must keep subgroup inclusion enabled."
+    }
+  },
+  {
+    "id": "b6580f05c48218414175f2b0e7707680",
+    "title": "1.7: Logs only the enumerated project count at default info level in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Default logs provide a concise summary that includes only the total enumerated project count. The detailed list of projects is not included at default info level.",
+      "evidence": "Gold patch line 118 shows ctx.Logger().Info(\"Enumerated GitLab projects\", \"count\", len(projects)) with count only, no project list attached.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'default logs only include a summary count'. [4: Qualitative Requirement] Logging large lists at default verbosity is noisy and can degrade usability/performance on large instances. [5: Conclusion] Therefore, any correct solution must keep default logs to the count only."
+    }
+  },
+  {
+    "id": "f22cf1a239403a9ed0a0742dab362077",
+    "title": "1.8: Logs detailed project identifiers only at higher verbosity in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Detailed project identification output is available for debugging but only when verbosity is increased. This ensures normal runs stay quiet while still supporting deep troubleshooting.",
+      "evidence": "Gold patch line 119 shows ctx.Logger().V(2).Info(\"Enumerated GitLab projects\", \"projects\", projectsWithNamespace) using V(2) for verbosity gating.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'detailed project names are only logged at higher verbosity'. [3: Logical Necessity] Without verbosity gating, default logs would remain noisy and violate the requirement. [5: Conclusion] Therefore, any correct solution must place the detailed list behind higher verbosity."
+    }
+  },
+  {
+    "id": "6594f4d67d9d4ccaac937556f526c473",
+    "title": "1.9: Wraps the authentication error with context and %w in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The authentication failure error return from getAllProjects includes step-specific context and wraps the underlying error via %w, enabling upstream callers to unwrap the cause via errors.Is/As.",
+      "evidence": "Gold patch line 13 shows fmt.Errorf(\"unable to authenticate using %s, %w\", s.authMethod, err) wrapping the auth error with context and %w.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'return contextual, wrapped errors (%w) so failures can be traced upstream'. [3: Logical Necessity] Upstream inspection via errors.Is/As requires wrapped errors that preserve the underlying cause. [5: Conclusion] Therefore, any correct solution must wrap the authentication error with context and %w."
+    }
+  },
+  {
+    "id": "257a3f51dbe2c6b2fa57964ec3fb3812",
+    "title": "1.10: Wraps the user project listing error with context and %w in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The user project listing failure error return from getAllProjects includes step-specific context and wraps the underlying error via %w, enabling upstream callers to unwrap the cause via errors.Is/As.",
+      "evidence": "Gold patch line 51 shows fmt.Errorf(\"received error on listing user projects: %w\", err) wrapping the listing error with context and %w.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'return contextual, wrapped errors (%w) so failures can be traced upstream'. [3: Logical Necessity] Upstream inspection via errors.Is/As requires wrapped errors that preserve the underlying cause. [5: Conclusion] Therefore, any correct solution must wrap the user project listing error with context and %w."
+    }
+  },
+  {
+    "id": "c36321d05fee004ef77bba20cc4a29ca",
+    "title": "1.11: Wraps the group listing error with context and %w in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "The group listing failure error return from getAllProjects includes step-specific context and wraps the underlying error via %w, enabling upstream callers to unwrap the cause via errors.Is/As.",
+      "evidence": "Gold patch line 79 shows fmt.Errorf(\"received error on listing groups, you probably don't have permissions to do that: %w\", err) wrapping the listing error with context and %w.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'return contextual, wrapped errors (%w) so failures can be traced upstream'. [3: Logical Necessity] Upstream inspection via errors.Is/As requires wrapped errors that preserve the underlying cause. [5: Conclusion] Therefore, any correct solution must wrap the group listing error with context and %w."
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required. ",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "7ea51459bafaaa4985ff9b8fc1f4d5c5",
+    "title": "4.1: Removes subgroup inclusion from group project enumeration in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "The response changes scan coverage by no longer including subgroup projects during group project enumeration. This violates the requirement to preserve the effective set of accessible projects.",
+      "evidence": "Gold patch line 90 preserves IncludeSubGroups: gitlab.Bool(true). Removing or setting to false would change scan coverage.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires keeping subgroup coverage. [3: Logical Necessity] Removing subgroup inclusion changes which repositories are discovered and scanned. [5: Conclusion] Therefore, disabling subgroup inclusion is a failure."
+    }
+  },
+  {
+    "id": "797fe1f288de07d01dbe1e15614ce876",
+    "title": "4.2: Returns unwrapped errors from getAllProjects returned failures",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "The response returns errors that do not wrap the underlying cause (e.g., missing %w), preventing upstream callers from unwrapping and inspecting the error chain. This breaks the tracing requirement. Errors intentionally logged and skipped are not subject to this.",
+      "evidence": "Gold patch lines 13, 51, 79 show all returned errors using fmt.Errorf with %w. Using %s or errors.Errorf without %w would break error unwrapping.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires contextual wrapped errors using %w. [3: Logical Necessity] Without wrapping, upstream error inspection via errors.Is/As becomes unreliable. [5: Conclusion] Therefore, returning unwrapped errors is a failure."
+    }
+  },
+  {
+    "id": "ac780081d39728e07c37bc1a4d1f22fe",
+    "title": "4.3: Logs the full enumerated project name list at default info verbosity in getAllProjects",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "The response emits the detailed project list (e.g., names) at default verbosity rather than gating it behind higher verbosity. This violates the requirement that default logs are summary-only.",
+      "evidence": "Gold patch lines 118-119 show separation: line 118 logs count at Info level, line 119 logs projects at V(2). Logging projects at Info level would violate this separation.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires summary-only default logs and verbosity-gated detail. [4: Qualitative Requirement] Logging large lists at default verbosity is noisy and can impact performance. [5: Conclusion] Therefore, logging the full list at default info is a failure."
+    }
+  }
+]

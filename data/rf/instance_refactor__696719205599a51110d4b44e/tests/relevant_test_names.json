@@ -1,0 +1,133 @@
+{
+  "tests": [
+    {
+      "name": "go.k6.io/k6/api/v1/TestPatchStatus"
+    },
+    {
+      "name": "go.k6.io/k6/api/v1/TestPatchStatus/max_vus"
+    },
+    {
+      "name": "go.k6.io/k6/api/v1/TestPatchStatus/max_vus_below_initial"
+    },
+    {
+      "name": "go.k6.io/k6/api/v1/TestPatchStatus/nothing"
+    },
+    {
+      "name": "go.k6.io/k6/api/v1/TestPatchStatus/paused"
+    },
+    {
+      "name": "go.k6.io/k6/api/v1/TestPatchStatus/too_many_vus"
+    },
+    {
+      "name": "go.k6.io/k6/api/v1/TestPatchStatus/vus"
+    },
+    {
+      "name": "go.k6.io/k6/cmd/tests/TestAbortedByTestAbortInNonFirstInitCode"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunNonDefault"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunNonDefault/defaultOK"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunNonDefault/nonDefaultOK"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/global/constant-arrival-rate"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/global/constant-vus"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/global/externally-controlled"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/global/per-vu-iterations"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/global/ramping-arrival-rate"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/global/ramping-vus"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/global/shared-iterations"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/override/constant-arrival-rate"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/override/constant-vus"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/override/externally-controlled"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/override/per-vu-iterations"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/override/ramping-arrival-rate"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/override/ramping-vus"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunEnv/override/shared-iterations"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerSystemTags"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunCustomTags"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunCustomTags/constant-arrival-rate"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunCustomTags/constant-vus"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunCustomTags/externally-controlled"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunCustomTags/per-vu-iterations"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunCustomTags/ramping-arrival-rate"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunCustomTags/ramping-vus"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunCustomTags/shared-iterations"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerRunCustomConfigNoCrossover"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerEndIterations"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestRealTimeAndSetupTeardownMetrics"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerInitReturnsCleanupFunction"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerInitThenRun"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerInitCleanupStopsMetricsEmission"
+    },
+    {
+      "name": "go.k6.io/k6/execution/TestSchedulerInitMultipleCallsToCleanup"
+    },
+    {
+      "name": "go.k6.io/k6/js/TestDataIsolation"
+    }
+  ]
+}

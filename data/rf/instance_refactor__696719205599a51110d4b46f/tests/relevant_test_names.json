@@ -1,0 +1,97 @@
+{
+  "tests": [
+    {
+      "name": "TestSetupPyModernization::test_no_distutils_import"
+    },
+    {
+      "name": "TestSetupPyModernization::test_setuptools_is_used"
+    },
+    {
+      "name": "TestSetupPyModernization::test_no_hardcoded_package_list"
+    },
+    {
+      "name": "TestSetupPyModernization::test_uses_automatic_package_discovery"
+    },
+    {
+      "name": "TestSetupPyModernization::test_entry_points_defined"
+    },
+    {
+      "name": "TestSetupPyModernization::test_entry_point_for_scapy"
+    },
+    {
+      "name": "TestSetupPyModernization::test_entry_point_for_utscapy"
+    },
+    {
+      "name": "TestSetupPyModernization::test_python_requires_declared"
+    },
+    {
+      "name": "TestSetupPyModernization::test_extras_require_declared"
+    },
+    {
+      "name": "TestSetupPyModernization::test_no_scripts_parameter"
+    },
+    {
+      "name": "TestSetupPyModernization::test_no_ezip_code"
+    },
+    {
+      "name": "TestLegacyBinScriptsRemoved::test_bin_scapy_removed"
+    },
+    {
+      "name": "TestLegacyBinScriptsRemoved::test_bin_utscapy_removed"
+    },
+    {
+      "name": "TestLegacyBinScriptsRemoved::test_bin_scapy_bat_removed"
+    },
+    {
+      "name": "TestLegacyBinScriptsRemoved::test_bin_utscapy_bat_removed"
+    },
+    {
+      "name": "TestUTscapyEntryPoint::test_main_has_no_required_parameters"
+    },
+    {
+      "name": "TestUTscapyEntryPoint::test_main_call_sites_use_no_args"
+    },
+    {
+      "name": "TestLauncherDefaults::test_run_scapy_defaults_to_python3"
+    },
+    {
+      "name": "TestLauncherDefaults::test_run_scapy_no_pythondontwritebytecode"
+    },
+    {
+      "name": "TestLauncherDefaults::test_run_scapy_bat_is_standalone_launcher"
+    },
+    {
+      "name": "TestLauncherDefaults::test_run_scapy_bat_defaults_to_python3"
+    },
+    {
+      "name": "TestLauncherDefaults::test_run_scapy_bat_runs_scapy_as_module"
+    },
+    {
+      "name": "TestLauncherDefaults::test_run_scapy_bat_has_python2_fallback"
+    },
+    {
+      "name": "TestLauncherDefaults::test_py2_bat_delegates_to_run_scapy_bat"
+    },
+    {
+      "name": "TestLauncherDefaults::test_py3_bat_delegates_to_run_scapy_bat"
+    },
+    {
+      "name": "TestLauncherDefaults::test_py2_bat_sets_python_interpreter"
+    },
+    {
+      "name": "TestLauncherDefaults::test_py3_bat_sets_python3_interpreter"
+    },
+    {
+      "name": "TestLauncherDefaults::test_py2_bat_no_pythondontwritebytecode"
+    },
+    {
+      "name": "TestLauncherDefaults::test_py3_bat_no_pythondontwritebytecode"
+    },
+    {
+      "name": "TestLauncherDefaults::test_py2_bat_no_nopause_logic"
+    },
+    {
+      "name": "TestLauncherDefaults::test_py3_bat_no_nopause_logic"
+    }
+  ]
+}

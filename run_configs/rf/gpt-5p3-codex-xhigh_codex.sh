@@ -12,7 +12,7 @@ harbor run \
   -m "openai/gpt-5.3-codex" \
   -k 3 \
   -e modal \
-  -n 16 \
+  -n 26 \
   --ak reasoning_effort=xhigh \
   --ek registry_secret=aws-secret-agent-xiang-deng \
   -o harbor_results/cae/rf_task \

@@ -1,0 +1,182 @@
+[
+  {
+    "id": "e8a21f6b5b9c4c7d8a9f0e1d2c3b4a5f",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "b3ed1628920abd5295d443f79b04eea2",
+    "title": "1.1: Removes string quotes from all 5 scapy.fields.Field type annotations across Packet_metaclass.__new__ (current_fld, resolved_fld, final_fld), Packet_metaclass.__getattr__, and Field_metaclass.__new__ in scapy/base_classes.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the string quotes are removed from all 5 scapy.fields.Field type hints in scapy/base_classes.py so they use direct references instead of strings: (1) current_fld in Packet_metaclass.__new__, (2) resolved_fld in Packet_metaclass.__new__, (3) final_fld in Packet_metaclass.__new__, (4) return type of Packet_metaclass.__getattr__, and (5) return type of Field_metaclass.__new__.",
+      "evidence": "gold.patch scapy/base_classes.py: (1) -current_fld = dct[\"fields_desc\"]  # type: List[Union['scapy.fields.Field'[Any, Any], Packet_metaclass]] changed to +current_fld = dct[\"fields_desc\"]  # type: List[Union[scapy.fields.Field[Any, Any], Packet_metaclass]]; (2) -resolved_fld = []  # type: List['scapy.fields.Field'[Any, Any]] changed to +resolved_fld = []  # type: List[scapy.fields.Field[Any, Any]]; (3) -final_fld = []  # type: List['scapy.fields.Field'[Any, Any]] changed to +final_fld = []  # type: List[scapy.fields.Field[Any, Any]]; (4) -# type: (str) -> 'scapy.fields.Field'[Any, Any] changed to +# type: (str) -> scapy.fields.Field[Any, Any] in __getattr__; (5) -# type: (...) -> Type['scapy.fields.Field'[Any, Any]] changed to +# type: (...) -> Type[scapy.fields.Field[Any, Any]] in Field_metaclass.__new__.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states to 'fix the typing annotations for scapy.fields.Field so they use direct references instead of strings'. [5: Conclusion] Therefore, any correct solution must remove these quotes at all 5 occurrences."
+    }
+  },
+  {
+    "id": "c4f2a39b8e7d6c5b4a3f2e1d0c9b8a7f",
+    "title": "1.2: Renames the AutoConnection.CSPECversion field to AutoConnection.version in scapy/contrib/homeplugav.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the ShortField named 'CSPECversion' in the AutoConnection packet class is renamed exactly to 'version'.",
+      "evidence": "gold.patch scapy/contrib/homeplugav.py: -ShortField(\"CSPECversion\", 0), changed to +ShortField(\"version\", 0), in the AutoConnection.fields_desc.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt lists CSPECversion as a duplicated field name to resolve. [2: Interface Specification] The interface specifies AutoConnection.version as the target name. [5: Conclusion] Therefore, exactly 'version' must be used."
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2",
+    "title": "1.3: Renames the ModulePIB.reserved_21 field to ModulePIB.reserved_21b in scapy/contrib/homeplugav.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the XByteField named 'reserved_21' (wrapped in a ConditionalField) in the ModulePIB packet class is renamed to 'reserved_21b' to resolve a duplicate field name.",
+      "evidence": "gold.patch scapy/contrib/homeplugav.py: -ConditionalField(XByteField(\"reserved_21\", 0), changed to +ConditionalField(XByteField(\"reserved_21b\", 0), in the ModulePIB.fields_desc.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt lists reserved_21 as a duplicated field name to resolve. [2: Interface Specification] The interface specifies ModulePIB.reserved_21b as the target name. [5: Conclusion] Therefore, the field must be renamed to 'reserved_21b'."
+    }
+  },
+  {
+    "id": "d5e3b40c9f8e7d6a5b4c3d2e1f0a9b8c",
+    "title": "1.4: Renames the second duplicate ForceRejoinReq.RFU field to ForceRejoinReq.RFU2 in scapy/contrib/loraphy2wan.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the second BitField named 'RFU' (1-bit wide) in the ForceRejoinReq packet class is renamed to 'RFU2', while the first 2-bit 'RFU' field remains unchanged.",
+      "evidence": "gold.patch scapy/contrib/loraphy2wan.py: -BitField(\"RFU\", 0, 1), changed to +BitField(\"RFU2\", 0, 1), in ForceRejoinReq.fields_desc. The first BitField(\"RFU\", 0, 2) is unchanged.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt lists RFU as a duplicated field name to resolve. [2: Interface Specification] The interface specifies ForceRejoinReq.RFU2 as the target name. [5: Conclusion] Therefore, the second RFU field must be renamed to 'RFU2'."
+    }
+  },
+  {
+    "id": "e6f4c51d0a9b8c7d6e5f4a3b2c1d0e9f",
+    "title": "1.5: Consolidates the duplicate ProfinetDCP.name_of_station conditional fields into a single field in scapy/contrib/pnio_dcp.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the two separate ConditionalField definitions for 'name_of_station' in the ProfinetDCP packet class (one for DCP Set Request with service_id==4, one for DCP Identify Request with service_id==5) are consolidated into a single field that handles both request types.",
+      "evidence": "gold.patch scapy/contrib/pnio_dcp.py: Removes the two separate ConditionalField(StrLenField(\"name_of_station\", ...)) definitions (one with length_from=lambda x: x.dcp_block_length - 2 for service_id==4, one with length_from=lambda x: x.dcp_block_length for service_id==5) and replaces them with a single ConditionalField wrapping a MultipleTypeField that dispatches based on service_id==4 vs the default path.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt lists name_of_station as a duplicated field name to resolve by consolidating into proper multi-type fields. [2: Interface Specification] The interface specifies ProfinetDCP.name_of_station as the consolidated field. [5: Conclusion] Therefore, a correct solution must merge these two fields into one."
+    }
+  },
+  {
+    "id": "f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6",
+    "title": "1.6: Consolidates the duplicate VQPEntry data conditional fields into a single multi-type field in scapy/contrib/vqp.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the multiple ConditionalField definitions for 'data' in the VQPEntry packet class (IPField for datatype==3073, two MACFields for datatype==3078 and 3080, and a StrLenField fallback) are consolidated into a single field structure that selects the correct type based on the datatype value.",
+      "evidence": "gold.patch scapy/contrib/vqp.py: Removes -ConditionalField(IPField(\"datatom\", \"0.0.0.0\"), lambda p: p.datatype == 3073), -ConditionalField(MACField(\"data\", ...), lambda p: p.datatype == 3078), -ConditionalField(MACField(\"data\", ...), lambda p: p.datatype == 3080), and -ConditionalField(StrLenField(\"data\", ...), lambda p: p.datatype not in [3073, 3078, 3080]). Replaces with +MultipleTypeField([(IPField(\"data\", \"0.0.0.0\"), lambda p: p.datatype == 3073), (MACField(\"data\", ...), lambda p: p.datatype in [3078, 3080])], StrLenField(\"data\", None, length_from=lambda p: p.len)).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt lists data as a duplicated field name to resolve by consolidating into proper multi-type fields. [2: Interface Specification] The interface specifies VQPEntry.fields_desc restructuring. [5: Conclusion] Therefore, any valid implementation must consolidate the data fields."
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1.7: Corrects the VQPEntry.datatom typo to VQPEntry.data in scapy/contrib/vqp.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the IPField named 'datatom' in VQPEntry is corrected to 'data'.",
+      "evidence": "gold.patch scapy/contrib/vqp.py: -ConditionalField(IPField(\"datatom\", \"0.0.0.0\"), ...) is replaced; the new MultipleTypeField uses +IPField(\"data\", \"0.0.0.0\") instead.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states to 'fix the datatom typo'. [5: Conclusion] Therefore, any valid implementation must correct this specific typo to 'data'."
+    }
+  },
+  {
+    "id": "b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6",
+    "title": "1.8: Updates the VQPEntry FieldLenField to auto-compute length with length_of='data' and fmt='H' in scapy/contrib/vqp.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the FieldLenField('len', None) in VQPEntry is updated to include both length_of='data' (to auto-compute the length from the data field) and fmt='H' (to preserve the 2-byte unsigned short format that the deleted post_build method previously handled).",
+      "evidence": "gold.patch scapy/contrib/vqp.py: -FieldLenField(\"len\", None), changed to +FieldLenField(\"len\", None, length_of=\"data\", fmt=\"H\"),.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states to 'update the VQP length field to auto-compute'. [3: Logical Necessity] The deleted post_build method packed the length using '!H'. Dropping fmt='H' defaults to a different struct format and breaks packet serialization. [5: Conclusion] Therefore, both parameters are required."
+    }
+  },
+  {
+    "id": "c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6",
+    "title": "1.9: Removes the custom VQPEntry.post_build() method in scapy/contrib/vqp.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the custom post_build(self, p, pay) method is completely deleted from the VQPEntry class, since the auto-computing FieldLenField makes it unnecessary.",
+      "evidence": "gold.patch scapy/contrib/vqp.py: Removes the entire block -def post_build(self, p, pay): -    if self.len is None: -        tmp_len = len(p.data) -        p = p[:2] + struct.pack(\"!H\", tmp_len) + p[4:] -    return p.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'so we can completely drop the custom post_build() method'. [5: Conclusion] Therefore, the deletion of this method is mandatory."
+    }
+  },
+  {
+    "id": "b9c7f84a3d2e1f0a9b8c7d6e5f4a3b2c",
+    "title": "1.10: Corrects the UDP-to-VQP layer bindings so single-direction ports dissect without adding default fields when building in scapy/contrib/vqp.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the UDP layer bindings for VQP are updated so that packets with only sport=1589 or only dport=1589 are correctly dissected as VQP, while building a VQP packet defaults to both sport=1589 and dport=1589 without injecting unwanted default fields in single-direction scenarios.",
+      "evidence": "gold.patch scapy/contrib/vqp.py: Removes -bind_layers(UDP, VQP, sport=1589) and -bind_layers(UDP, VQP, dport=1589). Adds +bind_bottom_up(UDP, VQP, sport=1589), +bind_bottom_up(UDP, VQP, dport=1589), and +bind_layers(UDP, VQP, sport=1589, dport=1589).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states to 'correct the UDP bindings so single-direction ports are bound correctly without adding default fields when building'. [3: Logical Necessity] Using bind_layers for individual ports causes Scapy to inject default field values when building. [5: Conclusion] Therefore, the bindings must be restructured to separate dissection from building."
+    }
+  },
+  {
+    "id": "c0d8a95b4e3f2a1b0c9d8e7f6a5b4c3d",
+    "title": "1.11: Adds a graceful failure with a print statement and SystemExit when running root tests on Windows without libpcap in scapy/tools/UTscapy.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the main() function in UTscapy.py includes a check for the WINDOWS platform condition so that when libpcap is not available and root tests are requested, the script prints an error message and raises SystemExit. The check must be scoped to Windows only and must not trigger on Linux/macOS.",
+      "evidence": "gold.patch scapy/tools/UTscapy.py: Adds +elif WINDOWS and not NON_ROOT: +    print(\"ERROR: libpcap is required on Windows for root tests\") +    raise SystemExit after the existing libpcap mode block.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly states to 'ensure the test suite fails gracefully with a print statement and SystemExit if someone tries to run root tests on Windows without libpcap'. [3: Logical Necessity] Without scoping to WINDOWS, the check would break the test suite on Unix systems. [5: Conclusion] Therefore, the check must be Windows-specific."
+    }
+  },
+  {
+    "id": "d1e9b06c5f4a3b2c1d0e9f8a7b6c5d4e",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "e2f0c17d6a5b4c3d2e1f0a9b8c7d6e5f",
+    "title": "4.1: Removes the ProfinetDCP.name_of_station or VQPEntry.data fields entirely instead of consolidating them",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the agent simply deleted the duplicated conditional fields for name_of_station in ProfinetDCP or data in VQPEntry instead of properly consolidating them, which would break packet parsing functionality.",
+      "evidence": "gold.patch shows both fields are consolidated, not deleted: scapy/contrib/pnio_dcp.py retains name_of_station inside a MultipleTypeField, and scapy/contrib/vqp.py retains data inside a MultipleTypeField with IPField, MACField, and StrLenField variants.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'consolidate' the fields, not remove them. [3: Logical Necessity] Removing these fields entirely would break the parser's ability to extract those values. [5: Conclusion] Therefore, deleting the fields instead of consolidating them is a regression failure."
+    }
+  },
+  {
+    "id": "f3a1d28e7b6c5d4e3f2a1b0c9d8e7f6a",
+    "title": "4.2: Omits the WINDOWS platform check for the libpcap requirement in scapy/tools/UTscapy.py, applying the exit globally",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects a critical regression where the agent adds the libpcap/SystemExit condition in UTscapy.py but fails to scope it to the Windows platform (e.g., missing the WINDOWS constant check), causing the test suite to exit on all operating systems including Linux and macOS.",
+      "evidence": "gold.patch scapy/tools/UTscapy.py: The check is correctly scoped with +elif WINDOWS and not NON_ROOT:, ensuring it only triggers on Windows when running root tests without libpcap.",
+      "justification": "[3: Logical Necessity] Applying the libpcap exit globally without verifying the OS breaks the test suite on all Unix systems where it should otherwise run. [5: Conclusion] Therefore, omitting the WINDOWS check is a critical failure."
+    }
+  }
+]

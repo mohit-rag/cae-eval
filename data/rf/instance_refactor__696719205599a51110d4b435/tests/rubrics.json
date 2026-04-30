@@ -1,0 +1,122 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e8c3b2a1f4a5678901234567890e5678",
+    "title": "1.1: Removes all 22 unexported wrapper methods (including click, dblclick, fill, focus, hover, check, uncheck, setChecked, isChecked, isEditable, ...) that only set options and forward to l.frame from the Locator type",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the private wrapper methods matching the indirection pattern (setting options and delegating to l.frame) are removed from the Locator type.",
+      "evidence": "gold.patch shows 22 unexported method deletions (e.g. lines 30\u201336 removing click, lines 56\u201362 removing dblclick, lines 239\u2013242 removing fill, lines 453\u2013457 removing hover). Each wrapper only set opts.Strict/opts.retry and called an l.frame method.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt identifies these wrappers as trivial indirection that 'do nothing beyond setting a flag or two before calling the frame' and asks to 'remove the private wrappers that are no longer needed'. [2: Implicit Codebase Constraint] All private wrapper methods in locator.go match this pattern \u2014 they only set options and delegate to l.frame methods. [3: Logical Necessity] Leaving any wrapper in place would create an inconsistent pattern where some public methods inline directly while others still route through wrappers, contradicting the consistency goal. [4: Quality Necessity] Any good implementation addresses the entire scope of the identified problem. [5: Conclusion] Therefore, ANY correct answer must remove the unexported wrapper methods that match this pattern.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b5f0e9d8c1d2345678901234567b2345",
+    "title": "1.2: Preserves strict mode enforcement (opts.Strict = true) in all 23 refactored public Locator methods (including Click, Dblclick, Fill, Clear, Check, Uncheck, IsChecked, IsEditable, IsEnabled, IsDisabled, ...)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that strict mode behavior is preserved in the refactored public methods. The private wrappers set opts.Strict = true before delegating to frame methods, and this must be maintained.",
+      "evidence": "gold.patch shows opts.Strict = true added in all 23 refactored public methods (e.g. line 10 in Clear, line 20 in Click, line 46 in Dblclick, line 230 in Fill, line 274 in GetAttribute, line 486 in WaitFor).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'the locator should still work exactly the same way after'. [2: Implicit Codebase Constraint] The private wrappers enforce strict mode for selector matching. [3: Logical Necessity] Strict mode must be preserved for identical behavior. [4: Quality Necessity] Any good implementation preserves functionality. [5: Conclusion] Therefore, ANY correct answer must preserve strict mode enforcement in refactored methods.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f9e4d3c2b5a6789012345678901a6789",
+    "title": "1.3: Retains retry behavior in all 6 action methods (Click, Dblclick, Hover, Check, Uncheck, SetChecked)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that retry behavior is preserved in action methods. The private wrappers for these specific methods set opts.retry = true before delegating to frame methods.",
+      "evidence": "gold.patch shows opts.retry = true added in 6 action methods: line 21 (Click), line 47 (Dblclick), line 73 (SetChecked), line 94 (Check), line 117 (Uncheck), line 444 (Hover).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'the locator should still work exactly the same way after'. [2: Implicit Codebase Constraint] Action method wrappers enable retry behavior for reliable element interactions. [3: Logical Necessity] The retry setting must be preserved for identical behavior. [4: Quality Necessity] Any good implementation preserves all behavioral aspects. [5: Conclusion] Therefore, ANY correct answer must retain retry behavior in action methods.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2345678901234567c3456",
+    "title": "1.4: Calls the corresponding l.frame method directly from all 23 refactored public Locator methods (including Click, Dblclick, Fill, Clear, Check, Uncheck, IsChecked, IsEditable, Focus, GetAttribute, ...) instead of routing through private wrappers",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that refactored public methods call their corresponding l.frame.xxx() method directly, without routing through private wrapper intermediaries.",
+      "evidence": "gold.patch shows each public method now calls l.frame.xxx() directly (e.g. line 11 l.frame.fill in Clear, line 22 l.frame.click in Click, line 48 l.frame.dblclick in Dblclick, line 253 l.frame.focus in Focus, line 468 l.frame.dispatchEvent in DispatchEvent). All 23 methods follow this pattern.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states the wrappers are 'just setting an option and calling into frame'. [2: Implicit Codebase Constraint] The frame methods (l.frame.xxx) contain the actual implementation logic. [3: Logical Necessity] After removing wrappers, exported methods must call frame methods directly to preserve functionality. [4: Quality Necessity] Any good implementation maintains the delegation to frame methods. [5: Conclusion] Therefore, ANY correct answer must have refactored public methods delegate to their corresponding frame method.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "f9d4c3b2a5b6789012345678901f6789",
+    "title": "3.1: Removes orphaned doc comments from all 8 deleted private methods with comments (click, dblclick, check, uncheck, isChecked, isEditable, isEnabled, isDisabled) in locator.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that doc comments associated with deleted private methods are also removed. Orphaned comments reduce readability.",
+      "evidence": "gold.patch shows doc comment deletions for 8 private methods: lines 30\u201331 (click), lines 56\u201357 (dblclick), lines 103\u2013104 (check), lines 126\u2013127 (uncheck), lines 149\u2013150 (isChecked), lines 171\u2013172 (isEditable), lines 193\u2013194 (isEnabled), lines 215\u2013216 (isDisabled). The other 14 private methods had no doc comments.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt asks to clean up code that 'feels harder to follow'. [2: Implicit Codebase Constraint] Deleted methods may have associated doc comments. [3: Logical Necessity] Orphaned comments reduce readability and contradict the cleanup goal. [4: Quality Necessity] Any good implementation removes related artifacts. [5: Conclusion] Therefore, ANY correct answer should remove doc comments when removing the associated private methods.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "a0e5d4c3b6c7890123456789012a7890",
+    "title": "4.1: Drops or alters the fmt.Errorf error-wrapping pattern (such as 'clearing %q: %w' or 'clicking on %q: %w' or 'filling %q with %q: %w') in any of the 23 refactored public Locator methods",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the existing error-wrapping logic using fmt.Errorf with l.selector context is preserved unchanged in every refactored public method.",
+      "evidence": "gold.patch shows 23 fmt.Errorf error-wrapping calls preserved unchanged as context lines in the refactored public methods (e.g. line 12 'clearing %q: %w', line 23 'clicking on %q: %w', line 232 'filling %q with %q: %w', line 446 'hovering on %q: %w').",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'the locator should still work exactly the same way after'. [2: Implicit Codebase Constraint] All 23 public methods wrap errors with fmt.Errorf providing action context and l.selector for diagnostics. [3: Logical Necessity] Removing or altering error wrapping changes observable behavior for callers that inspect error messages. [4: Quality Necessity] Any good refactoring preserves error reporting fidelity. [5: Conclusion] Therefore, ANY correct answer must NOT drop or alter the fmt.Errorf error-wrapping pattern in any refactored method.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "b1f6e5d4c7d8901234567890123b8901",
+    "title": "4.2: Changes the function signature of any of the 23 exported Locator methods (including Click, Dblclick, Fill, Clear, Check, Uncheck, IsChecked, IsEditable, IsEnabled, IsDisabled, ...)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks if public API signatures are incorrectly modified.",
+      "evidence": "gold.patch shows all 23 exported method signatures appearing in hunk headers or as unchanged context lines (e.g. line 5 Clear, line 15 Click, line 42 Dblclick, line 225 Fill, line 248 Focus). No signature has a + or - prefix, confirming they are unmodified.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires 'the locator should still work exactly the same way'. [2: Implicit Codebase Constraint] Exported methods are public API. [3: Logical Necessity] Signature changes would break callers. [4: Quality Necessity] Any good refactoring preserves interfaces. [5: Conclusion] Therefore, ANY correct answer must NOT change the function signature of any exported Locator method.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

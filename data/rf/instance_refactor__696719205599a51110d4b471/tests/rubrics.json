@@ -1,0 +1,182 @@
+[
+  {
+    "id": "8f3a2c7e91d4b6f0a5e8c1d3b7f2a9e4",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "code maintainability",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "2d9f4a1c8b7e3d5f0a6c2e9b4d7f1a8c",
+    "title": "1.1: Removes individual TCP port default declarations from all 39 OpenFlow packet classes in scapy/contrib/openflow.py, including OFPTHello, OFPETHelloFailed, OFPETBadRequest, OFPETBadAction, OFPETFlowModFailed, OFPETPortModFailed, OFPETQueueOpFailed, OFPTEchoRequest, OFPTEchoReply, OFPTVendor, OFPTFeaturesRequest, OFPTFeaturesReply, ...",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that all 39 individual OpenFlow packet classes in openflow.py no longer each declare their own TCP port default (for example via per-class overload_fields). The port configuration should be centralized rather than repeated in every subclass.",
+      "evidence": "Gold patch lines 1-333 show 39 overload_fields removals from openflow.py classes. For example, line 18 removes it from OFPTHello, line 27 from OFPETHelloFailed, line 35 from OFPETBadRequest, line 43 from OFPETBadAction, line 51 from OFPETFlowModFailed, line 59 from OFPETPortModFailed, line 67 from OFPETQueueOpFailed, line 75 from OFPTEchoRequest, line 83 from OFPTEchoReply, line 91 from OFPTVendor, line 99 from OFPTFeaturesRequest, line 107 from OFPTFeaturesReply, and so on through line 324 (OFPTQueueGetConfigReply).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says the OpenFlow modules have 'a lot of repetitive TCP port configuration' and asks to 'clean this up so the port defaults are declared once for the base header class rather than repeated in every subclass'. [5: Conclusion] Therefore, any correct answer must eliminate the per-class repetition of TCP port defaults from all 39 classes in openflow.py."
+    }
+  },
+  {
+    "id": "3f8a6d2c9b1e4f7a0c5d8b2e6a9f3c1d",
+    "title": "1.2: Removes individual TCP port default declarations from all 72 OpenFlow packet classes in scapy/contrib/openflow3.py, including OFPTHello, OFPETHelloFailed, OFPETBadRequest, OFPETBadAction, OFPETBadInstruction, OFPETBadMatch, OFPETFlowModFailed, OFPETGroupModFailed, OFPETPortModFailed, OFPETTableModFailed, OFPETQueueOpFailed, OFPTEchoRequest, ...",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that all 72 individual OpenFlow packet classes in openflow3.py no longer each declare their own TCP port default. The port configuration should be centralized rather than repeated in every subclass.",
+      "evidence": "Gold patch lines 334-925 show 72 overload_fields removals from openflow3.py classes. For example, line 350 removes it from OFPTHello, line 359 from OFPETHelloFailed, line 367 from OFPETBadRequest, line 375 from OFPETBadAction, line 383 from OFPETBadInstruction, line 391 from OFPETBadMatch, line 399 from OFPETFlowModFailed, line 407 from OFPETGroupModFailed, line 415 from OFPETPortModFailed, line 423 from OFPETTableModFailed, line 431 from OFPETQueueOpFailed, line 479 from OFPTEchoRequest, and so on through line 922 (OFPTMeterMod). Line 342 also removes the now-unused 'from scapy.layers.inet import TCP' import.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says the OpenFlow modules have 'a lot of repetitive TCP port configuration' and asks to 'clean this up so the port defaults are declared once for the base header class rather than repeated in every subclass'. [5: Conclusion] Therefore, any correct answer must eliminate the per-class repetition of TCP port defaults from all 72 classes in openflow3.py."
+    }
+  },
+  {
+    "id": "6c4b9e1f7a2d8c5b0e3f6a9d2c7b4e1f",
+    "title": "1.3: Adds bind_top_down(TCP, _ofp_header, sport=6653, dport=6653) in scapy/contrib/openflow.py to centralize port defaults for the OpenFlow 1.0 header hierarchy",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that scapy/contrib/openflow.py contains a bind_top_down(TCP, _ofp_header, sport=6653, dport=6653) call that replaces the per-class overload_fields with a single centralized binding for the OpenFlow 1.0 _ofp_header base class defined in openflow.py.",
+      "evidence": "Gold patch line 333 adds bind_top_down(TCP, _ofp_header, sport=6653, dport=6653) at the end of scapy/contrib/openflow.py, after the existing bind_bottom_up calls. Line 10 also adds bind_top_down to the import from scapy.packet.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'scapy's binding system can handle default field values for an entire protocol layer centrally' and asks to declare port defaults 'once for the base header class'. [2: Implicit Codebase Constraint] openflow.py defines _ofp_header as the base class for all OpenFlow 1.0 packet classes; the bind_top_down call on this class covers all its subclasses. [5: Conclusion] Therefore, any correct answer must add bind_top_down(TCP, _ofp_header, sport=6653, dport=6653) in openflow.py."
+    }
+  },
+  {
+    "id": "7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+    "title": "1.4: Sets a source port on the TCP underlayer when SOCKS request payload is attached in scapy/contrib/socks.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that when a SOCKS request (SOCKS5Request or SOCKS4Request) is attached as payload to TCP, the add_payload method now also sets a source port, in addition to the existing destination port.",
+      "evidence": "Gold patch line 934 shows 'self.underlayer.sport = 1081' added to the request branch of add_payload in scapy/contrib/socks.py, alongside the existing 'self.underlayer.dport = 1080' on line 933.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'When a SOCKS request is attached as payload to TCP, it sets the destination port but not the source port' and 'Both cases should set a consistent port pair so the other side also gets a reasonable default value'. [5: Conclusion] Therefore, any correct answer must add a source port assignment in the request branch of add_payload."
+    }
+  },
+  {
+    "id": "8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e",
+    "title": "1.5: Sets a destination port on the TCP underlayer when SOCKS reply payload is attached in scapy/contrib/socks.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that when a SOCKS reply (SOCKS5Reply or SOCKS4Reply) is attached as payload to TCP, the add_payload method now also sets a destination port, in addition to the existing source port.",
+      "evidence": "Gold patch line 937 shows 'self.underlayer.dport = 1081' added to the reply branch of add_payload in scapy/contrib/socks.py, alongside the existing 'self.underlayer.sport = 1080' on line 936.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'When a SOCKS reply is attached, it sets the source port but not the destination port' and 'Both cases should set a consistent port pair so the other side also gets a reasonable default value'. [5: Conclusion] Therefore, any correct answer must add a destination port assignment in the reply branch of add_payload."
+    }
+  },
+  {
+    "id": "1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
+    "title": "1.6: Adds a description to the [testenv:spell] section in tox.ini",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the [testenv:spell] section in tox.ini has a description field.",
+      "evidence": "Gold patch line 949 shows 'description = \"Check code for Grammar mistakes\"' added to the [testenv:spell] section in tox.ini.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'The [testenv:spell] section in tox.ini is missing a description'. [5: Conclusion] Therefore, any correct answer must add a description to the spell testenv."
+    }
+  },
+  {
+    "id": "2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b",
+    "title": "1.7: Configures the [testenv:spell] section in tox.ini to skip package installation",
+    "annotations": {
+      "importance": "must have",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability",
+      "description": "Verifies that the [testenv:spell] section in tox.ini includes skip_install = true or an equivalent directive to avoid installing the package.",
+      "evidence": "Gold patch line 950 shows 'skip_install = true' added to the [testenv:spell] section in tox.ini.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says the spell section 'does not skip package installation, even though spell checking does not need the package installed'. [5: Conclusion] Therefore, any correct answer must add skip_install = true (or equivalent) to the spell testenv."
+    }
+  },
+  {
+    "id": "2a8f6c4e0b9d3a7f5c1e8b2d6f4a9c3e",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d7",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "2f7c4a1e9b6d3f8a5c2e0b7d4f9a6c1e",
+    "title": "3.1: Removes the unused TCP import from scapy/contrib/openflow3.py",
+    "annotations": {
+      "importance": "nice to have",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup",
+      "description": "Verifies that if the TCP import in openflow3.py becomes unused after the cleanup, it is removed.",
+      "evidence": "Gold patch line 342 shows removal of 'from scapy.layers.inet import TCP' from openflow3.py. After removing all 72 per-class overload_fields, TCP is no longer referenced in openflow3.py.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'Any imports that become unused after the cleanup should also be removed.' [5: Conclusion] Therefore, any correct answer should remove the TCP import from openflow3.py if it becomes unused."
+    }
+  },
+  {
+    "id": "c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f9",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "type": "high level intent",
+      "hli_category": "negative rubrics",
+      "description": "N/A: No Description Required for default criteria",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required"
+    }
+  },
+  {
+    "id": "d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8aa",
+    "title": "4.1: Removes or modifies the existing bind_bottom_up calls in scapy/contrib/openflow.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the four existing bind_bottom_up calls for TCP/OpenFlow binding (ports 6653 and 6633) are removed or altered, which would break packet dissection.",
+      "evidence": "Gold patch lines 328-331 show the four existing bind_bottom_up calls (dport=6653, sport=6653, dport=6633, sport=6633) preserved unchanged in openflow.py.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'the existing bottom-up bindings already handle the dissection side'. [3: Logical Necessity] Removing bind_bottom_up calls would break OpenFlow packet dissection. [5: Conclusion] Therefore, any correct answer must NOT remove or alter the bind_bottom_up calls."
+    }
+  },
+  {
+    "id": "e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9bb",
+    "title": "4.2: Removes TCP import from scapy/contrib/openflow.py",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the TCP import is removed from openflow.py, where it is still needed for the binding calls.",
+      "evidence": "Gold patch line 8 shows the TCP import retained in openflow.py. TCP is still referenced by the four bind_bottom_up calls (lines 328-331) and the new bind_top_down call (line 333).",
+      "justification": "[2: Implicit Codebase Constraint] TCP is referenced by the bind_bottom_up calls and the centralized binding. [3: Logical Necessity] Removing TCP import from openflow.py would cause a runtime NameError. [5: Conclusion] Therefore, any correct answer must NOT remove TCP import from openflow.py."
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1dd",
+    "title": "4.3: Modifies files that the prompt designates as test files (such as scapy/contrib/openflow.uts, scapy/contrib/openflow3.uts, or scapy/contrib/socks.uts)",
+    "annotations": {
+      "importance": "must have",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics",
+      "description": "Detects if the agent modifies test files (.uts test scripts) that the prompt explicitly tells it not to change.",
+      "evidence": "The prompt ends with 'I've already taken care of all changes to the test files. Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.'",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'Do NOT modify any test files or testing logic in any way. Your task is to make the minimal changes to non-test source files only.' [5: Conclusion] Therefore, any correct answer must NOT modify .uts test files."
+    }
+  }
+]

@@ -1,0 +1,302 @@
+[
+  {
+    "id": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f7e8d9c0b1a2f3e4d5c6b7a8f9e0d1c2",
+    "title": "1.1: Configures a console StreamHandler on log_scapy in scapy/error.py at module load time",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that scapy/error.py attaches a logging.StreamHandler (or equivalent console handler) to log_scapy at module level so that logging works immediately on import without requiring interact() to be called.",
+      "evidence": "gold.patch scapy/error.py: adds a StreamHandler with ScapyColoredFormatter at module level and calls log_scapy.addHandler() outside any function.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the console handler setup currently lives inside interact(), which means it only works in interactive mode. It should be initialized when scapy/error.py is loaded so that logging works immediately on import, including colored output and Windows colorama support.' [5: Conclusion] Any correct solution must add a console handler to log_scapy in scapy/error.py at module level so log output is visible without calling interact().",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8",
+    "title": "1.2: Removes the handler setup code from the interact() function in scapy/main.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that the handler setup code (StreamHandler creation, formatter configuration, and addHandler call) is removed from the interact() function in scapy/main.py since logging is now configured at import time.",
+      "evidence": "gold.patch scapy/main.py: deletes the try/except block that created console_handler with StreamHandler and ScapyColoredFormatter and the log_scapy.addHandler(console_handler) call from interact().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the handler setup code in interact() ... should be removed since they would no longer be needed.' [3: Logical Necessity] Keeping the old handler setup would cause duplicate handlers and doubled log output. [5: Conclusion] Any correct solution must remove the handler setup from interact().",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9",
+    "title": "1.3: Uses log_runtime.info() instead of warning() for all 8 DNS handling messages (DNS RR prematured end, DNS incomplete jump token, DNS wrong value, DNS RR TXT prematured end, Malformed DNS message: too small, Malformed DNS message: invalid length, bitmap too short, bitmap length is no valid) in scapy/layers/dns.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that DNS dissection messages (such as 'DNS RR prematured end', 'DNS incomplete jump token', 'bitmap too short', 'bitmap length', 'wrong value', 'Malformed DNS message', 'DNS RR TXT prematured end') use an informational log level (INFO or DEBUG) instead of warning().",
+      "evidence": "gold.patch scapy/layers/dns.py: changes all warning() calls for DNS dissection messages to log_runtime.info().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'packet handling messages across the DNS, TCP/IP, and IPv6 layers are treated as informational rather than warnings' and specifically names 'DNS RR prematured end' as an example. [5: Conclusion] Any correct solution must lower DNS handling messages to at most INFO level.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0",
+    "title": "1.4: Uses log_runtime.info() instead of warning() for all 4 TCP/IP handling messages (bad dataofs, Malformed TCP option, No IP underlayer in TCP.post_build, No IP underlayer in UDP.post_build) in scapy/layers/inet.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that TCP/IP handling messages ('bad dataofs', 'Malformed TCP option', 'No IP underlayer to compute checksum' in TCP.post_build, 'No IP underlayer to compute checksum' in UDP.post_build) use an informational log level (INFO or DEBUG) instead of warning().",
+      "evidence": "gold.patch scapy/layers/inet.py: changes warning() calls for TCP handling messages to log_runtime.info().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'packet handling messages across the DNS, TCP/IP, and IPv6 layers are treated as informational rather than warnings' and specifically names 'bad dataofs' as an example. [5: Conclusion] Any correct solution must lower TCP/IP handling messages to at most INFO level.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a1",
+    "title": "1.5: Uses log_runtime.info() instead of warning() for IPv6 handling messages in scapy/layers/inet6.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that IPv6 dissection messages (such as 'Scapy did not find a Jumbo option') use an informational log level (INFO or DEBUG) instead of warning().",
+      "evidence": "gold.patch scapy/layers/inet6.py: changes warning() calls for IPv6 dissection messages to log_runtime.info().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'packet handling messages across the DNS, TCP/IP, and IPv6 layers are treated as informational rather than warnings.' [5: Conclusion] Any correct solution must lower IPv6 handling messages to at most INFO level.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3",
+    "title": "1.6: Converts DNSgetstr() to use warnings.warn() with DeprecationWarning",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that the deprecated DNSgetstr() function in scapy/layers/dns.py uses warnings.warn() with DeprecationWarning instead of the internal warning() helper.",
+      "evidence": "gold.patch scapy/layers/dns.py: replaces warning('DNSgetstr deprecated...') with warnings.warn(..., DeprecationWarning) in DNSgetstr().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly names 'DNSgetstr()' as a deprecated function that 'should use Python's standard warnings.warn() with DeprecationWarning instead of going through the logger.' [5: Conclusion] Any correct solution must convert DNSgetstr() to use warnings.warn() with DeprecationWarning.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3",
+    "title": "1.7: Converts conf.iface6 to use warnings.warn() with DeprecationWarning",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that accessing the deprecated conf.iface6 attribute in scapy/config.py uses warnings.warn() with DeprecationWarning instead of the internal warning() helper.",
+      "evidence": "gold.patch scapy/config.py: replaces warning('conf.iface6 is deprecated...') with warnings.warn(..., DeprecationWarning) in __getattr__.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly names 'conf.iface6' as a deprecated item that 'should use Python's standard warnings.warn() with DeprecationWarning.' [5: Conclusion] Any correct solution must convert conf.iface6 to use warnings.warn() with DeprecationWarning.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4",
+    "title": "1.8: Converts FlagValue.flagrepr() to use warnings.warn() with DeprecationWarning",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that the deprecated FlagValue.flagrepr() method in scapy/fields.py uses warnings.warn() with DeprecationWarning instead of the internal warning() helper.",
+      "evidence": "gold.patch scapy/fields.py: replaces warning('obj.flagrepr() is obsolete...') with warnings.warn(..., DeprecationWarning) in flagrepr().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly names 'FlagValue.flagrepr()' as a deprecated method that 'should use Python's standard warnings.warn() with DeprecationWarning.' [5: Conclusion] Any correct solution must convert FlagValue.flagrepr() to use warnings.warn() with DeprecationWarning.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5",
+    "title": "1.9: Converts do_graph() type parameter to use warnings.warn() with DeprecationWarning",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that the deprecated 'type' parameter in do_graph() in scapy/utils.py uses warnings.warn() with DeprecationWarning instead of the internal warning() helper.",
+      "evidence": "gold.patch scapy/utils.py: replaces warning('type is deprecated...') with warnings.warn(..., DeprecationWarning) in do_graph().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly names 'the type parameter in do_graph()' as a deprecated item that 'should use Python's standard warnings.warn() with DeprecationWarning.' [5: Conclusion] Any correct solution must convert the do_graph() type deprecation to use warnings.warn() with DeprecationWarning.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+    "title": "1.10: Converts AnsweringMachine.run() to use warnings.warn() with DeprecationWarning",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that the deprecated AnsweringMachine.run() method in scapy/ansmachine.py uses warnings.warn() with DeprecationWarning instead of log_interactive.warning().",
+      "evidence": "gold.patch scapy/ansmachine.py: replaces log_interactive.warning('run() method deprecated...') with warnings.warn(..., DeprecationWarning) in run().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly names 'AnsweringMachine.run()' as a deprecated method that 'should use Python's standard warnings.warn() with DeprecationWarning.' [5: Conclusion] Any correct solution must convert AnsweringMachine.run() to use warnings.warn() with DeprecationWarning.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8da",
+    "title": "1.11: Uses log_runtime for all 4 pcap runtime messages (Could not set monitor mode, Cannot get selectable PCAP fd, Could not compile filter expression, Could not set filter) in scapy/arch/libpcap.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that runtime errors about datalink type guessing, monitor mode, pcap filter compilation, and PCAP fd access in scapy/arch/libpcap.py use log_runtime instead of log_loading or the generic warning() helper.",
+      "evidence": "gold.patch scapy/arch/libpcap.py: changes warning() and log_loading calls for pcap runtime operations to log_runtime.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'runtime errors in pcap, socket, and filter code should go through the runtime logger rather than the loading logger or the generic warning helper.' [5: Conclusion] Any correct solution must route libpcap runtime messages through log_runtime.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8db",
+    "title": "1.12: Uses log_runtime for all 4 call sites (Could not guess partial interface name in read_routes, Failed to execute ifconfig in _in6_getifaddr, Failed to execute ifconfig in in6_getifaddr x2) in scapy/arch/unix.py instead of log_interactive",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that interface guessing warnings and ifconfig failure messages in scapy/arch/unix.py use log_runtime instead of log_interactive.",
+      "evidence": "gold.patch scapy/arch/unix.py: replaces log_interactive imports and calls with log_runtime for ifconfig failures and interface guessing.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'interface guessing and ifconfig failures in the Unix networking code use the interactive logger when they should use the runtime logger.' [5: Conclusion] Any correct solution must route unix.py runtime messages through log_runtime instead of log_interactive.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8dc",
+    "title": "1.13: Uses a critical log level for all 2 /proc failures (/proc/net/dev, /proc/net/route) in scapy/arch/linux.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that messages about being unable to open /proc/net/dev and /proc/net/route in scapy/arch/linux.py use a critical log level on a proper scapy logger (such as log_loading or log_runtime) instead of the generic warning() helper.",
+      "evidence": "gold.patch scapy/arch/linux.py: changes warning('Can't open /proc/net/dev !') and warning('Can't open /proc/net/route !') to log_loading.critical().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'messages about system resource failures like not being able to open /proc/net/dev should be treated as critical loading issues.' [5: Conclusion] Any correct solution must use a critical log level for these system resource failures instead of the generic warning() helper.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8dd",
+    "title": "1.14: Uses the runtime logger for filter and socket errors in scapy/arch/linux.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that the runtime error about filter attachment in scapy/arch/linux.py uses log_runtime instead of the generic warning() helper.",
+      "evidence": "gold.patch scapy/arch/linux.py: changes warning('Cannot set filter: %s') to log_runtime.error('Cannot set filter: %s').",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'runtime errors in pcap, socket, and filter code should go through the runtime logger rather than the loading logger or the generic warning helper.' [5: Conclusion] Any correct solution must route linux.py runtime errors through log_runtime.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8de",
+    "title": "1.15: Uses log_runtime at debug level for all 4 pipe engine lifecycle messages (Pipe engine thread started, Pipe engine thread stopped, Pipe engine already running, Pipe engine thread not running) in scapy/pipetool.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that pipe engine lifecycle messages ('Pipe engine thread started', 'Pipe engine thread stopped', 'Pipe engine already running', 'Pipe engine thread not running') in scapy/pipetool.py use log_runtime at debug level instead of log_interactive at info level or the generic warning() helper.",
+      "evidence": "gold.patch scapy/pipetool.py: changes log_interactive.info('Pipe engine thread started/stopped') to log_runtime.debug() and warning('Pipe engine already running'/'Pipe engine thread not running') to log_runtime.debug().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'pipe engine lifecycle messages are too noisy for interactive logging and should be debug level runtime messages.' [5: Conclusion] Any correct solution must move pipe engine lifecycle messages to log_runtime at debug level.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8df",
+    "title": "1.16: Uses log_runtime.error() for all 5 missing geo plotting dependency messages (Cannot import geoip2, Cannot import geolite2 CITY database, Cannot import cartopy, Matplotlib is not installed, Cannot open geoip2 database) in scapy/layers/inet.py",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verify that messages about missing geoip2, cartopy, and matplotlib dependencies in the geo plotting code of scapy/layers/inet.py use a proper logger at error level (such as log_runtime.error() or log_loading.error()) instead of the generic warning() helper.",
+      "evidence": "gold.patch scapy/layers/inet.py: changes warning() calls for geoip2, cartopy, and matplotlib import failures to log_runtime.error().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'log messages about missing optional dependencies for geo plotting should be proper errors.' [5: Conclusion] Any correct solution must use an error level call on a proper scapy logger for missing geo plotting dependencies, not the generic warning() helper.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2",
+    "title": "2.1: Removes outdated manual addHandler calls from documentation examples",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verify that doc/scapy/extending.rst no longer contains manual addHandler(logging.StreamHandler()) calls in its examples, since the handler is now configured automatically on import.",
+      "evidence": "gold.patch doc/scapy/extending.rst: removes the logger.addHandler(logging.StreamHandler()) line from the example script.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'any manual addHandler calls in example scripts or documentation should be removed since they would no longer be needed.' [3: Logical Necessity] Keeping manual addHandler calls would cause duplicate handlers. [5: Conclusion] Any correct solution must remove manual addHandler calls from documentation examples.",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3",
+    "title": "2.2: Updates project documentation (such as CONTRIBUTING.md and doc/scapy/extending.rst) with logging guidelines and examples reflecting the new handler setup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verify that project documentation (such as CONTRIBUTING.md, development.rst, or extending.rst) is updated with logging guidelines covering when to use which logger and appropriate log levels, and with examples showing how to configure Scapy's logger under the new setup.",
+      "evidence": "gold.patch CONTRIBUTING.md: adds a 'Logging' section with guidelines about log_interactive, log_runtime, log_loading and log level conventions. gold.patch extending.rst: adds a 'Configuring Scapy's logger' section with examples.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states 'the contributing and extending documentation should be updated with logging guidelines and examples that reflect the new handler setup.' [5: Conclusion] Any correct solution should update project documentation with logging guidelines. The specific file(s) chosen may vary, but guidelines and examples must be present somewhere in the docs.",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5",
+    "title": "3.1: Removes deprecated display() method from PacketList class in scapy/plist.py",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that the deprecated display() method (which was a wrapper for show()) is removed from the PacketList class.",
+      "evidence": "Reference patch lines 927-933 show removal of 'def display(self): self.show()' from scapy/plist.py.",
+      "justification": "[4: Quality Necessity] Any good implementation should remove deprecated methods that have been replaced to reduce code clutter. [5: Conclusion] Therefore, removing display() improves code cleanliness.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6",
+    "title": "4.1: Removes any of the 5 deprecated items (DNSgetstr, conf.iface6, FlagValue.flagrepr, do_graph type parameter, AnsweringMachine.run) after emitting DeprecationWarning",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detect if deprecated functions are modified to raise exceptions, return errors, or otherwise stop executing their original logic after emitting the DeprecationWarning instead of continuing to work normally.",
+      "evidence": "gold.patch shows all deprecated functions emit warnings.warn() then continue with their original behavior: DNSgetstr() still calls dns_get_str(), do_graph() still uses the type value, AnsweringMachine.run() still calls self(), conf.iface6 still returns conf.iface.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to switch how deprecation is announced, not to remove the deprecated functionality. [3: Logical Necessity] Python's standard deprecation pattern always continues execution after warning; breaking deprecated functions would cause backward compatibility issues for users in the deprecation period. [5: Conclusion] Any correct solution must ensure deprecated functions continue to work after emitting the warning.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8",
+    "title": "4.2: Silences logging entirely by raising global log level or removing all handlers from log_scapy",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detect if the solution silences all logging output by setting log_scapy's level to CRITICAL or higher, removing all handlers from log_scapy, or disabling the root logger, instead of adjusting individual message levels as requested.",
+      "evidence": "gold.patch preserves log_scapy's default WARNING level and adds a StreamHandler; individual messages are adjusted to appropriate levels without blanket suppression.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt describes logging as 'too noisy' and asks for individual messages to be downgraded, not for logging to be turned off. [2: Implicit Code Base Constraint] Scapy's logging infrastructure is used for diagnostics and error reporting throughout the codebase; disabling it globally would hide genuine runtime errors and loading failures. [5: Conclusion] Any correct solution must preserve functional logging output while adjusting individual message levels.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

@@ -1,0 +1,91 @@
+{
+  "tests": [
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestExpectedTypesStillRegistered"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestExpectedTypesStillRegistered/Dashboard_should_still_be_registered"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestExpectedTypesStillRegistered/DashboardList_should_still_be_registered"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestExpectedTypesStillRegistered/DashboardWithAccessInfo_should_still_be_registered"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestExpectedTypesStillRegistered/LibraryPanelList_should_still_be_registered"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestExpectedTypesStillRegistered/LibraryPanel_should_still_be_registered"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestExpectedTypesStillRegistered/SearchResults_should_still_be_registered"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestExpectedTypesStillRegistered/SortableFields_should_still_be_registered"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestOpenAPIDefinitionsContainExpectedTypes"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestOpenAPIDefinitionsContainExpectedTypes/OpenAPI_should_contain_github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.Dashboard"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestOpenAPIDefinitionsContainExpectedTypes/OpenAPI_should_contain_github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.DashboardList"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestOpenAPIDefinitionsContainExpectedTypes/OpenAPI_should_contain_github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.DashboardWithAccessInfo"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestOpenAPIDefinitionsContainExpectedTypes/OpenAPI_should_contain_github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.LibraryPanel"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestOpenAPIDefinitionsContainExpectedTypes/OpenAPI_should_contain_github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.LibraryPanelList"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestOpenAPIDefinitionsExcludeRemovedTypes"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestOpenAPIDefinitionsExcludeRemovedTypes/OpenAPI_should_not_contain_github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.DashboardVersionInfo"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestOpenAPIDefinitionsExcludeRemovedTypes/OpenAPI_should_not_contain_github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.DashboardVersionList"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestOpenAPIDefinitionsExcludeRemovedTypes/OpenAPI_should_not_contain_github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1.VersionsQueryOptions"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestRemovedTypesNotExported"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestRemovedTypesNotExported/Dashboard_type_should_exist"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestRemovedTypesNotExported/LibraryPanel_type_should_exist"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestRemovedTypesNotExported/Package_path_should_be_correct"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestRemovedTypesNotInScheme"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestRemovedTypesNotInScheme/DashboardVersionInfo_should_not_be_a_registered_type"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestRemovedTypesNotInScheme/DashboardVersionList_should_not_be_registered"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestRemovedTypesNotInScheme/VersionsQueryOptions_should_not_be_registered"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestSchemeRegistrationCount"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestSchemeRegistrationCount/Should_have_expected_number_of_registered_types"
+    },
+    {
+      "name": "github.com/grafana/grafana/apps/dashboard/pkg/apis/dashboard/v0alpha1/TestSchemeRegistrationCount/Should_not_have_removed_types"
+    }
+  ]
+}

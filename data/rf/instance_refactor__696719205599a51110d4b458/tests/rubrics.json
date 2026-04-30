@@ -1,0 +1,302 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a2b3c4d5e6f7890123456789abcdef01",
+    "title": "1.1: Renames the CUE definition variable from pluginMetaV0Alpha1 to metaV0Alpha1 in apps/plugins/kinds/",
+    "annotations": {
+      "importance": "must have",
+      "description": "The CUE schema definition variable must be renamed from pluginMetaV0Alpha1 to metaV0Alpha1 to match the new Meta naming convention.",
+      "evidence": "Gold patch lines 23-26 show CUE definition variable renamed from pluginMetaV0Alpha1 to metaV0Alpha1 in meta.cue.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to rename PluginMeta to Meta including 'the CUE schema definition in apps/plugins/kinds/'. [3: Logical Necessity] manifest.cue references this variable by name, so renaming the kind requires renaming the variable. [5: Conclusion] Any correct solution must rename the CUE definition variable.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "1c2e8b9e94860c48f1f9f91d3f116d53",
+    "title": "1.2: Changes the kind field from 'PluginMeta' to 'Meta' in the CUE schema definition",
+    "annotations": {
+      "importance": "must have",
+      "description": "The CUE schema kind field must be changed from 'PluginMeta' to 'Meta'. This is the source of truth for the Kubernetes resource type name.",
+      "evidence": "Gold patch lines 24-27 show kind field changed from 'PluginMeta' to 'Meta' in the CUE schema.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt explicitly asks to rename PluginMeta to Meta. [2: Implicit Codebase Constraint] The CUE schema kind field determines the Kubernetes resource kind name. [5: Conclusion] Any correct solution must change the kind field.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "7a8b9c0d1e2f3456789012345678abce",
+    "title": "1.3: Removes or changes the hardcoded plural 'pluginsmeta' so the resulting plural is 'metas'",
+    "annotations": {
+      "importance": "must have",
+      "description": "The hardcoded plural 'pluginsmeta' in the CUE schema must be removed (so it derives naturally from 'Meta') or explicitly changed to 'metas'. The resulting plural used in Go schema registration must be 'metas'.",
+      "evidence": "Gold patch line 25 shows 'plural: \"pluginsmeta\"' removed. Line 504 shows Go schema registered with plural 'metas'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'the hardcoded machineName override should be removed so the plural derives naturally from the kind name'. [2: Implicit Codebase Constraint] The plural determines the Kubernetes API endpoint path. [5: Conclusion] Any correct solution must ensure the plural becomes 'metas'.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "dfa242f6ec97ba16f3d5bfdaa801e30d",
+    "title": "1.4: Updates apps/plugins/kinds/manifest.cue to reference the renamed metaV0Alpha1 definition",
+    "annotations": {
+      "importance": "must have",
+      "description": "The manifest.cue kinds array must reference metaV0Alpha1 instead of pluginMetaV0Alpha1.",
+      "evidence": "Gold patch lines 9-10 show manifest.cue kinds array updated from pluginMetaV0Alpha1 to metaV0Alpha1.",
+      "justification": "[3: Logical Necessity] manifest.cue references schema definitions by variable name; when the definition variable is renamed, the manifest must be updated. [5: Conclusion] Any correct solution must update manifest.cue.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b32768c7797071abc92788ba51ae1500",
+    "title": "1.5: Renames all 42 PluginMeta* type definitions (including PluginMeta \u2192 Meta, PluginMetaList \u2192 MetaList, PluginMetaSpec \u2192 MetaSpec, PluginMetaJSONData \u2192 MetaJSONData, PluginMetaClient \u2192 MetaClient, PluginMetaJSONCodec \u2192 MetaJSONCodec, PluginMetaStorage \u2192 MetaStorage, PluginMetaJSONDataType \u2192 MetaJSONDataType, PluginMetaInclude \u2192 MetaInclude, PluginMetaRoute \u2192 MetaRoute, ...) to their Meta* equivalents",
+    "annotations": {
+      "importance": "must have",
+      "description": "All 42 PluginMeta*-prefixed type definitions (35 structs and 7 type aliases) must be renamed to their Meta* equivalents across the v0alpha1 and related packages.",
+      "evidence": "Gold patch shows 42 unique removed type definition lines matching '^-type PluginMeta', each with a corresponding '+type Meta' replacement. Verified via grep '^-type PluginMeta' gold.patch | sort -u | wc -l = 42.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires renaming PluginMeta to Meta across 'all the generated Go types in the v0alpha1 package'. [3: Logical Necessity] All 42 type definitions are interdependent; a partial rename would leave stale PluginMeta references and break compilation. [5: Conclusion] Any correct solution must rename all 42 PluginMeta* type definitions to Meta* equivalents.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b32768c7797071abc92788ba51ae1501",
+    "title": "1.6: Renames all 37 PluginMeta* package-level functions (including PluginMetaKind() \u2192 MetaKind(), PluginMetaSchema() \u2192 MetaSchema(), NewPluginMetaClient() \u2192 NewMetaClient(), NewPluginMetaStorage() \u2192 NewMetaStorage(), NewPluginMetaSpec() \u2192 NewMetaSpec(), NewPluginMetaJSONData() \u2192 NewMetaJSONData(), NewPluginMetaInfo() \u2192 NewMetaInfo(), createPluginMetaFromPluginMetaJSONData() \u2192 createMetaFromMetaJSONData(), jsonDataToPluginMetaJSONData() \u2192 jsonDataToMetaJSONData(), NewPluginMetaClientFromGenerator() \u2192 NewMetaClientFromGenerator(), ...) to their Meta* equivalents",
+    "annotations": {
+      "importance": "must have",
+      "description": "All 37 PluginMeta*-prefixed package-level function definitions must be renamed to their Meta* equivalents across the v0alpha1 and related packages.",
+      "evidence": "Gold patch shows 37 unique removed function definition lines matching '^-func [A-Za-z].*PluginMeta', each with a corresponding Meta* replacement. Verified via grep '^-func [A-Za-z]' gold.patch | grep PluginMeta | sort -u | wc -l = 37.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires renaming PluginMeta to Meta across all generated Go types, constructors, and helper functions. [3: Logical Necessity] All 37 functions depend on the renamed types; a partial rename would break compilation. [5: Conclusion] Any correct solution must rename all 37 PluginMeta* functions to Meta* equivalents.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b32768c7797071abc92788ba51ae1502",
+    "title": "1.7: Renames all 48 PluginMeta* methods (including (*PluginMeta).GetSpec \u2192 (*Meta).GetSpec, (*PluginMeta).SetSpec \u2192 (*Meta).SetSpec, (*PluginMeta).DeepCopy \u2192 (*Meta).DeepCopy, (*PluginMeta).Copy \u2192 (*Meta).Copy, (*PluginMetaClient).Create \u2192 (*MetaClient).Create, (*PluginMetaClient).Get \u2192 (*MetaClient).Get, (*PluginMetaList).GetItems \u2192 (*MetaList).GetItems, (*PluginMetaJSONCodec).Read \u2192 (*MetaJSONCodec).Read, (*PluginMetaStorage).List \u2192 (*MetaStorage).List, (*PluginMetaSpec).DeepCopy \u2192 (*MetaSpec).DeepCopy, ...) to their Meta* equivalents",
+    "annotations": {
+      "importance": "must have",
+      "description": "All 48 methods on PluginMeta* receiver types must be renamed to their Meta* receiver equivalents across the v0alpha1 and related packages.",
+      "evidence": "Gold patch shows 48 unique removed method definition lines matching '^-func (.*PluginMeta', each with a corresponding Meta* replacement. Verified via grep '^-func (' gold.patch | grep PluginMeta | sort -u | wc -l = 48.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt requires renaming PluginMeta to Meta across all generated Go types, including their methods. [3: Logical Necessity] All 48 methods are on renamed types; their receiver types must match. [5: Conclusion] Any correct solution must rename all 48 PluginMeta* methods to Meta* equivalents.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "308641b4cad657a79d1771ed3aa65bc8",
+    "title": "1.8: Adds a NewMeta() constructor that returns *Meta with default-initialized Spec and Status",
+    "annotations": {
+      "importance": "must have",
+      "description": "A NewMeta() function must exist in the v0alpha1 package that takes no arguments and returns *Meta with default-initialized Spec and Status values.",
+      "evidence": "Gold patch lines 210-214 show NewMeta() constructor added. Interface specifies NewMeta with Input: NA, Output: *Meta.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'both Meta and Plugin are missing proper constructors that initialize default Spec and Status values. Add those constructors'. The interface specifies NewMeta returning *Meta. [3: Logical Necessity] The Meta schema registration requires a properly initialized zero value; a constructor is necessary to provide it. [5: Conclusion] Any correct solution must add a NewMeta() constructor.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "6cde657de5ed4ef8a6e0ff0233e3b92c",
+    "title": "1.9: Adds a NewPlugin() constructor that returns *Plugin with default-initialized Spec and Status",
+    "annotations": {
+      "importance": "must have",
+      "description": "A NewPlugin() function must exist in the v0alpha1 package that takes no arguments and returns *Plugin with default-initialized Spec and Status values.",
+      "evidence": "Gold patch lines 1077-1082 show NewPlugin() constructor added. Interface specifies NewPlugin with Input: NA, Output: *Plugin.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'both Meta and Plugin are missing proper constructors that initialize default Spec and Status values. Add those constructors'. The interface specifies NewPlugin returning *Plugin. [3: Logical Necessity] The prompt explicitly requires using this constructor in schema registration (1.10), so it must exist. [5: Conclusion] Any correct solution must add a NewPlugin() constructor.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e5f6a7b8c9d0123456789abcdef01236",
+    "title": "1.10: Uses NewPlugin() in Plugin schema registration instead of a bare struct literal",
+    "annotations": {
+      "importance": "must have",
+      "description": "The Plugin schema registration in the v0alpha1 package must use NewPlugin() (or an equivalent constructor call) instead of &Plugin{} as the zero value argument to resource.NewSimpleSchema.",
+      "evidence": "Gold patch line 1096 shows resource.NewSimpleSchema called with NewPlugin() instead of &Plugin{}.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says 'Use the Plugin constructor in its schema registration instead of a bare struct literal'. [3: Logical Necessity] Using the constructor ensures the schema's zero value has properly initialized nested fields. [5: Conclusion] Any correct solution must use the Plugin constructor in schema registration.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f6a7b8c9d0e1234567890abcdef01237",
+    "title": "1.11: Updates the app manifest to register the renamed 'Meta' kind with MetaKind()",
+    "annotations": {
+      "importance": "must have",
+      "description": "plugins_manifest.go must register the kind as 'Meta' (not 'PluginMeta') in the ManifestVersionKind entry, map it as 'Meta/v0alpha1' in the kindVersionToGoType mapping pointing to MetaKind(), and use renamed schema variables.",
+      "evidence": "Gold patch lines 1649-1654 show Kind/Plural changed to 'Meta'/'Metas'. Lines 1664-1665 show map key changed to 'Meta/v0alpha1' pointing to MetaKind().",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to rename PluginMeta to Meta including 'the app manifest'. [3: Logical Necessity] The manifest is how the app SDK discovers and registers API kinds. [5: Conclusion] Any correct solution must update the manifest.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a7b8c9d0e1f2345678901abcdef01238",
+    "title": "1.12: Updates the storage layer to reference renamed Meta types instead of PluginMeta types",
+    "annotations": {
+      "importance": "must have",
+      "description": "The storage and app files in apps/plugins/pkg/app/ must update all references from PluginMeta* types to Meta* types, including the storage struct, its constructor, and the helper function that builds Meta objects from JSON data.",
+      "evidence": "Gold patch lines 2173-2340 show storage.go updated: MetaStorage type, NewMetaStorage(), createMetaFromMetaJSONData(), all using MetaKind() and Meta types.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to rename PluginMeta to Meta including 'the custom storage layer'. [3: Logical Necessity] The storage layer directly uses MetaKind(), Meta, MetaList, MetaSpec, and MetaJSONData. [5: Conclusion] Any correct solution must update the storage layer.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b8c9d0e1f2a3456789012bcdef01239",
+    "title": "1.13: Updates the metadata providers in apps/plugins/pkg/app/meta/ to use Meta types",
+    "annotations": {
+      "importance": "must have",
+      "description": "The metadata provider files (provider.go, core.go, cloud.go, manager.go) must be updated to reference MetaJSONData and all related Meta* types instead of PluginMetaJSONData and PluginMeta* types.",
+      "evidence": "Gold patch lines 1694-1740 (cloud.go), 1741-2138 (core.go), 2139-2151 (manager.go), 2152-2172 (provider.go) show type references updated to Meta*.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to rename PluginMeta to Meta including 'the metadata providers'. [3: Logical Necessity] These files reference PluginMetaJSONData and related types; they must be updated for compilation. [5: Conclusion] Any correct solution must update all metadata provider files.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4567890123cdef0123a",
+    "title": "1.14: Updates all 4 RBAC action strings (plugins.pluginsmeta:create, plugins.pluginsmeta:write, plugins.pluginsmeta:read, plugins.pluginsmeta:delete) to use 'plugins.metas' as the resource prefix",
+    "annotations": {
+      "importance": "must have",
+      "description": "The RBAC action string constants in pkg/registry/apps/plugins/accesscontrol.go must be updated from 'plugins.pluginsmeta:create/write/read/delete' to 'plugins.metas:create/write/read/delete'.",
+      "evidence": "Gold patch lines 2366-2369 show action strings changed to 'plugins.metas:create/write/read/delete'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to update 'the RBAC configuration (action strings)'. [3: Logical Necessity] RBAC action strings encode the resource name; they must match the new plural 'metas'. [5: Conclusion] Any correct solution must update RBAC action strings.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c9d0e1f2a3b4567890123cdef8888a",
+    "title": "1.15: Updates the RBAC scope provider from 'plugins.pluginsmeta' to 'plugins.metas'",
+    "annotations": {
+      "importance": "must have",
+      "description": "The RBAC scope provider in accesscontrol.go must be updated from 'plugins.pluginsmeta' to 'plugins.metas'.",
+      "evidence": "Gold patch line 2375 shows scope provider changed to accesscontrol.NewScopeProvider(\"plugins.metas\").",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to update 'scope providers' in the RBAC configuration. [3: Logical Necessity] The scope provider defines the authorization scope pattern; it must match the new plural. [5: Conclusion] Any correct solution must update the RBAC scope provider.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d0e1f2a3b4c5678901234def01234b",
+    "title": "1.16: Updates the 2 RBAC role names (fixed:plugins.pluginsmeta:reader, fixed:plugins.pluginsmeta:writer) to use 'fixed:plugins.metas' as the role prefix",
+    "annotations": {
+      "importance": "must have",
+      "description": "The RBAC fixed role names in accesscontrol.go must be updated from 'fixed:plugins.pluginsmeta:reader/writer' to 'fixed:plugins.metas:reader/writer'.",
+      "evidence": "Gold patch lines 2384 and 2393 show role names changed to 'fixed:plugins.metas:reader' and 'fixed:plugins.metas:writer'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to update 'role definitions' in the RBAC configuration. [3: Logical Necessity] Role names encode the resource identifier; they must match the new plural. [5: Conclusion] Any correct solution must update the RBAC role names.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "e1f2a3b4c5d6789012345ef012345c",
+    "title": "1.17: Updates the permission registry entry from 'plugins.pluginsmeta' to 'plugins.metas'",
+    "annotations": {
+      "importance": "must have",
+      "description": "The permission registry scope mapping in pkg/services/accesscontrol/permreg/permreg.go must be updated from key 'plugins.pluginsmeta' to 'plugins.metas' with value 'plugins.metas:uid:'.",
+      "evidence": "Gold patch lines 2405-2406 show permreg.go entry changed from 'plugins.pluginsmeta' to 'plugins.metas': 'plugins.metas:uid:'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to update 'the permission registry'. [3: Logical Necessity] The permission registry maps resource names to scope patterns; the key must match the new naming. [5: Conclusion] Any correct solution must update the permission registry entry.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "f2a3b4c5d6e7890123456f0123456d",
+    "title": "1.18: Updates the auth mapper resource translation from 'pluginsmeta' to 'metas'",
+    "annotations": {
+      "importance": "must have",
+      "description": "The auth mapper in pkg/services/authz/rbac/mapper.go must change the resource key from 'pluginsmeta' to 'metas' and the translation resource from 'plugins.pluginsmeta' to 'plugins.metas' under the 'plugins.grafana.app' group.",
+      "evidence": "Gold patch lines 2419-2421 show mapper.go entry changed from 'pluginsmeta' to 'metas' with translation 'plugins.metas'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt says to update 'the auth mapper resource translation'. [3: Logical Necessity] The mapper translates Kubernetes resource names to RBAC identifiers; both key and target must match. [5: Conclusion] Any correct solution must update the auth mapper translation.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "b56a1e65d3304d84c30905297bf1ee6e",
+    "title": "2.1: Updates code comments referencing 'PluginMeta' to reference 'Meta' in modified source files (such as meta_object_gen.go, meta_codec_gen.go, core.go, storage.go, provider.go)",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Code comments in the renamed source files should be updated to reflect the new naming (e.g., 'Spec is the spec of the Meta' instead of 'Spec is the spec of the PluginMeta').",
+      "evidence": "Gold patch lines 200-202 show comment updated from 'PluginMeta' to 'Meta'. Lines 469-479 show DeepCopy comments updated.",
+      "justification": "[4: Qualitative Requirement] When renaming types, associated comments should be updated for clarity. Stale comments referencing 'PluginMeta' would confuse future readers. [5: Conclusion] A good solution updates comments to reference Meta.",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "02ac6e6d0924c6a25576302676259010",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "a3b4c5d6e7f8901234567012345678e",
+    "title": "3.1: Removes or replaces all 7 old pluginmeta gen files (pluginmeta_client_gen.go, pluginmeta_codec_gen.go, pluginmeta_metadata_gen.go, pluginmeta_object_gen.go, pluginmeta_status_gen.go, pluginmeta_schema_gen.go, pluginmeta_spec_gen.go) so no duplicate type definitions remain",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "The old pluginmeta_*_gen.go files must be removed to avoid duplicate type definitions and compilation errors.",
+      "evidence": "Gold patch shows file renames (e.g., lines 33-34 rename pluginmeta_client_gen.go to meta_client_gen.go) and deletions (line 1101 pluginmeta_schema_gen.go deleted, line 1141 pluginmeta_spec_gen.go deleted).",
+      "justification": "[3: Logical Necessity] If old files coexist with new files, the codebase will have duplicate type definitions. [4: Qualitative Requirement] Dead code should be removed. [5: Conclusion] A correct solution removes or replaces the old files.",
+      "type": "positive hli verifier",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "c5d6e7f8a9b0123456789012345678ab",
+    "title": "4.1: Renames or removes any of the existing Plugin kind types (Plugin, PluginList, PluginSpec, PluginStatus, PluginKind, PluginClient) or their methods instead of targeting only PluginMeta types",
+    "annotations": {
+      "importance": "must have",
+      "description": "Detects if the refactoring accidentally renames, removes, or breaks existing Plugin kind types (Plugin, PluginList, PluginSpec, PluginStatus, PluginKind(), PluginClient, etc.) or their methods. The rename targets PluginMeta only; the Plugin kind must remain intact (apart from the addition of NewPlugin).",
+      "evidence": "Gold patch lines 1077-1082 (NewPlugin added) and line 1096 (schema uses NewPlugin) are the only Plugin-related changes. All other Plugin types remain untouched.",
+      "justification": "[2: Implicit Codebase Constraint] The Plugin kind is a separate resource type that must remain functional. [3: Logical Necessity] A broad search-and-replace could accidentally catch Plugin types. [5: Conclusion] Any correct solution must not rename, remove, or break Plugin kind types.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

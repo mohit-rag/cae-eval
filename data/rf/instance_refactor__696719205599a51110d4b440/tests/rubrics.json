@@ -1,0 +1,146 @@
+[
+  {
+    "id": "5c2b96dd2baffe888a185189234368c6",
+    "title": "1: Code Maintainability",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "ac5b27262c82a0f9e534a7d6ff1ce84a",
+    "title": "1.1: Creates Compiler.Parse(src, filename string, wrap bool) in js/compiler/compiler.go returning (*ast.Program, string, error)",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the compiler exposes a Parse method with signature (src string, filename string, wrap bool) returning (*ast.Program, string, error), allowing callers to access the AST before compilation.",
+      "evidence": "Gold patch lines 42-56: new Parse() method with signature (src, filename string, wrap bool) (prg *ast.Program, finalCode string, err error).",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'The new Parse method should return an AST that callers can then compile themselves using sobek.CompileAST().' The interface specifies: Name: Compiler.Parse, Input: src string, filename string, wrap bool, Output: (prg *ast.Program, finalCode string, err error). [5: Conclusion] Therefore, ANY correct answer must expose a Parse method matching the specified interface.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "a97c94558487167df307478a9759a2cf",
+    "title": "1.2: Updates the CommonJS module loader call site in js/modules/cjsmodule.go to use Parse followed by sobek.CompileAST",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the CommonJS module loader is updated to call Parse to get the AST, then compile it using sobek.CompileAST().",
+      "evidence": "Gold patch lines 316-335: cjsModuleFromString calls c.Parse() then sobek.CompileAST(astProgram, true) separately.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Update all existing call sites to use the new Parse method followed by sobek.CompileAST().' [2: Implicit Codebase Constraint] js/modules/cjsmodule.go has cjsModuleFromString() that uses the compiler. [5: Conclusion] Therefore, ANY correct answer must update the call site in js/modules/cjsmodule.go to use Parse then sobek.CompileAST.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "d7092d966fcd612777e1333420b9fe3b",
+    "title": "1.3: Separates parsing logic from compilation in js/compiler/compiler.go by returning AST instead of compiled program",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the internal implementation returns *ast.Program from parsing without calling sobek.CompileAST internally, delegating compilation to callers.",
+      "evidence": "Gold patch lines 104-198: parseImpl() returns (*ast.Program, string, error), with line 151 returning (prg, code, nil) instead of calling sobek.CompileAST.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Refactor it to separate parsing from compilation so callers can inspect or modify the code structure before compilation.' [3: Logical Necessity] To expose intermediate representation, parsing must return AST without compiling. [5: Conclusion] Therefore, ANY correct answer must have parsing return AST without internally calling sobek.CompileAST.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "b8f3e2a1c4d5678901234567890abcde",
+    "title": "1.4: Corrects `sourcemappingurl` to `sourceMappingURL` in the inline source map directive in js/compiler/compiler.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the sourceMappingURL directive uses proper casing (sourceMappingURL not sourcemappingurl) when replacing inline source maps.",
+      "evidence": "Gold patch line 260: code uses '//# sourceMappingURL=data:application/json;base64,' with proper casing.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'the sourceMappingURL directive should use proper casing.' [3: Logical Necessity] Incorrect casing may cause source map loading to fail in some environments. [5: Conclusion] Therefore, ANY correct answer must use proper casing for sourceMappingURL.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c9e4f3b2d5a6789012345678901bcdef",
+    "title": "1.5: Adds the directive's starting index to the relative newline offset in the slice calculation in `updateInlineSourceMap` in js/compiler/compiler.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Verifies that the slice offset when replacing inline source maps accounts for the index position (using index+nextnewline instead of just nextnewline).",
+      "evidence": "Gold patch line 260: code slice uses 'code[index+nextnewline:]' instead of 'code[nextnewline:]'.",
+      "justification": "[1: Explicit Prompt Requirement] The prompt states: 'the slice offset that strips the old inline source map computes the newline position relative to the directive but doesn't add the directive's starting index when slicing the full string.' [2: Implicit Codebase Constraint] In `updateInlineSourceMap`, `nextnewline` is computed via `strings.Index(code[index:], \"\\n\")`, making it relative to the directive position, but the original slice `code[nextnewline:]` applies it to the full string without adding `index`. [3: Logical Necessity] Without adding the directive's starting index, the slice truncates code incorrectly. [5: Conclusion] Therefore, ANY correct answer must add the directive's starting index to the relative newline offset when slicing.",
+      "type": "positive hli verifier",
+      "hli_category": "code maintainability"
+    }
+  },
+  {
+    "id": "c6642a9807f00b7614004c35d9f752bf",
+    "title": "2: Documentation Maintainability",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "295f2ae16584d6dc1adf70ea835fc747",
+    "title": "2.1: Adds documentation comment for the Parse method in js/compiler/compiler.go",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "Verifies that the Parse method has a documentation comment describing its purpose and return values.",
+      "evidence": "Gold patch lines 42-45: documentation comment for Parse() describes returning AST that can be compiled by Sobek.",
+      "justification": "[4: Qualitative Requirement] A seasoned SWE would document new public methods for maintainability. [5: Conclusion] Therefore, a thorough implementation should include documentation for the Parse method.",
+      "type": "positive hli verifier",
+      "hli_category": "documentation maintainability"
+    }
+  },
+  {
+    "id": "a1b2c3d4e5f6789012345678901abcde",
+    "title": "3: Artifact Cleanup",
+    "annotations": {
+      "importance": "nice to have",
+      "description": "N/A: No Description Required.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "artifact cleanup"
+    }
+  },
+  {
+    "id": "488ec8d58d9a5332a3e75a05212dde33",
+    "title": "4: Negative Rubrics",
+    "annotations": {
+      "importance": "must have",
+      "description": "N/A: No Description Required.",
+      "evidence": "N/A: No Evidence Required",
+      "justification": "N/A: No Justification Required",
+      "type": "high level intent",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "22794dcb27cd846f61aef7ac5114abd6",
+    "title": "4.1: Removes the Transform method from js/compiler/compiler.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the Transform method used for Babel code transformation is not removed, as it is still needed for extended compatibility mode.",
+      "evidence": "Gold patch line 157: Transform method still called from parseImpl via ps.compiler.Transform().",
+      "justification": "[2: Implicit Codebase Constraint] The Transform method in js/compiler/compiler.go is used for Babel code transformation in extended compatibility mode. [3: Logical Necessity] Removing it would break extended compatibility mode. [5: Conclusion] Therefore, ANY answer that removes the Transform method triggers this negative criterion.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  },
+  {
+    "id": "284432adf8631f731014d211699b6f0b",
+    "title": "4.2: Removes the CommonJS module wrapping functionality from js/compiler/compiler.go",
+    "annotations": {
+      "importance": "must have",
+      "description": "Checks that the CommonJS wrapping logic that wraps code in (function(module, exports){...}) is preserved.",
+      "evidence": "Gold patch lines 219-241: wrap() function preserves (function(module, exports){...}) wrapping pattern.",
+      "justification": "[2: Implicit Codebase Constraint] CommonJS modules require function wrapping to work correctly. [3: Logical Necessity] Removing this would cause CommonJS modules to fail. [5: Conclusion] Therefore, ANY answer that removes CommonJS wrapping functionality triggers this negative criterion.",
+      "type": "negative hli verifier",
+      "hli_category": "negative rubrics"
+    }
+  }
+]

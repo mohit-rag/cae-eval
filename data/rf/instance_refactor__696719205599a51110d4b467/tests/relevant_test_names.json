@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "name": "github.com/grafana/grafana/pkg/api/TestNewPlaylistK8sHandler_UsesKindGroupVersionResource"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/api/TestNewShortURLK8sHandler_UsesKindGroupVersionResource"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/registry/apps/plugins/TestPluginMetaKindGVR_MatchesManualComposition"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/apiserver/builder/runner/TestBuilderAdmission_Mutate"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/apiserver/builder/runner/TestBuilderAdmission_Validate"
+    },
+    {
+      "name": "github.com/grafana/grafana/pkg/services/cleanup/TestDeleteStaleKubernetesShortURLs_UsesCorrectGVRPath"
+    }
+  ]
+}

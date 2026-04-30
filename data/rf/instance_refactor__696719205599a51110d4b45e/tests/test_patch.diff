@@ -1,0 +1,1361 @@
+diff --git a/public/app/features/alerting/unified/rule-list/hooks/datasourceFilter.test.ts b/public/app/features/alerting/unified/rule-list/hooks/datasourceFilter.test.ts
+new file mode 100644
+index 00000000000..f15318642e8
+--- /dev/null
++++ b/public/app/features/alerting/unified/rule-list/hooks/datasourceFilter.test.ts
+@@ -0,0 +1,325 @@
++import { PromAlertingRuleState, PromRuleGroupDTO, PromRuleType } from 'app/types/unified-alerting-dto';
++
++import { mockGrafanaPromAlertingRule, mockPromAlertingRule, mockPromRecordingRule } from '../../mocks';
++import { RuleHealth } from '../../search/rulesSearchParser';
++import { Annotation } from '../../utils/constants';
++import { getDatasourceAPIUid } from '../../utils/datasource';
++import { getFilter } from '../../utils/search';
++
++import { getDatasourceFilter } from './datasourceFilter';
++
++jest.mock('../../utils/datasource');
++
++const getDatasourceAPIUidMock = jest.mocked(getDatasourceAPIUid);
++
++getDatasourceAPIUidMock.mockImplementation((ruleSourceName) => {
++  if (ruleSourceName === 'prometheus') {
++    return 'datasource-uid-1';
++  }
++  if (ruleSourceName === 'loki') {
++    return 'datasource-uid-3';
++  }
++  throw new Error(`Unknown datasource name: ${ruleSourceName}`);
++});
++
++describe('datasource-managed rules', () => {
++  describe('groupFilter', () => {
++    it('should filter by namespace (file path)', () => {
++      const group: PromRuleGroupDTO = {
++        name: 'Test Group',
++        file: 'production/alerts',
++        rules: [],
++        interval: 60,
++      };
++
++      const { groupMatches } = getDatasourceFilter(getFilter({ namespace: 'production' }));
++      expect(groupMatches(group)).toBe(true);
++
++      const { groupMatches: groupMatches2 } = getDatasourceFilter(getFilter({ namespace: 'staging' }));
++      expect(groupMatches2(group)).toBe(false);
++    });
++
++    it('should filter by group name', () => {
++      const group: PromRuleGroupDTO = {
++        name: 'CPU Usage Alerts',
++        file: 'production/alerts',
++        rules: [],
++        interval: 60,
++      };
++
++      const { groupMatches } = getDatasourceFilter(getFilter({ groupName: 'cpu' }));
++      expect(groupMatches(group)).toBe(true);
++
++      const { groupMatches: groupMatches2 } = getDatasourceFilter(getFilter({ groupName: 'memory' }));
++      expect(groupMatches2(group)).toBe(false);
++    });
++
++    it('should return true when no filters are applied', () => {
++      const group: PromRuleGroupDTO = {
++        name: 'Test Group',
++        file: 'production/alerts',
++        rules: [],
++        interval: 60,
++      };
++
++      const { groupMatches } = getDatasourceFilter(getFilter({}));
++      expect(groupMatches(group)).toBe(true);
++    });
++  });
++
++  describe('ruleFilter', () => {
++    it('should filter by free form words in rule name', () => {
++      const rule = mockPromAlertingRule({ name: 'High CPU Usage' });
++
++      const { ruleMatches } = getDatasourceFilter(getFilter({ freeFormWords: ['cpu'] }));
++      expect(ruleMatches(rule)).toBe(true);
++
++      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ freeFormWords: ['memory'] }));
++      expect(ruleMatches2(rule)).toBe(false);
++    });
++
++    it('should filter by rule name', () => {
++      const rule = mockPromAlertingRule({ name: 'High CPU Usage' });
++
++      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleName: 'cpu' }));
++      expect(ruleMatches(rule)).toBe(true);
++
++      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ ruleName: 'memory' }));
++      expect(ruleMatches2(rule)).toBe(false);
++    });
++
++    it('should filter by labels', () => {
++      const rule = mockPromAlertingRule({
++        labels: { severity: 'critical', team: 'ops' },
++        alerts: [],
++      });
++
++      const { ruleMatches } = getDatasourceFilter(getFilter({ labels: ['severity=critical'] }));
++      expect(ruleMatches(rule)).toBe(true);
++
++      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ labels: ['severity=warning'] }));
++      expect(ruleMatches2(rule)).toBe(false);
++
++      const { ruleMatches: ruleMatches3 } = getDatasourceFilter(getFilter({ labels: ['team=ops'] }));
++      expect(ruleMatches3(rule)).toBe(true);
++    });
++
++    it('should filter by alert instance labels', () => {
++      const rule = mockPromAlertingRule({
++        labels: { severity: 'critical' },
++        alerts: [
++          {
++            labels: { instance: 'server-1', env: 'production' },
++            state: PromAlertingRuleState.Firing,
++            value: '100',
++            activeAt: '',
++            annotations: {},
++          },
++        ],
++      });
++
++      const { ruleMatches } = getDatasourceFilter(getFilter({ labels: ['instance=server-1'] }));
++      expect(ruleMatches(rule)).toBe(true);
++
++      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ labels: ['env=production'] }));
++      expect(ruleMatches2(rule)).toBe(true);
++
++      const { ruleMatches: ruleMatches3 } = getDatasourceFilter(getFilter({ labels: ['instance=server-2'] }));
++      expect(ruleMatches3(rule)).toBe(false);
++    });
++
++    it('should filter by rule type', () => {
++      const alertingRule = mockPromAlertingRule({ name: 'Test Alert' });
++      const recordingRule = mockPromRecordingRule({ name: 'Test Recording' });
++
++      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleType: PromRuleType.Alerting }));
++      expect(ruleMatches(alertingRule)).toBe(true);
++      expect(ruleMatches(recordingRule)).toBe(false);
++
++      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ ruleType: PromRuleType.Recording }));
++      expect(ruleMatches2(alertingRule)).toBe(false);
++      expect(ruleMatches2(recordingRule)).toBe(true);
++    });
++
++    it('should filter by rule state', () => {
++      const firingRule = mockPromAlertingRule({
++        name: 'Firing Alert',
++        state: PromAlertingRuleState.Firing,
++      });
++
++      const pendingRule = mockPromAlertingRule({
++        name: 'Pending Alert',
++        state: PromAlertingRuleState.Pending,
++      });
++
++      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleState: PromAlertingRuleState.Firing }));
++      expect(ruleMatches(firingRule)).toBe(true);
++      expect(ruleMatches(pendingRule)).toBe(false);
++
++      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(
++        getFilter({ ruleState: PromAlertingRuleState.Pending })
++      );
++      expect(ruleMatches2(firingRule)).toBe(false);
++      expect(ruleMatches2(pendingRule)).toBe(true);
++    });
++
++    it('should filter out recording rules when filtering by rule state', () => {
++      const recordingRule = mockPromRecordingRule({
++        name: 'Recording Rule',
++      });
++
++      // Recording rules should always be filtered out when any rule state filter is applied as they don't have a state
++      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleState: PromAlertingRuleState.Firing }));
++      expect(ruleMatches(recordingRule)).toBe(false);
++
++      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(
++        getFilter({ ruleState: PromAlertingRuleState.Pending })
++      );
++      expect(ruleMatches2(recordingRule)).toBe(false);
++
++      const { ruleMatches: ruleMatches3 } = getDatasourceFilter(
++        getFilter({ ruleState: PromAlertingRuleState.Inactive })
++      );
++      expect(ruleMatches3(recordingRule)).toBe(false);
++    });
++
++    it('should filter by rule health', () => {
++      const healthyRule = mockPromAlertingRule({
++        name: 'Healthy Rule',
++        health: RuleHealth.Ok,
++      });
++
++      const errorRule = mockPromAlertingRule({
++        name: 'Error Rule',
++        health: RuleHealth.Error,
++      });
++
++      const prometheusErrorRule = mockPromAlertingRule({
++        name: 'Error Rule',
++        health: 'err',
++      });
++
++      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleHealth: RuleHealth.Ok }));
++      expect(ruleMatches(healthyRule)).toBe(true);
++      expect(ruleMatches(errorRule)).toBe(false);
++
++      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ ruleHealth: RuleHealth.Error }));
++      expect(ruleMatches2(healthyRule)).toBe(false);
++      expect(ruleMatches2(errorRule)).toBe(true);
++      expect(ruleMatches2(prometheusErrorRule)).toBe(true);
++    });
++
++    it('should normalize health values when filtering', () => {
++      // Legacy Prometheus health value 'err' should be normalized to 'error'
++      const legacyErrorRule = mockPromAlertingRule({
++        name: 'Legacy Error Rule',
++        health: 'err',
++      });
++
++      // When filtering for 'error', it should match rules with health 'err' (legacy) or 'error'
++      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleHealth: RuleHealth.Error }));
++      expect(ruleMatches(legacyErrorRule)).toBe(true);
++    });
++
++    it('should filter by dashboard UID', () => {
++      const ruleDashboardA = mockPromAlertingRule({
++        name: 'Dashboard A Rule',
++        annotations: { [Annotation.dashboardUID]: 'dashboard-a' },
++      });
++
++      const ruleDashboardB = mockPromAlertingRule({
++        name: 'Dashboard B Rule',
++        annotations: { [Annotation.dashboardUID]: 'dashboard-b' },
++      });
++
++      const { ruleMatches } = getDatasourceFilter(getFilter({ dashboardUid: 'dashboard-a' }));
++      expect(ruleMatches(ruleDashboardA)).toBe(true);
++      expect(ruleMatches(ruleDashboardB)).toBe(false);
++
++      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ dashboardUid: 'dashboard-b' }));
++      expect(ruleMatches2(ruleDashboardA)).toBe(false);
++      expect(ruleMatches2(ruleDashboardB)).toBe(true);
++    });
++
++    it('should filter out recording rules when filtering by dashboard UID', () => {
++      const recordingRule = mockPromRecordingRule({
++        name: 'Recording Rule',
++        // Recording rules cannot have dashboard UIDs because they don't have annotations
++      });
++
++      // Dashboard UID filter should filter out recording rules
++      const { ruleMatches } = getDatasourceFilter(getFilter({ dashboardUid: 'any-dashboard' }));
++      expect(ruleMatches(recordingRule)).toBe(false);
++    });
++
++    describe('dataSourceNames filter', () => {
++      it('should match rules that use the filtered datasource', () => {
++        // Create a Grafana rule with matching datasource
++        const ruleWithMatchingDatasource = mockGrafanaPromAlertingRule({
++          queriedDatasourceUIDs: ['datasource-uid-1'],
++        });
++
++        // 'prometheus' resolves to 'datasource-uid-1' which is in the rule
++        const { ruleMatches } = getDatasourceFilter(getFilter({ dataSourceNames: ['prometheus'] }));
++        expect(ruleMatches(ruleWithMatchingDatasource)).toBe(true);
++      });
++
++      it("should filter out rules that don't use the filtered datasource", () => {
++        // Create a Grafana rule without the target datasource
++        const ruleWithoutMatchingDatasource = mockGrafanaPromAlertingRule({
++          queriedDatasourceUIDs: ['datasource-uid-1', 'datasource-uid-2'],
++        });
++
++        // 'loki' resolves to 'datasource-uid-3' which is not in the rule
++        const { ruleMatches } = getDatasourceFilter(getFilter({ dataSourceNames: ['loki'] }));
++        expect(ruleMatches(ruleWithoutMatchingDatasource)).toBe(false);
++      });
++
++      it('should return false when there is an error parsing the query', () => {
++        const ruleWithInvalidQuery = mockGrafanaPromAlertingRule({
++          query: 'not-valid-json',
++        });
++
++        const { ruleMatches } = getDatasourceFilter(getFilter({ dataSourceNames: ['prometheus'] }));
++        expect(ruleMatches(ruleWithInvalidQuery)).toBe(false);
++      });
++    });
++
++    it('should combine multiple filters with AND logic', () => {
++      const rule = mockPromAlertingRule({
++        name: 'High CPU Usage Production',
++        labels: { severity: 'critical', environment: 'production' },
++        state: PromAlertingRuleState.Firing,
++        health: RuleHealth.Ok,
++      });
++
++      const filter = getFilter({
++        ruleName: 'cpu',
++        labels: ['severity=critical', 'environment=production'],
++        ruleState: PromAlertingRuleState.Firing,
++        ruleHealth: RuleHealth.Ok,
++      });
++      const { ruleMatches } = getDatasourceFilter(filter);
++      expect(ruleMatches(rule)).toBe(true);
++    });
++
++    it('should return false if any filter does not match', () => {
++      const rule = mockPromAlertingRule({
++        name: 'High CPU Usage Production',
++        labels: { severity: 'critical', environment: 'production' },
++        state: PromAlertingRuleState.Firing,
++        health: RuleHealth.Ok,
++        alerts: [],
++      });
++
++      const filter = getFilter({
++        ruleName: 'cpu',
++        labels: ['severity=warning'],
++        ruleState: PromAlertingRuleState.Firing,
++        ruleHealth: RuleHealth.Ok,
++      });
++      const { ruleMatches } = getDatasourceFilter(filter);
++      expect(ruleMatches(rule)).toBe(false);
++    });
++  });
++});
+diff --git a/public/app/features/alerting/unified/rule-list/hooks/filterNormalization.test.ts b/public/app/features/alerting/unified/rule-list/hooks/filterNormalization.test.ts
+new file mode 100644
+index 00000000000..83a308c4563
+--- /dev/null
++++ b/public/app/features/alerting/unified/rule-list/hooks/filterNormalization.test.ts
+@@ -0,0 +1,95 @@
++import { PromRuleType } from 'app/types/unified-alerting-dto';
++
++import { getFilter } from '../../utils/search';
++
++import { buildTitleSearch, normalizeFilterState } from './filterNormalization';
++
++describe('buildTitleSearch', () => {
++  it('should return undefined when no title filters are provided', () => {
++    expect(buildTitleSearch(getFilter({}))).toBeUndefined();
++  });
++
++  it('should return ruleName when only ruleName is provided', () => {
++    expect(buildTitleSearch(getFilter({ ruleName: 'high cpu' }))).toBe('high cpu');
++  });
++
++  it('should return freeFormWords when only freeFormWords are provided', () => {
++    expect(buildTitleSearch(getFilter({ freeFormWords: ['cpu', 'usage'] }))).toBe('cpu usage');
++  });
++
++  it('should combine ruleName and freeFormWords', () => {
++    expect(buildTitleSearch(getFilter({ ruleName: 'alert', freeFormWords: ['cpu'] }))).toBe('alert cpu');
++  });
++
++  it('should trim whitespace from inputs', () => {
++    expect(buildTitleSearch(getFilter({ ruleName: '  alert  ', freeFormWords: ['  cpu  ', '  usage  '] }))).toBe(
++      'alert cpu usage'
++    );
++  });
++
++  it('should filter out empty strings from freeFormWords', () => {
++    expect(buildTitleSearch(getFilter({ freeFormWords: ['cpu', '', '  ', 'usage'] }))).toBe('cpu usage');
++  });
++
++  it('should return undefined when only empty strings are provided', () => {
++    expect(buildTitleSearch(getFilter({ ruleName: '  ', freeFormWords: ['', '  '] }))).toBeUndefined();
++  });
++});
++
++describe('normalizeFilterState', () => {
++  it('should lowercase freeFormWords', () => {
++    const result = normalizeFilterState(getFilter({ freeFormWords: ['CPU', 'Usage'] }));
++    expect(result.freeFormWords).toEqual(['cpu', 'usage']);
++  });
++
++  it('should lowercase ruleName', () => {
++    const result = normalizeFilterState(getFilter({ ruleName: 'High CPU' }));
++    expect(result.ruleName).toBe('high cpu');
++  });
++
++  it('should lowercase groupName', () => {
++    const result = normalizeFilterState(getFilter({ groupName: 'Production Alerts' }));
++    expect(result.groupName).toBe('production alerts');
++  });
++
++  it('should lowercase namespace', () => {
++    const result = normalizeFilterState(getFilter({ namespace: 'Production/Alerts' }));
++    expect(result.namespace).toBe('production/alerts');
++  });
++
++  it('should handle undefined values', () => {
++    const result = normalizeFilterState(getFilter({}));
++    expect(result.ruleName).toBeUndefined();
++    expect(result.groupName).toBeUndefined();
++    expect(result.namespace).toBeUndefined();
++  });
++
++  it('should preserve other filter properties', () => {
++    const result = normalizeFilterState(
++      getFilter({
++        ruleName: 'Alert',
++        ruleType: PromRuleType.Alerting,
++        labels: ['severity=critical'],
++        dataSourceNames: ['prometheus'],
++      })
++    );
++    expect(result.ruleType).toBe(PromRuleType.Alerting);
++    expect(result.labels).toEqual(['severity=critical']);
++    expect(result.dataSourceNames).toEqual(['prometheus']);
++  });
++
++  it('should lowercase all relevant fields in a complex filter', () => {
++    const result = normalizeFilterState(
++      getFilter({
++        freeFormWords: ['CPU', 'Memory'],
++        ruleName: 'High Usage',
++        groupName: 'System Alerts',
++        namespace: 'Production/Critical',
++      })
++    );
++    expect(result.freeFormWords).toEqual(['cpu', 'memory']);
++    expect(result.ruleName).toBe('high usage');
++    expect(result.groupName).toBe('system alerts');
++    expect(result.namespace).toBe('production/critical');
++  });
++});
+diff --git a/public/app/features/alerting/unified/rule-list/hooks/filterPredicates.test.ts b/public/app/features/alerting/unified/rule-list/hooks/filterPredicates.test.ts
+new file mode 100644
+index 00000000000..62fe7a5895f
+--- /dev/null
++++ b/public/app/features/alerting/unified/rule-list/hooks/filterPredicates.test.ts
+@@ -0,0 +1,474 @@
++import { config } from '@grafana/runtime';
++import { PromAlertingRuleState, PromRuleGroupDTO, PromRuleType } from 'app/types/unified-alerting-dto';
++
++import { mockGrafanaPromAlertingRule, mockPromAlertingRule, mockPromRecordingRule } from '../../mocks';
++import { RuleHealth } from '../../search/rulesSearchParser';
++import { Annotation } from '../../utils/constants';
++import { getDatasourceAPIUid } from '../../utils/datasource';
++import { getFilter } from '../../utils/search';
++
++import {
++  GroupFilterConfig,
++  RuleFilterConfig,
++  contactPointFilter,
++  dashboardUidFilter,
++  dataSourceNamesFilter,
++  freeFormFilter,
++  groupMatches,
++  groupNameFilter,
++  labelsFilter,
++  namespaceFilter,
++  pluginsFilter,
++  ruleHealthFilter,
++  ruleMatches,
++  ruleNameFilter,
++  ruleStateFilter,
++  ruleTypeFilter,
++} from './filterPredicates';
++
++jest.mock('../../utils/datasource');
++
++const getDatasourceAPIUidMock = jest.mocked(getDatasourceAPIUid);
++
++getDatasourceAPIUidMock.mockImplementation((ruleSourceName) => {
++  if (ruleSourceName === 'prometheus') {
++    return 'datasource-uid-1';
++  }
++  if (ruleSourceName === 'loki') {
++    return 'datasource-uid-3';
++  }
++  throw new Error(`Unknown datasource name: ${ruleSourceName}`);
++});
++
++describe('groupMatches', () => {
++  const makeGroup = (overrides: Partial<PromRuleGroupDTO> = {}): PromRuleGroupDTO => ({
++    name: 'Test Group',
++    file: 'production/alerts',
++    rules: [],
++    interval: 60,
++    ...overrides,
++  });
++
++  it('should return true when all filters in config are null', () => {
++    const config: GroupFilterConfig = { namespace: null, groupName: null };
++    expect(groupMatches(makeGroup(), getFilter({ namespace: 'anything' }), config)).toBe(true);
++  });
++
++  it('should return true when filters pass', () => {
++    const config: GroupFilterConfig = { namespace: namespaceFilter, groupName: groupNameFilter };
++    expect(groupMatches(makeGroup(), getFilter({ namespace: 'production' }), config)).toBe(true);
++  });
++
++  it('should return false when namespace filter fails', () => {
++    const config: GroupFilterConfig = { namespace: namespaceFilter, groupName: null };
++    expect(groupMatches(makeGroup(), getFilter({ namespace: 'staging' }), config)).toBe(false);
++  });
++
++  it('should return false when groupName filter fails', () => {
++    const config: GroupFilterConfig = { namespace: null, groupName: groupNameFilter };
++    expect(groupMatches(makeGroup(), getFilter({ groupName: 'nonexistent' }), config)).toBe(false);
++  });
++
++  it('should apply AND logic across both filters', () => {
++    const config: GroupFilterConfig = { namespace: namespaceFilter, groupName: groupNameFilter };
++    const group = makeGroup({ name: 'CPU Alerts', file: 'production/alerts' });
++
++    expect(groupMatches(group, getFilter({ namespace: 'production', groupName: 'cpu' }), config)).toBe(true);
++    expect(groupMatches(group, getFilter({ namespace: 'staging', groupName: 'cpu' }), config)).toBe(false);
++    expect(groupMatches(group, getFilter({ namespace: 'production', groupName: 'memory' }), config)).toBe(false);
++  });
++});
++
++describe('ruleMatches', () => {
++  const allNullConfig: RuleFilterConfig = {
++    freeFormWords: null,
++    ruleName: null,
++    ruleState: null,
++    ruleType: null,
++    dataSourceNames: null,
++    labels: null,
++    ruleHealth: null,
++    dashboardUid: null,
++    plugins: null,
++    contactPoint: null,
++  };
++
++  it('should return true when all filters in config are null', () => {
++    const rule = mockPromAlertingRule({ name: 'Test' });
++    expect(ruleMatches(rule, getFilter({ ruleName: 'nonexistent' }), allNullConfig)).toBe(true);
++  });
++
++  it('should return false when any active filter fails', () => {
++    const config: RuleFilterConfig = { ...allNullConfig, ruleName: ruleNameFilter };
++    const rule = mockPromAlertingRule({ name: 'High CPU' });
++    expect(ruleMatches(rule, getFilter({ ruleName: 'memory' }), config)).toBe(false);
++  });
++
++  it('should apply AND logic across all active filters', () => {
++    const config: RuleFilterConfig = {
++      ...allNullConfig,
++      ruleName: ruleNameFilter,
++      ruleType: ruleTypeFilter,
++    };
++    const rule = mockPromAlertingRule({ name: 'High CPU' });
++
++    expect(ruleMatches(rule, getFilter({ ruleName: 'cpu', ruleType: PromRuleType.Alerting }), config)).toBe(true);
++    expect(ruleMatches(rule, getFilter({ ruleName: 'cpu', ruleType: PromRuleType.Recording }), config)).toBe(false);
++  });
++
++  it('should skip null filters and only evaluate non-null ones', () => {
++    const config: RuleFilterConfig = {
++      ...allNullConfig,
++      ruleState: null,
++      labels: labelsFilter,
++    };
++    const rule = mockPromAlertingRule({
++      labels: { severity: 'critical' },
++      state: PromAlertingRuleState.Pending,
++      alerts: [],
++    });
++
++    expect(
++      ruleMatches(rule, getFilter({ ruleState: PromAlertingRuleState.Firing, labels: ['severity=critical'] }), config)
++    ).toBe(true);
++  });
++});
++
++describe('namespaceFilter', () => {
++  const makeGroup = (file: string): PromRuleGroupDTO => ({
++    name: 'Group',
++    file,
++    rules: [],
++    interval: 60,
++  });
++
++  it('should return true when namespace is not set', () => {
++    expect(namespaceFilter(makeGroup('production/alerts'), getFilter({}))).toBe(true);
++  });
++
++  it('should return true when namespace matches (fuzzy)', () => {
++    expect(namespaceFilter(makeGroup('production/alerts'), getFilter({ namespace: 'production' }))).toBe(true);
++  });
++
++  it('should return false when namespace does not match', () => {
++    expect(namespaceFilter(makeGroup('production/alerts'), getFilter({ namespace: 'staging' }))).toBe(false);
++  });
++
++  it('should match case-insensitively when filter state is pre-normalized', () => {
++    expect(namespaceFilter(makeGroup('Production/Alerts'), getFilter({ namespace: 'production' }))).toBe(true);
++  });
++});
++
++describe('groupNameFilter', () => {
++  const makeGroup = (name: string): PromRuleGroupDTO => ({
++    name,
++    file: 'default',
++    rules: [],
++    interval: 60,
++  });
++
++  it('should return true when groupName is not set', () => {
++    expect(groupNameFilter(makeGroup('Any Group'), getFilter({}))).toBe(true);
++  });
++
++  it('should return true when groupName matches (fuzzy)', () => {
++    expect(groupNameFilter(makeGroup('CPU Usage Alerts'), getFilter({ groupName: 'cpu' }))).toBe(true);
++  });
++
++  it('should return false when groupName does not match', () => {
++    expect(groupNameFilter(makeGroup('CPU Usage Alerts'), getFilter({ groupName: 'memory' }))).toBe(false);
++  });
++});
++
++describe('freeFormFilter', () => {
++  it('should return true when freeFormWords is empty', () => {
++    const rule = mockPromAlertingRule({ name: 'Any Rule' });
++    expect(freeFormFilter(rule, getFilter({}))).toBe(true);
++  });
++
++  it('should return true when rule name matches freeFormWords', () => {
++    const rule = mockPromAlertingRule({ name: 'High CPU Usage' });
++    expect(freeFormFilter(rule, getFilter({ freeFormWords: ['cpu'] }))).toBe(true);
++  });
++
++  it('should return false when rule name does not match freeFormWords', () => {
++    const rule = mockPromAlertingRule({ name: 'High CPU Usage' });
++    expect(freeFormFilter(rule, getFilter({ freeFormWords: ['memory'] }))).toBe(false);
++  });
++
++  it('should join multiple freeFormWords for matching', () => {
++    const rule = mockPromAlertingRule({ name: 'High CPU Usage' });
++    expect(freeFormFilter(rule, getFilter({ freeFormWords: ['high', 'cpu'] }))).toBe(true);
++  });
++});
++
++describe('ruleNameFilter', () => {
++  it('should return true when ruleName is not set', () => {
++    const rule = mockPromAlertingRule({ name: 'Any Rule' });
++    expect(ruleNameFilter(rule, getFilter({}))).toBe(true);
++  });
++
++  it('should return true when rule name matches', () => {
++    const rule = mockPromAlertingRule({ name: 'High CPU Usage' });
++    expect(ruleNameFilter(rule, getFilter({ ruleName: 'cpu' }))).toBe(true);
++  });
++
++  it('should return false when rule name does not match', () => {
++    const rule = mockPromAlertingRule({ name: 'High CPU Usage' });
++    expect(ruleNameFilter(rule, getFilter({ ruleName: 'memory' }))).toBe(false);
++  });
++});
++
++describe('labelsFilter', () => {
++  it('should return true when labels filter is empty', () => {
++    const rule = mockPromAlertingRule({ labels: { severity: 'critical' } });
++    expect(labelsFilter(rule, getFilter({}))).toBe(true);
++  });
++
++  it('should return true when rule labels match', () => {
++    const rule = mockPromAlertingRule({
++      labels: { severity: 'critical', team: 'ops' },
++      alerts: [],
++    });
++    expect(labelsFilter(rule, getFilter({ labels: ['severity=critical'] }))).toBe(true);
++  });
++
++  it('should return false when rule labels do not match', () => {
++    const rule = mockPromAlertingRule({
++      labels: { severity: 'critical' },
++      alerts: [],
++    });
++    expect(labelsFilter(rule, getFilter({ labels: ['severity=warning'] }))).toBe(false);
++  });
++
++  it('should match against alert instance labels', () => {
++    const rule = mockPromAlertingRule({
++      labels: {},
++      alerts: [
++        {
++          labels: { instance: 'server-1' },
++          state: PromAlertingRuleState.Firing,
++          value: '1',
++          activeAt: '',
++          annotations: {},
++        },
++      ],
++    });
++    expect(labelsFilter(rule, getFilter({ labels: ['instance=server-1'] }))).toBe(true);
++    expect(labelsFilter(rule, getFilter({ labels: ['instance=server-2'] }))).toBe(false);
++  });
++
++  it('should handle rules with no labels', () => {
++    const rule = mockPromAlertingRule({ labels: undefined, alerts: [] });
++    expect(labelsFilter(rule, getFilter({ labels: ['severity=critical'] }))).toBe(false);
++  });
++
++  it('should handle multiple label matchers with AND logic', () => {
++    const rule = mockPromAlertingRule({
++      labels: { severity: 'critical', team: 'ops' },
++      alerts: [],
++    });
++    expect(labelsFilter(rule, getFilter({ labels: ['severity=critical', 'team=ops'] }))).toBe(true);
++    expect(labelsFilter(rule, getFilter({ labels: ['severity=critical', 'team=dev'] }))).toBe(false);
++  });
++});
++
++describe('ruleTypeFilter', () => {
++  it('should return true when ruleType is not set', () => {
++    const rule = mockPromAlertingRule();
++    expect(ruleTypeFilter(rule, getFilter({}))).toBe(true);
++  });
++
++  it('should return true when rule type matches alerting', () => {
++    const rule = mockPromAlertingRule();
++    expect(ruleTypeFilter(rule, getFilter({ ruleType: PromRuleType.Alerting }))).toBe(true);
++  });
++
++  it('should return false when rule type does not match', () => {
++    const rule = mockPromAlertingRule();
++    expect(ruleTypeFilter(rule, getFilter({ ruleType: PromRuleType.Recording }))).toBe(false);
++  });
++
++  it('should match recording rules', () => {
++    const rule = mockPromRecordingRule();
++    expect(ruleTypeFilter(rule, getFilter({ ruleType: PromRuleType.Recording }))).toBe(true);
++    expect(ruleTypeFilter(rule, getFilter({ ruleType: PromRuleType.Alerting }))).toBe(false);
++  });
++});
++
++describe('ruleStateFilter', () => {
++  it('should return true when ruleState is not set', () => {
++    const rule = mockPromAlertingRule({ state: PromAlertingRuleState.Firing });
++    expect(ruleStateFilter(rule, getFilter({}))).toBe(true);
++  });
++
++  it('should return true when rule state matches', () => {
++    const rule = mockPromAlertingRule({ state: PromAlertingRuleState.Firing });
++    expect(ruleStateFilter(rule, getFilter({ ruleState: PromAlertingRuleState.Firing }))).toBe(true);
++  });
++
++  it('should return false when rule state does not match', () => {
++    const rule = mockPromAlertingRule({ state: PromAlertingRuleState.Pending });
++    expect(ruleStateFilter(rule, getFilter({ ruleState: PromAlertingRuleState.Firing }))).toBe(false);
++  });
++
++  it('should return false for recording rules when state filter is active', () => {
++    const rule = mockPromRecordingRule();
++    expect(ruleStateFilter(rule, getFilter({ ruleState: PromAlertingRuleState.Firing }))).toBe(false);
++    expect(ruleStateFilter(rule, getFilter({ ruleState: PromAlertingRuleState.Pending }))).toBe(false);
++    expect(ruleStateFilter(rule, getFilter({ ruleState: PromAlertingRuleState.Inactive }))).toBe(false);
++  });
++
++  it('should return true for recording rules when no state filter is set', () => {
++    const rule = mockPromRecordingRule();
++    expect(ruleStateFilter(rule, getFilter({}))).toBe(true);
++  });
++});
++
++describe('ruleHealthFilter', () => {
++  it('should return true when ruleHealth is not set', () => {
++    const rule = mockPromAlertingRule({ health: RuleHealth.Ok });
++    expect(ruleHealthFilter(rule, getFilter({}))).toBe(true);
++  });
++
++  it('should return true when rule health matches', () => {
++    const rule = mockPromAlertingRule({ health: RuleHealth.Ok });
++    expect(ruleHealthFilter(rule, getFilter({ ruleHealth: RuleHealth.Ok }))).toBe(true);
++  });
++
++  it('should return false when rule health does not match', () => {
++    const rule = mockPromAlertingRule({ health: RuleHealth.Ok });
++    expect(ruleHealthFilter(rule, getFilter({ ruleHealth: RuleHealth.Error }))).toBe(false);
++  });
++
++  it('should normalize legacy health value "err" to "error"', () => {
++    const rule = mockPromAlertingRule({ health: 'err' });
++    expect(ruleHealthFilter(rule, getFilter({ ruleHealth: RuleHealth.Error }))).toBe(true);
++  });
++
++  it('should match error health correctly', () => {
++    const rule = mockPromAlertingRule({ health: RuleHealth.Error });
++    expect(ruleHealthFilter(rule, getFilter({ ruleHealth: RuleHealth.Error }))).toBe(true);
++    expect(ruleHealthFilter(rule, getFilter({ ruleHealth: RuleHealth.Ok }))).toBe(false);
++  });
++});
++
++describe('contactPointFilter', () => {
++  it('should return true when contactPoint is not set', () => {
++    const rule = mockGrafanaPromAlertingRule();
++    expect(contactPointFilter(rule, getFilter({}))).toBe(true);
++  });
++
++  it('should return true when contact point matches', () => {
++    const rule = mockGrafanaPromAlertingRule({
++      notificationSettings: { receiver: 'my-receiver' },
++    });
++    expect(contactPointFilter(rule, getFilter({ contactPoint: 'my-receiver' }))).toBe(true);
++  });
++
++  it('should return false when contact point does not match', () => {
++    const rule = mockGrafanaPromAlertingRule({
++      notificationSettings: { receiver: 'my-receiver' },
++    });
++    expect(contactPointFilter(rule, getFilter({ contactPoint: 'other-receiver' }))).toBe(false);
++  });
++
++  it('should return false for non-Grafana alerting rules', () => {
++    const rule = mockPromAlertingRule();
++    expect(contactPointFilter(rule, getFilter({ contactPoint: 'any-receiver' }))).toBe(false);
++  });
++
++  it('should return false when rule has no notification settings', () => {
++    const rule = mockGrafanaPromAlertingRule({ notificationSettings: undefined });
++    expect(contactPointFilter(rule, getFilter({ contactPoint: 'any-receiver' }))).toBe(false);
++  });
++});
++
++describe('dashboardUidFilter', () => {
++  it('should return true when dashboardUid is not set', () => {
++    const rule = mockPromAlertingRule();
++    expect(dashboardUidFilter(rule, getFilter({}))).toBe(true);
++  });
++
++  it('should return true when dashboard UID matches', () => {
++    const rule = mockPromAlertingRule({
++      annotations: { [Annotation.dashboardUID]: 'dashboard-a' },
++    });
++    expect(dashboardUidFilter(rule, getFilter({ dashboardUid: 'dashboard-a' }))).toBe(true);
++  });
++
++  it('should return false when dashboard UID does not match', () => {
++    const rule = mockPromAlertingRule({
++      annotations: { [Annotation.dashboardUID]: 'dashboard-a' },
++    });
++    expect(dashboardUidFilter(rule, getFilter({ dashboardUid: 'dashboard-b' }))).toBe(false);
++  });
++
++  it('should return false for recording rules when dashboardUid filter is active', () => {
++    const rule = mockPromRecordingRule();
++    expect(dashboardUidFilter(rule, getFilter({ dashboardUid: 'any-dashboard' }))).toBe(false);
++  });
++
++  it('should return false for alerting rules without dashboard annotation', () => {
++    const rule = mockPromAlertingRule({ annotations: {} });
++    expect(dashboardUidFilter(rule, getFilter({ dashboardUid: 'dashboard-a' }))).toBe(false);
++  });
++});
++
++describe('pluginsFilter', () => {
++  it('should return true when plugins filter is not set', () => {
++    const rule = mockPromAlertingRule();
++    expect(pluginsFilter(rule, getFilter({}))).toBe(true);
++  });
++
++  it('should return true for non-plugin rules when plugins is "hide"', () => {
++    const rule = mockPromAlertingRule();
++    expect(pluginsFilter(rule, getFilter({ plugins: 'hide' }))).toBe(true);
++  });
++
++  it('should return false for plugin-provided rules when plugins is "hide"', () => {
++    const originalApps = config.apps;
++    config.apps = { 'my-plugin': { id: 'my-plugin' } } as typeof config.apps;
++    try {
++      const rule = mockGrafanaPromAlertingRule({
++        labels: { __grafana_origin: 'plugin/my-plugin' },
++      });
++      expect(pluginsFilter(rule, getFilter({ plugins: 'hide' }))).toBe(false);
++    } finally {
++      config.apps = originalApps;
++    }
++  });
++});
++
++describe('dataSourceNamesFilter', () => {
++  it('should return true when dataSourceNames is empty', () => {
++    const rule = mockGrafanaPromAlertingRule();
++    expect(dataSourceNamesFilter(rule, getFilter({}))).toBe(true);
++  });
++
++  it('should return true when rule queries the filtered datasource', () => {
++    const rule = mockGrafanaPromAlertingRule({
++      queriedDatasourceUIDs: ['datasource-uid-1'],
++    });
++    expect(dataSourceNamesFilter(rule, getFilter({ dataSourceNames: ['prometheus'] }))).toBe(true);
++  });
++
++  it('should return false when rule does not query the filtered datasource', () => {
++    const rule = mockGrafanaPromAlertingRule({
++      queriedDatasourceUIDs: ['datasource-uid-1', 'datasource-uid-2'],
++    });
++    expect(dataSourceNamesFilter(rule, getFilter({ dataSourceNames: ['loki'] }))).toBe(false);
++  });
++
++  it('should return false when there is an error resolving datasource', () => {
++    const rule = mockGrafanaPromAlertingRule({
++      query: 'not-valid-json',
++    });
++    expect(dataSourceNamesFilter(rule, getFilter({ dataSourceNames: ['prometheus'] }))).toBe(false);
++  });
++
++  it('should return true for non-Grafana rules even when dataSourceNames is set', () => {
++    const rule = mockPromAlertingRule();
++    expect(dataSourceNamesFilter(rule, getFilter({ dataSourceNames: ['prometheus'] }))).toBe(true);
++  });
++});
+diff --git a/public/app/features/alerting/unified/rule-list/hooks/filters.test.ts b/public/app/features/alerting/unified/rule-list/hooks/grafanaFilter.test.ts
+similarity index 64%
+rename from public/app/features/alerting/unified/rule-list/hooks/filters.test.ts
+rename to public/app/features/alerting/unified/rule-list/hooks/grafanaFilter.test.ts
+index af9d9011f89..3825c905a52 100644
+--- a/public/app/features/alerting/unified/rule-list/hooks/filters.test.ts
++++ b/public/app/features/alerting/unified/rule-list/hooks/grafanaFilter.test.ts
+@@ -2,13 +2,13 @@ import { testWithFeatureToggles } from 'test/test-utils';
+ 
+ import { PromAlertingRuleState, PromRuleGroupDTO, PromRuleType } from 'app/types/unified-alerting-dto';
+ 
+-import { mockGrafanaPromAlertingRule, mockPromAlertingRule, mockPromRecordingRule } from '../../mocks';
++import { mockGrafanaPromAlertingRule, mockPromRecordingRule } from '../../mocks';
+ import { RuleHealth } from '../../search/rulesSearchParser';
+ import { Annotation } from '../../utils/constants';
+ import { getDatasourceAPIUid } from '../../utils/datasource';
+ import { getFilter } from '../../utils/search';
+ 
+-import { getDatasourceFilter, getGrafanaFilter } from './filters';
++import { getGrafanaFilter, hasClientSideFilters } from './grafanaFilter';
+ 
+ jest.mock('../../utils/datasource');
+ 
+@@ -24,308 +24,6 @@ getDatasourceAPIUidMock.mockImplementation((ruleSourceName) => {
+   throw new Error(`Unknown datasource name: ${ruleSourceName}`);
+ });
+ 
+-describe('datasource-managed rules', () => {
+-  describe('groupFilter', () => {
+-    it('should filter by namespace (file path)', () => {
+-      const group: PromRuleGroupDTO = {
+-        name: 'Test Group',
+-        file: 'production/alerts',
+-        rules: [],
+-        interval: 60,
+-      };
+-
+-      const { groupMatches } = getDatasourceFilter(getFilter({ namespace: 'production' }));
+-      expect(groupMatches(group)).toBe(true);
+-
+-      const { groupMatches: groupMatches2 } = getDatasourceFilter(getFilter({ namespace: 'staging' }));
+-      expect(groupMatches2(group)).toBe(false);
+-    });
+-
+-    it('should filter by group name', () => {
+-      const group: PromRuleGroupDTO = {
+-        name: 'CPU Usage Alerts',
+-        file: 'production/alerts',
+-        rules: [],
+-        interval: 60,
+-      };
+-
+-      const { groupMatches } = getDatasourceFilter(getFilter({ groupName: 'cpu' }));
+-      expect(groupMatches(group)).toBe(true);
+-
+-      const { groupMatches: groupMatches2 } = getDatasourceFilter(getFilter({ groupName: 'memory' }));
+-      expect(groupMatches2(group)).toBe(false);
+-    });
+-
+-    it('should return true when no filters are applied', () => {
+-      const group: PromRuleGroupDTO = {
+-        name: 'Test Group',
+-        file: 'production/alerts',
+-        rules: [],
+-        interval: 60,
+-      };
+-
+-      const { groupMatches } = getDatasourceFilter(getFilter({}));
+-      expect(groupMatches(group)).toBe(true);
+-    });
+-  });
+-
+-  describe('ruleFilter', () => {
+-    it('should filter by free form words in rule name', () => {
+-      const rule = mockPromAlertingRule({ name: 'High CPU Usage' });
+-
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ freeFormWords: ['cpu'] }));
+-      expect(ruleMatches(rule)).toBe(true);
+-
+-      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ freeFormWords: ['memory'] }));
+-      expect(ruleMatches2(rule)).toBe(false);
+-    });
+-
+-    it('should filter by rule name', () => {
+-      const rule = mockPromAlertingRule({ name: 'High CPU Usage' });
+-
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleName: 'cpu' }));
+-      expect(ruleMatches(rule)).toBe(true);
+-
+-      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ ruleName: 'memory' }));
+-      expect(ruleMatches2(rule)).toBe(false);
+-    });
+-
+-    it('should filter by labels', () => {
+-      const rule = mockPromAlertingRule({
+-        labels: { severity: 'critical', team: 'ops' },
+-        alerts: [],
+-      });
+-
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ labels: ['severity=critical'] }));
+-      expect(ruleMatches(rule)).toBe(true);
+-
+-      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ labels: ['severity=warning'] }));
+-      expect(ruleMatches2(rule)).toBe(false);
+-
+-      const { ruleMatches: ruleMatches3 } = getDatasourceFilter(getFilter({ labels: ['team=ops'] }));
+-      expect(ruleMatches3(rule)).toBe(true);
+-    });
+-
+-    it('should filter by alert instance labels', () => {
+-      const rule = mockPromAlertingRule({
+-        labels: { severity: 'critical' },
+-        alerts: [
+-          {
+-            labels: { instance: 'server-1', env: 'production' },
+-            state: PromAlertingRuleState.Firing,
+-            value: '100',
+-            activeAt: '',
+-            annotations: {},
+-          },
+-        ],
+-      });
+-
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ labels: ['instance=server-1'] }));
+-      expect(ruleMatches(rule)).toBe(true);
+-
+-      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ labels: ['env=production'] }));
+-      expect(ruleMatches2(rule)).toBe(true);
+-
+-      const { ruleMatches: ruleMatches3 } = getDatasourceFilter(getFilter({ labels: ['instance=server-2'] }));
+-      expect(ruleMatches3(rule)).toBe(false);
+-    });
+-
+-    it('should filter by rule type', () => {
+-      const alertingRule = mockPromAlertingRule({ name: 'Test Alert' });
+-      const recordingRule = mockPromRecordingRule({ name: 'Test Recording' });
+-
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleType: PromRuleType.Alerting }));
+-      expect(ruleMatches(alertingRule)).toBe(true);
+-      expect(ruleMatches(recordingRule)).toBe(false);
+-
+-      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ ruleType: PromRuleType.Recording }));
+-      expect(ruleMatches2(alertingRule)).toBe(false);
+-      expect(ruleMatches2(recordingRule)).toBe(true);
+-    });
+-
+-    it('should filter by rule state', () => {
+-      const firingRule = mockPromAlertingRule({
+-        name: 'Firing Alert',
+-        state: PromAlertingRuleState.Firing,
+-      });
+-
+-      const pendingRule = mockPromAlertingRule({
+-        name: 'Pending Alert',
+-        state: PromAlertingRuleState.Pending,
+-      });
+-
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleState: PromAlertingRuleState.Firing }));
+-      expect(ruleMatches(firingRule)).toBe(true);
+-      expect(ruleMatches(pendingRule)).toBe(false);
+-
+-      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(
+-        getFilter({ ruleState: PromAlertingRuleState.Pending })
+-      );
+-      expect(ruleMatches2(firingRule)).toBe(false);
+-      expect(ruleMatches2(pendingRule)).toBe(true);
+-    });
+-
+-    it('should filter out recording rules when filtering by rule state', () => {
+-      const recordingRule = mockPromRecordingRule({
+-        name: 'Recording Rule',
+-      });
+-
+-      // Recording rules should always be filtered out when any rule state filter is applied as they don't have a state
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleState: PromAlertingRuleState.Firing }));
+-      expect(ruleMatches(recordingRule)).toBe(false);
+-
+-      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(
+-        getFilter({ ruleState: PromAlertingRuleState.Pending })
+-      );
+-      expect(ruleMatches2(recordingRule)).toBe(false);
+-
+-      const { ruleMatches: ruleMatches3 } = getDatasourceFilter(
+-        getFilter({ ruleState: PromAlertingRuleState.Inactive })
+-      );
+-      expect(ruleMatches3(recordingRule)).toBe(false);
+-    });
+-
+-    it('should filter by rule health', () => {
+-      const healthyRule = mockPromAlertingRule({
+-        name: 'Healthy Rule',
+-        health: RuleHealth.Ok,
+-      });
+-
+-      const errorRule = mockPromAlertingRule({
+-        name: 'Error Rule',
+-        health: RuleHealth.Error,
+-      });
+-
+-      const prometheusErrorRule = mockPromAlertingRule({
+-        name: 'Error Rule',
+-        health: 'err',
+-      });
+-
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleHealth: RuleHealth.Ok }));
+-      expect(ruleMatches(healthyRule)).toBe(true);
+-      expect(ruleMatches(errorRule)).toBe(false);
+-
+-      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ ruleHealth: RuleHealth.Error }));
+-      expect(ruleMatches2(healthyRule)).toBe(false);
+-      expect(ruleMatches2(errorRule)).toBe(true);
+-      expect(ruleMatches2(prometheusErrorRule)).toBe(true);
+-    });
+-
+-    it('should normalize health values when filtering', () => {
+-      // Legacy Prometheus health value 'err' should be normalized to 'error'
+-      const legacyErrorRule = mockPromAlertingRule({
+-        name: 'Legacy Error Rule',
+-        health: 'err',
+-      });
+-
+-      // When filtering for 'error', it should match rules with health 'err' (legacy) or 'error'
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ ruleHealth: RuleHealth.Error }));
+-      expect(ruleMatches(legacyErrorRule)).toBe(true);
+-    });
+-
+-    it('should filter by dashboard UID', () => {
+-      const ruleDashboardA = mockPromAlertingRule({
+-        name: 'Dashboard A Rule',
+-        annotations: { [Annotation.dashboardUID]: 'dashboard-a' },
+-      });
+-
+-      const ruleDashboardB = mockPromAlertingRule({
+-        name: 'Dashboard B Rule',
+-        annotations: { [Annotation.dashboardUID]: 'dashboard-b' },
+-      });
+-
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ dashboardUid: 'dashboard-a' }));
+-      expect(ruleMatches(ruleDashboardA)).toBe(true);
+-      expect(ruleMatches(ruleDashboardB)).toBe(false);
+-
+-      const { ruleMatches: ruleMatches2 } = getDatasourceFilter(getFilter({ dashboardUid: 'dashboard-b' }));
+-      expect(ruleMatches2(ruleDashboardA)).toBe(false);
+-      expect(ruleMatches2(ruleDashboardB)).toBe(true);
+-    });
+-
+-    it('should filter out recording rules when filtering by dashboard UID', () => {
+-      const recordingRule = mockPromRecordingRule({
+-        name: 'Recording Rule',
+-        // Recording rules cannot have dashboard UIDs because they don't have annotations
+-      });
+-
+-      // Dashboard UID filter should filter out recording rules
+-      const { ruleMatches } = getDatasourceFilter(getFilter({ dashboardUid: 'any-dashboard' }));
+-      expect(ruleMatches(recordingRule)).toBe(false);
+-    });
+-
+-    describe('dataSourceNames filter', () => {
+-      it('should match rules that use the filtered datasource', () => {
+-        // Create a Grafana rule with matching datasource
+-        const ruleWithMatchingDatasource = mockGrafanaPromAlertingRule({
+-          queriedDatasourceUIDs: ['datasource-uid-1'],
+-        });
+-
+-        // 'prometheus' resolves to 'datasource-uid-1' which is in the rule
+-        const { ruleMatches } = getDatasourceFilter(getFilter({ dataSourceNames: ['prometheus'] }));
+-        expect(ruleMatches(ruleWithMatchingDatasource)).toBe(true);
+-      });
+-
+-      it("should filter out rules that don't use the filtered datasource", () => {
+-        // Create a Grafana rule without the target datasource
+-        const ruleWithoutMatchingDatasource = mockGrafanaPromAlertingRule({
+-          queriedDatasourceUIDs: ['datasource-uid-1', 'datasource-uid-2'],
+-        });
+-
+-        // 'loki' resolves to 'datasource-uid-3' which is not in the rule
+-        const { ruleMatches } = getDatasourceFilter(getFilter({ dataSourceNames: ['loki'] }));
+-        expect(ruleMatches(ruleWithoutMatchingDatasource)).toBe(false);
+-      });
+-
+-      it('should return false when there is an error parsing the query', () => {
+-        const ruleWithInvalidQuery = mockGrafanaPromAlertingRule({
+-          query: 'not-valid-json',
+-        });
+-
+-        const { ruleMatches } = getDatasourceFilter(getFilter({ dataSourceNames: ['prometheus'] }));
+-        expect(ruleMatches(ruleWithInvalidQuery)).toBe(false);
+-      });
+-    });
+-
+-    it('should combine multiple filters with AND logic', () => {
+-      const rule = mockPromAlertingRule({
+-        name: 'High CPU Usage Production',
+-        labels: { severity: 'critical', environment: 'production' },
+-        state: PromAlertingRuleState.Firing,
+-        health: RuleHealth.Ok,
+-      });
+-
+-      const filter = getFilter({
+-        ruleName: 'cpu',
+-        labels: ['severity=critical', 'environment=production'],
+-        ruleState: PromAlertingRuleState.Firing,
+-        ruleHealth: RuleHealth.Ok,
+-      });
+-      const { ruleMatches } = getDatasourceFilter(filter);
+-      expect(ruleMatches(rule)).toBe(true);
+-    });
+-
+-    it('should return false if any filter does not match', () => {
+-      const rule = mockPromAlertingRule({
+-        name: 'High CPU Usage Production',
+-        labels: { severity: 'critical', environment: 'production' },
+-        state: PromAlertingRuleState.Firing,
+-        health: RuleHealth.Ok,
+-        alerts: [],
+-      });
+-
+-      const filter = getFilter({
+-        ruleName: 'cpu',
+-        labels: ['severity=warning'],
+-        ruleState: PromAlertingRuleState.Firing,
+-        ruleHealth: RuleHealth.Ok,
+-      });
+-      const { ruleMatches } = getDatasourceFilter(filter);
+-      expect(ruleMatches(rule)).toBe(false);
+-    });
+-  });
+-});
+-
+ describe('grafana-managed rules', () => {
+   describe('groupFilter', () => {
+     it('should filter by namespace (file path)', () => {
+@@ -787,4 +485,80 @@ describe('grafana-managed rules', () => {
+       });
+     });
+   });
++
++  describe('hasClientSideFilters', () => {
++    describe('when alertingUIUseBackendFilters is disabled', () => {
++      testWithFeatureToggles({ disable: ['alertingUIUseBackendFilters'] });
++
++      it('should return false when no filters are applied', () => {
++        expect(hasClientSideFilters(getFilter({}))).toBe(false);
++      });
++
++      it('should return true for title-related filters (freeFormWords, ruleName)', () => {
++        expect(hasClientSideFilters(getFilter({ freeFormWords: ['cpu'] }))).toBe(true);
++        expect(hasClientSideFilters(getFilter({ ruleName: 'alert' }))).toBe(true);
++      });
++
++      it('should return true for ruleType filter', () => {
++        expect(hasClientSideFilters(getFilter({ ruleType: PromRuleType.Alerting }))).toBe(true);
++      });
++
++      it('should return true for dashboardUid filter', () => {
++        expect(hasClientSideFilters(getFilter({ dashboardUid: 'test-dashboard' }))).toBe(true);
++      });
++
++      it('should return true for groupName filter', () => {
++        expect(hasClientSideFilters(getFilter({ groupName: 'test-group' }))).toBe(true);
++      });
++
++      it('should return true for client-side only filters', () => {
++        expect(hasClientSideFilters(getFilter({ namespace: 'production' }))).toBe(true);
++        expect(hasClientSideFilters(getFilter({ dataSourceNames: ['prometheus'] }))).toBe(true);
++        expect(hasClientSideFilters(getFilter({ labels: ['severity=critical'] }))).toBe(true);
++      });
++
++      it('should return false for backend-only filters (state, health, contactPoint)', () => {
++        expect(hasClientSideFilters(getFilter({ ruleState: PromAlertingRuleState.Firing }))).toBe(false);
++        expect(hasClientSideFilters(getFilter({ ruleHealth: RuleHealth.Ok }))).toBe(false);
++        expect(hasClientSideFilters(getFilter({ contactPoint: 'my-contact-point' }))).toBe(false);
++      });
++    });
++
++    describe('when alertingUIUseBackendFilters is enabled', () => {
++      testWithFeatureToggles({ enable: ['alertingUIUseBackendFilters'] });
++
++      it('should return false when no filters are applied', () => {
++        expect(hasClientSideFilters(getFilter({}))).toBe(false);
++      });
++
++      it('should return false for title-related filters (handled by backend)', () => {
++        expect(hasClientSideFilters(getFilter({ freeFormWords: ['cpu'] }))).toBe(false);
++        expect(hasClientSideFilters(getFilter({ ruleName: 'alert' }))).toBe(false);
++      });
++
++      it('should return false for ruleType filter (handled by backend)', () => {
++        expect(hasClientSideFilters(getFilter({ ruleType: PromRuleType.Alerting }))).toBe(false);
++      });
++
++      it('should return false for dashboardUid filter (handled by backend)', () => {
++        expect(hasClientSideFilters(getFilter({ dashboardUid: 'test-dashboard' }))).toBe(false);
++      });
++
++      it('should return false for groupName filter (handled by backend)', () => {
++        expect(hasClientSideFilters(getFilter({ groupName: 'test-group' }))).toBe(false);
++      });
++
++      it('should return true for client-side only filters', () => {
++        expect(hasClientSideFilters(getFilter({ namespace: 'production' }))).toBe(true);
++        expect(hasClientSideFilters(getFilter({ dataSourceNames: ['prometheus'] }))).toBe(true);
++        expect(hasClientSideFilters(getFilter({ labels: ['severity=critical'] }))).toBe(true);
++      });
++
++      it('should return false for backend-only filters (state, health, contactPoint)', () => {
++        expect(hasClientSideFilters(getFilter({ ruleState: PromAlertingRuleState.Firing }))).toBe(false);
++        expect(hasClientSideFilters(getFilter({ ruleHealth: RuleHealth.Ok }))).toBe(false);
++        expect(hasClientSideFilters(getFilter({ contactPoint: 'my-contact-point' }))).toBe(false);
++      });
++    });
++  });
+ });
+diff --git a/public/app/features/alerting/unified/rule-list/hooks/useFilteredRulesIterator.test.ts b/public/app/features/alerting/unified/rule-list/hooks/useFilteredRulesIterator.test.ts
+index 592485e211c..1b226d50c5b 100644
+--- a/public/app/features/alerting/unified/rule-list/hooks/useFilteredRulesIterator.test.ts
++++ b/public/app/features/alerting/unified/rule-list/hooks/useFilteredRulesIterator.test.ts
+@@ -4,7 +4,6 @@ import { PromRuleType } from 'app/types/unified-alerting-dto';
+ import { RuleSource } from '../../search/rulesSearchParser';
+ import { getFilter } from '../../utils/search';
+ 
+-import { buildTitleSearch } from './filters';
+ import { hasClientSideFilters } from './useFilteredRulesIterator';
+ 
+ describe('hasClientSideFilters', () => {
+@@ -84,23 +83,3 @@ describe('hasClientSideFilters', () => {
+     });
+   });
+ });
+-
+-describe('buildTitleSearch', () => {
+-  it('returns undefined when no search terms are provided', () => {
+-    expect(buildTitleSearch(getFilter({}))).toBeUndefined();
+-  });
+-
+-  it('returns the rule name when only a rule search is provided', () => {
+-    expect(buildTitleSearch(getFilter({ ruleName: 'cpu' }))).toBe('cpu');
+-  });
+-
+-  it('returns joined free-form words when only text search is provided', () => {
+-    expect(buildTitleSearch(getFilter({ freeFormWords: ['cpu', 'memory'] }))).toBe('cpu memory');
+-  });
+-
+-  it('concatenates rule search and free-form text when both are provided', () => {
+-    expect(buildTitleSearch(getFilter({ ruleName: 'cpu', freeFormWords: ['memory', 'latency'] }))).toBe(
+-      'cpu memory latency'
+-    );
+-  });
+-});

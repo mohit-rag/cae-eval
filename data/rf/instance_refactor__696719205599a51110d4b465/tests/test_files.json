@@ -1,0 +1,7 @@
+{
+  "files": [
+    {
+      "name": "packages/grafana-data/src/panel/suggestions/getPanelDataSummary.test.ts"
+    }
+  ]
+}

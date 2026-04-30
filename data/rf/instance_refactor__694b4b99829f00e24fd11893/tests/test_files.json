@@ -1,0 +1,10 @@
+{
+  "files": [
+    {
+      "name": "tests/test_config.py"
+    },
+    {
+      "name": "tests/models/test_alias.py"
+    }
+  ]
+}
