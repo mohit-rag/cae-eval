@@ -135,7 +135,7 @@
     "id": "c6642a9807f00b7614004c35d9f752bf",
     "title": "2: Documentation Maintainability",
     "annotations": {
-      "importance": "must have",
+      "importance": "nice to have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -147,7 +147,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -159,7 +159,7 @@
     "id": "6f0ccf8539336116c5f288d2e83d126d",
     "title": "3.1: Removes the redundant logger field from parsingState struct in js/compiler/compiler.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the redundant logger field is removed from parsingState since it can be accessed via the compiler reference instead.",
       "evidence": "gold.patch line 70 removes logger field from parsingState struct.",
       "justification": "[2: Implicit Codebase Constraint] The parsingState struct stores a compiler reference which already contains the logger. [4: Quality Necessity] After refactoring, the logger can be accessed through ps.compiler.logger, making the separate logger field redundant. [5: Conclusion] Therefore, any correct answer should remove the redundant logger field.",

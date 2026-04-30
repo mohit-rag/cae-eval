@@ -195,7 +195,7 @@
     "id": "c3a8f210b7e94d5a8b1c6f2e3d4a5b6c",
     "title": "Documentation Maintainability",
     "annotations": {
-      "importance": "must have",
+      "importance": "nice to have",
       "type": "high level intent",
       "hli_category": "Documentation Maintainability",
       "description": "No standalone documentation changes are required by the prompt. All comment updates in gold.patch accompany code changes and are covered under Code Maintainability.",

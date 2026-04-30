@@ -99,7 +99,7 @@
     "id": "37693cfc748049e45d87b8c7d8b9aacd",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Evaluates whether obsolete code and imports are cleaned up after the refactoring.",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -111,7 +111,7 @@
     "id": "1ff1de774005f8da13f42943881c655f",
     "title": "3.1: Removes the old chunking code from pkg/common (such as pkg/common/chunker.go)",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the old ChunkReader function and associated constants in pkg/common are removed since the functionality has been relocated to pkg/sources.",
       "evidence": "gold.patch lines 1-42 delete pkg/common/chunker.go entirely, removing ChunkReader function, ChunkSize, and PeekSize constants.",
       "justification": "[3: Logical Necessity] Moving functionality to a new package should include removing it from the old package to avoid duplication and confusion. [4: Qualitative Requirement] Leaving dead code in the codebase reduces maintainability. [5: Conclusion] A correct solution should remove the old chunking code from pkg/common.",

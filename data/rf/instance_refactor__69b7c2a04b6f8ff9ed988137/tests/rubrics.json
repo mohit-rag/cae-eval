@@ -159,7 +159,7 @@
     "id": "b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "Artifact Cleanup",
       "description": "Verifies removal of obsolete code patterns and dead code resulting from the refactor.",
@@ -171,7 +171,7 @@
     "id": "c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0",
     "title": "3.1: Removes redundant DecodeTunnel calls from tunnel decoders",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "Verifies that explicit DecodeTunnel calls are removed from all four tunnel decoders (GRE, IPv4, IPv6, and Teredo) since the consolidated helper function handles this internally.",
@@ -183,7 +183,7 @@
     "id": "d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1",
     "title": "3.2: Removes unreachable control flow after return in DecodeIPV6",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "Verifies that unreachable statements following a return in the IPPROTO_UDP branch of DecodeIPV6 in decode-ipv6.c are removed as dead code after the void-to-int return refactor.",

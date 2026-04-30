@@ -195,7 +195,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "N/A: No Description Required. ",
@@ -207,7 +207,7 @@
     "id": "c146e40e19e792cac66a935aaf7dc101",
     "title": "3.1: Removes unused imports (Button from @grafana/ui, getBackendSrv from @grafana/runtime) from dashboard-scene/saving/SaveDashboardDrawer.tsx after refactoring",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Removes the Button import from @grafana/ui and the getBackendSrv import from @grafana/runtime in SaveDashboardDrawer.tsx, as these are no longer needed after extracting the provisioned dashboard logic into a dedicated component.",

@@ -135,7 +135,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "N/A: No Description Required        ",
@@ -147,7 +147,7 @@
     "id": "3a1c9d7e85f240b6a9e3c7104dbeaf52",
     "title": "3.1: Removes old V1 analytics tracking code from the overview and sidebar components",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that recordTracksEvent calls related to agency tier badge clicks and explore tier button clicks are no longer present in agency-tier-overview/index.tsx and overview/sidebar/agency-tier/index.tsx.",

@@ -123,7 +123,7 @@
     "id": "9d5ed678fe57bcca610140957afab571",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "Artifact Cleanup",
       "description": "N/A: No Description Required.",
@@ -135,7 +135,7 @@
     "id": "415290769594460e2e485922904f345d",
     "title": "3.1: Removes the SuricataContext struct, the global SC static, and the initialization functions (init_ffi, SCRustInit, SCGetContext) from core.rs",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "Verifies that the deprecated global state, vtable struct, and initialization functions used for the old Rust/C FFI are stripped out from core.rs.",
@@ -147,7 +147,7 @@
     "id": "a5120fcb64082dc8a46cf7f29b6fdf8e",
     "title": "3.2: Deletes the obsolete rust-context.c and rust-context.h files",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "Verifies that the obsolete rust-context files are entirely removed from the file system.",
@@ -159,7 +159,7 @@
     "id": "b9c7b9ea325d2598cb7206d203da8ba2",
     "title": "3.3: Removes references to the deleted rust-context files from build and lint configurations (such as Makefile.am or cppclean_check.py)",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "Verifies that references to the deleted files are stripped from the build tools.",

@@ -255,7 +255,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "Artifact Cleanup",
       "description": "Removal of obsolete code, dead code, unused deps, or legacy artifacts. No verifiers required for this task as the prompt focuses on extraction and addition rather than cleanup of unrelated artifacts.",

@@ -171,7 +171,7 @@
     "id": "a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "High-level intent for verifying removal of obsolete code after the refactor.",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",

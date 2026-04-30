@@ -173,7 +173,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required"

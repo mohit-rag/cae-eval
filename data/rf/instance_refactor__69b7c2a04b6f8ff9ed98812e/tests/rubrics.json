@@ -159,7 +159,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "N/A: No Description Required. ",
@@ -171,7 +171,7 @@
     "id": "935142da7bafab0edf2854e22014dcc2",
     "title": "3.1: Refactors xdes_get_state() to use uint32_t with combined declaration-assignment for the state variable",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that xdes_get_state() is modernized: the separate 'ulint state; ... state = mach_read_from_4(...)' pattern is replaced with 'uint32_t state = mach_read_from_4(...)' \u2014 combining declaration with assignment while updating the type.",
@@ -183,7 +183,7 @@
     "id": "2f523aef8c6c83245b75294f10626988",
     "title": "3.2: Tracks extent state to identify free and used extents",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that a mechanism exists to track extent information (e.g., free vs used state) to identify which later extents can be moved to earlier free extents.",
@@ -195,7 +195,7 @@
     "id": "e18f718e8a308efcba757a48c8d9b11e",
     "title": "3.3: Traverses B-tree levels to relocate pages",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that the implementation traverses B-tree index levels and relocates pages from later extents to earlier free extents while maintaining tree structure.",
@@ -207,7 +207,7 @@
     "id": "2a9a4051a3a8c21680f4c81814bd08f0",
     "title": "3.4: Adds dict_sys_t::is_sys_table() to distinguish system tables from user tables",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that dict_sys_t::is_sys_table() is added to distinguish system dictionary tables from user tables when checking for user table presence.",
@@ -219,7 +219,7 @@
     "id": "05bd955acc57a670a4b174c9e1814c08",
     "title": "3.5: Implements atomic list manipulation for extent descriptor operations",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that list manipulation operations (e.g., removing from one list, adding to another) for extent descriptors are performed atomically to ensure tablespace metadata consistency.",

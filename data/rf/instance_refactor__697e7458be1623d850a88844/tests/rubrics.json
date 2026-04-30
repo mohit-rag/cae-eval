@@ -111,7 +111,7 @@
     "id": "130cd321c567e7a4d9c3f36f9e280395",
     "title": "1.9: Organizes imports following standard Go grouping conventions in all 9 detector files (abbysale.go, abuseipdb.go, accuweather.go, adafruitio.go, aeroworkflow.go, agora.go, aha.go, alibaba.go, artifactory.go)",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that imports are grouped following Go conventions: standard library, then third-party, then internal packages, separated by blank lines, in all 9 detector files that require reordering. The 9 files are: abbysale.go, abuseipdb.go, accuweather.go, adafruitio.go, aeroworkflow.go, agora.go, aha.go, alibaba.go, and artifactory.go. The remaining 2 files (abstract.go, adzuna.go) already have correctly grouped imports.",
       "evidence": "Gold patch reorders imports in all 9 detector files to follow standard Go grouping.",
       "justification": "[1: Explicit Prompt Requirement] The prompt states 'Imports should follow standard Go grouping.' [5: Conclusion] Therefore, ANY correct answer should organize imports following standard Go grouping conventions in all 9 files that need reordering.",

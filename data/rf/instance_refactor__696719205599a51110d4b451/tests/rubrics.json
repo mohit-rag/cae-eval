@@ -183,7 +183,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "Removal of obsolete code that becomes dead after the refactoring.",
@@ -195,7 +195,7 @@
     "id": "23163b956fe375777586979570f4fc90",
     "title": "3.1: Removes all 3 public context-based Engine injection items in api/common/context.go (WithEngine, GetEngine, ContextKey)",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that the context-based Engine injection infrastructure is cleaned up after handlers receive explicit dependencies.",
@@ -207,7 +207,7 @@
     "id": "c183934caaf1f5bbf04cfa48507024bb",
     "title": "3.2: Removes the withEngine middleware function from api/server.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that the middleware wrapping requests with Engine context is removed.",

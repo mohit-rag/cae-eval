@@ -137,7 +137,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required"
@@ -149,7 +149,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the AuthorizationBenefits component definition, the AuthorizationBenefitsItem interface, and the AuthorizationBenefitsProps interface are removed from authorization.tsx after extraction.",
       "evidence": "Gold patch: authorization.tsx removes the AuthorizationBenefitsItem interface (diff lines 102-105), AuthorizationBenefitsProps interface (diff lines 107-109), and the AuthorizationBenefits component (diff lines 111-127)",
       "justification": "[4: Quality Necessity] After the benefits list logic is extracted into the shared ChecklistCard component, the AuthorizationBenefits component and its interfaces become dead code that nothing references. [1: Explicit Prompt Requirement] The prompt states the pattern 'is locked inside a single step,' implying the local copy should be replaced, not duplicated. [5: Conclusion] Therefore, any correct answer should remove the now-obsolete AuthorizationBenefits component and its interfaces from authorization.tsx."
@@ -161,7 +161,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the CSS rules for .site-migration-application-password-authorization__benefits-container, __benefits, __benefits-item, and __benefits-item-icon are removed from the authorization step's style.scss.",
       "evidence": "Gold patch: style.scss removes .benefits-container (diff lines 211-219), .benefits (diff lines 223-235), .benefits-item and .benefits-item-icon (diff lines 237-253)",
       "justification": "[1: Explicit Prompt Requirement] The prompt states 'styling should be consolidated with the extracted component rather than scattered across the authorization step's stylesheet.' [4: Quality Necessity] After the benefits UI is moved to the shared ChecklistCard component with its own stylesheet, the old benefits CSS rules in the authorization stylesheet become orphaned and unreferenced. [5: Conclusion] Therefore, any correct answer should remove the obsolete benefits-specific CSS rules from the authorization step's stylesheet."

@@ -137,7 +137,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required"
@@ -149,7 +149,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the schema import is removed after the refactoring eliminates its only usage in the playlist legacy storage file.",
       "evidence": "gold.patch line 47: removes the schema import.",
       "justification": "[2: Implicit Codebase Constraint] Go compilation fails if an import is present but unused; after the refactor removes the only schema usage in this file, the import must be removed for the code to compile. [3: Logical Necessity] If the schema.GroupResource literal is eliminated, the schema import becomes unused. [5: Conclusion] Any correct solution that simplifies the GroupResource derivation in this file must also remove the now-unused schema import."
@@ -161,7 +161,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the schema import is removed after the refactoring eliminates its only usage in the short URL legacy storage file.",
       "evidence": "gold.patch line 105: removes the schema import.",
       "justification": "[2: Implicit Codebase Constraint] Go compilation fails on unused imports. [3: Logical Necessity] If both schema.GroupResource literals in this file are eliminated, the schema import becomes unused. [5: Conclusion] Any correct solution that simplifies both GroupResource derivations in this file must also remove the now-unused schema import."
@@ -173,7 +173,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the schema import is removed after the refactoring eliminates its only usage in the cleanup service file.",
       "evidence": "gold.patch line 158: removes the schema import.",
       "justification": "[2: Implicit Codebase Constraint] Go compilation fails on unused imports. [3: Logical Necessity] If the schema.GroupVersionResource literal is eliminated, the schema import becomes unused. [5: Conclusion] Any correct solution that simplifies the GVR construction in this file must also remove the now-unused schema import."

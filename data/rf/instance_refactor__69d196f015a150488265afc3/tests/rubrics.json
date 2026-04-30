@@ -147,7 +147,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required for default criteria",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -159,7 +159,7 @@
     "id": "f3165d6f1171735b8a282478d0f9d7ba",
     "title": "3.1: Removes all 3 obsolete functions (parseDependencyList, parseDependencyGroupRecord, and parsePyProject) from `utils.ts`",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "The three functions parseDependencyList, parseDependencyGroupRecord, and parsePyProject must be removed from lib/modules/manager/pep621/utils.ts since their responsibilities have been moved elsewhere.",
       "evidence": "gold.patch lines 540-594 show deletion of parseDependencyGroupRecord, parseDependencyList, and parsePyProject from utils.ts.",
       "justification": "[1: Explicit Prompt Requirement] The prompt states 'Remove the now-unnecessary parseDependencyList, parseDependencyGroupRecord, and parsePyProject exports from utils.ts.' [4: Qualitative Requirement] Removing dead code keeps the codebase clean. [5: Conclusion] Therefore, any correct answer should remove these three functions from utils.ts.",

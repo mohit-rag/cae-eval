@@ -87,7 +87,7 @@
     "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required for default criteria",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -99,7 +99,7 @@
     "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
     "title": "3.1: Removes the unused `coerceArray` import and the unused `CircleCiJob` type import from extract.ts after refactoring",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "After refactoring, imports that are no longer used (such as coerceArray, CircleCiJob type) should be removed for cleaner code.",
       "evidence": "gold.patch lines 7-8 and 16-17 show removal of coerceArray and CircleCiJob imports.",
       "justification": "[4: Qualitative Requirement] Removing unused imports improves code clarity and reduces maintenance burden. [5: Conclusion] Therefore, any correct answer should remove imports that become unused after refactoring.",

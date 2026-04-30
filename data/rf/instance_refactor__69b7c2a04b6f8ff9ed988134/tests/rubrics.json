@@ -111,7 +111,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "Evaluates removals of obsolete files, dead code, unused dependencies, and legacy artifacts after the refactor.",
@@ -123,7 +123,7 @@
     "id": "488ec8d58d9a5332a3e75a05212dde33",
     "title": "4: Negative Rubrics",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "negative rubrics",
       "description": "Captures harmful practices that may be introduced during the refactoring, such as breaking changes, regressions, or removed functionality.",
@@ -135,7 +135,7 @@
     "id": "1cb98f3436813ab2353628d1c76dbdbd",
     "title": "4.1: Removes wildcard logger (`ALPROTO_UNKNOWN`) invocation from the transaction logging path",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "negative hli verifier",
       "hli_category": "negative rubrics",
       "description": "Checks whether the refactor accidentally drops wildcard logger support. A common mistake when splitting per-protocol is to only handle protocol-specific loggers and forget that ALPROTO_UNKNOWN loggers must still be invoked for every transaction.",
@@ -147,7 +147,7 @@
     "id": "9ef6a26fd19275bb4ce2704d53792d92",
     "title": "4.2: Modifies any of the 3 public function signatures declared in `src/output-tx.h` (`OutputRegisterTxLogger`, `OutputTxLoggerRegister`, `OutputTxShutdown`)",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "negative hli verifier",
       "hli_category": "negative rubrics",
       "description": "Checks whether the refactor changes public API signatures that other modules depend on. The refactor is purely internal to output-tx.c and should not alter any function signatures exposed in the header.",
@@ -159,7 +159,7 @@
     "id": "8bfe54f9b695b64c21e0fc039f9ce3d0",
     "title": "4.3: Removes or breaks the `tx_logged` tracking that prevents duplicate logger invocations within a single transaction",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "negative hli verifier",
       "hli_category": "negative rubrics",
       "description": "Checks whether the refactor accidentally removes or corrupts the tx_logged bitmask tracking that ensures each logger is only invoked once per transaction. When simplifying the loop conditions, an agent might inadvertently drop the tx_logged check or the tx_logged update.",

@@ -123,7 +123,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -135,7 +135,7 @@
     "id": "b12f9c2094f356c595e348da484b1ef4",
     "title": "3.1: Removes the unnecessary context timeout from pkg/handlers/ar.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the unused context timeout creation is removed from the HandleFile goroutine in pkg/handlers/ar.go, reducing unnecessary complexity.",
       "evidence": "`gold.patch` lines 9-10 (`pkg/handlers/ar.go`): line 9 removes `ctx, cancel := logContext.WithTimeout(ctx, maxTimeout)` and line 10 removes `defer cancel()` from the start of the goroutine.",
       "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Also clean up any unnecessary complexity like unused context timeouts.' [2: Implicit Codebase Constraint] In the existing ar.go, `logContext.WithTimeout(ctx, maxTimeout)` is called at the top of the HandleFile goroutine, but the created context with timeout is never used to enforce any deadline on the processing; it adds complexity without functional benefit. [3: Logical Necessity] Given the prompt's cleanup request and the fact that the timeout serves no purpose, removing it simplifies the goroutine without changing behavior. [4: Quality Necessity] Any good implementation must remove dead code and unused patterns to improve readability and reduce cognitive overhead. [5: Conclusion] Therefore, ANY correct and good answer that addresses the cleanup request should remove the unnecessary context timeout from ar.go.",
@@ -147,7 +147,7 @@
     "id": "6e8a0eeff386e208f9044a8a8f489656",
     "title": "3.2: Removes the unnecessary context timeout from pkg/handlers/rpm.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the unused context timeout creation is removed from the HandleFile goroutine in pkg/handlers/rpm.go, reducing unnecessary complexity.",
       "evidence": "`gold.patch` lines 143-144 (`pkg/handlers/rpm.go`): line 143 removes `ctx, cancel := logContext.WithTimeout(ctx, maxTimeout)` and line 144 removes `defer cancel()` from the start of the goroutine.",
       "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Also clean up any unnecessary complexity like unused context timeouts.' [2: Implicit Codebase Constraint] In the existing rpm.go, `logContext.WithTimeout(ctx, maxTimeout)` is called at the top of the HandleFile goroutine, but the created context with timeout is never used to enforce any deadline on RPM processing; it adds complexity without functional benefit. [3: Logical Necessity] Given the prompt's cleanup request and the fact that the timeout serves no purpose, removing it simplifies the goroutine without changing behavior. [4: Quality Necessity] Any good implementation must remove dead code and unused patterns to improve readability and reduce cognitive overhead. [5: Conclusion] Therefore, ANY correct and good answer that addresses the cleanup request should remove the unnecessary context timeout from rpm.go.",

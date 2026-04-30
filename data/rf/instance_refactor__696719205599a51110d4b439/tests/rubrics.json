@@ -147,7 +147,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -159,7 +159,7 @@
     "id": "fb85c1ccdf7213c85044c97150ac36b8",
     "title": "3.1: Removes `sobekValueExists` function definition from `internal/js/modules/k6/browser/browser/helpers.go`",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "The local sobekValueExists function definition in browser/helpers.go should be removed since it is replaced by the common IsNullish utility.",
       "evidence": "Reference patch lines 74-79 show removal of the sobekValueExists function: '-// sobekValueExists returns true if a given value is not nil and exists' followed by the function body deletion.",
       "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications'. [3: Logical Necessity] Once all usages are replaced with IsNullish, the local function becomes dead code and its continued presence contradicts the elimination goal. [5: Conclusion] Therefore, ANY correct answer must remove the sobekValueExists function from browser/helpers.go.",
@@ -171,7 +171,7 @@
     "id": "3030481a2ed7a327af89863289b63488",
     "title": "3.2: Removes `sobekValueExists` function definition from `internal/js/modules/k6/browser/common/helpers.go`",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "The local sobekValueExists function definition in common/helpers.go should be removed since it is replaced by the common IsNullish utility.",
       "evidence": "Reference patch lines 386-391 show removal of the sobekValueExists function from common/helpers.go: '-// sobekValueExists returns true if a given value is not nil and exists' followed by the function body deletion.",
       "justification": "[1: Explicit Prompt Requirement] The prompt asks to 'eliminate duplicated verifications'. [3: Logical Necessity] Once all usages are replaced with IsNullish, the local function becomes dead code and its continued presence contradicts the elimination goal. [5: Conclusion] Therefore, ANY correct answer must remove the sobekValueExists function from common/helpers.go.",

@@ -279,7 +279,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Evaluates whether unused imports resulting from vizAndWidgetSplit removal are cleaned up.",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",

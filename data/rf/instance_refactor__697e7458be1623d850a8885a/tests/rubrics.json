@@ -267,7 +267,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -279,7 +279,7 @@
     "id": "3b919750f91f3930350a7149cf177587",
     "title": "3.1: Removes both placeholder stub items (the TODO comment and the placeholder frame creation) from the backend search implementation in pkg/services/unifiedSearch/service.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the old TODO placeholder code is removed when implementing proper search results.",
       "evidence": "gold.patch lines 35-37 in pkg/services/unifiedSearch/service.go: Shows removal of '// TODO: implement this correctly' comment and placeholder frame creation with data.NewFrame('results', data.NewField('value', nil, []string{})).",
       "justification": "[1: Explicit Prompt Requirement] The prompt states: 'Fix the backend stub to return actual search results,' implying the stub code should be replaced. [2: Implicit Codebase Constraint] The existing stub code includes a TODO comment and a placeholder frame with a 'TODO' notice that would confuse consumers if left alongside real results. [3: Logical Necessity] Once proper search results are implemented, the placeholder code becomes dead code that conflicts with the new implementation. [4: Quality Necessity] Any good implementation must remove obsolete placeholder code to avoid confusion and dead code accumulation. [5: Conclusion] Therefore, ANY correct and good answer should remove the TODO placeholder when implementing proper results.",

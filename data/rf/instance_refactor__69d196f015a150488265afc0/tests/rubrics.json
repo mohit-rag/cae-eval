@@ -149,7 +149,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required"
@@ -161,7 +161,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the static member variable mtr_t::spin_wait_delay is removed from mtr0mtr.h (and its initialization from mtr0mtr.cc), since nothing reads it after the spin infrastructure is removed.",
       "evidence": "Gold patch: mtr0mtr.h removes 'static unsigned spin_wait_delay;' from the mtr_t class definition, and mtr0mtr.cc removes 'unsigned mtr_t::spin_wait_delay;' definition.",
       "justification": "[1: Explicit Prompt Requirement] The prompt states this infrastructure 'would be unnecessary with a simpler design,' implying its artifacts should be cleaned up. [4: Quality Necessity] After the spin template parameter is removed from finish_writer and append_prepare, mtr_t::spin_wait_delay is dead code: nothing reads it and the update callback that wrote to it is removed. Leaving dead members in a performance-critical struct is poor code hygiene. [5: Conclusion] Therefore, any correct answer should remove the mtr_t::spin_wait_delay member."
@@ -173,7 +173,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the lsn_delay() helper function and the platform-specific assembly implementations (lsn_lock_bts for ARM with inline asm, LOCK_TSET macro for x86) are removed after the custom spin-lock mechanism is eliminated.",
       "evidence": "Gold patch: mtr0mtr.cc removes the lsn_delay() function, the lsn_lock_bts() function containing ARM assembly, and the LOCK_TSET macro containing x86 assembly.",
       "justification": "[1: Explicit Prompt Requirement] The prompt explicitly calls out 'platform-specific assembly code' as part of the complexity to be addressed. [4: Quality Necessity] After lock_lsn() is removed and the allocation path no longer uses a custom spin-lock, the lsn_delay, lsn_lock_bts, and LOCK_TSET helpers become orphaned dead code with no callers. Platform-specific assembly that is no longer used is a maintenance burden. [5: Conclusion] Therefore, any correct answer should remove these obsolete helper functions and assembly macros."
@@ -185,7 +185,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the buf_free_LOCK constant (the most significant bit used as an embedded lock flag in buf_free) and the associated logic that sets/clears/tests this bit are removed from the log_t struct.",
       "evidence": "Gold patch: log0log.h removes 'static constexpr size_t buf_free_LOCK= ~(~size_t{0} >> 1);' and the buf_free_ok() method that tested this bit. The buf_free field itself is removed entirely.",
       "justification": "[3: Logical Necessity] Consolidating the state fields (criterion 1.1) inherently makes the embedded lock flag obsolete. [4: Quality Necessity] buf_free_LOCK is the mechanism by which lock_lsn() embeds a lock flag in the buf_free field's most significant bit. Once lock_lsn() and the buf_free field are removed, this constant and its testing logic become orphaned. [5: Conclusion] Therefore, any correct answer should remove buf_free_LOCK and its bit manipulation logic."

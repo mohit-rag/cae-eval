@@ -63,7 +63,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -75,7 +75,7 @@
     "id": "f9d4c3b2a5b6789012345678901f6789",
     "title": "3.1: Removes orphaned doc comments from all 8 deleted private methods with comments (click, dblclick, check, uncheck, isChecked, isEditable, isEnabled, isDisabled) in locator.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that doc comments associated with deleted private methods are also removed. Orphaned comments reduce readability.",
       "evidence": "gold.patch shows doc comment deletions for 8 private methods: lines 30\u201331 (click), lines 56\u201357 (dblclick), lines 103\u2013104 (check), lines 126\u2013127 (uncheck), lines 149\u2013150 (isChecked), lines 171\u2013172 (isEditable), lines 193\u2013194 (isEnabled), lines 215\u2013216 (isDisabled). The other 14 private methods had no doc comments.",
       "justification": "[1: Explicit Prompt Requirement] The prompt asks to clean up code that 'feels harder to follow'. [2: Implicit Codebase Constraint] Deleted methods may have associated doc comments. [3: Logical Necessity] Orphaned comments reduce readability and contradict the cleanup goal. [4: Quality Necessity] Any good implementation removes related artifacts. [5: Conclusion] Therefore, ANY correct answer should remove doc comments when removing the associated private methods.",

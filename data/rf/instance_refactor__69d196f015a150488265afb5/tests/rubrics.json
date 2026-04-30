@@ -135,7 +135,7 @@
     "id": "59298234f5176b41059190eb4c468965",
     "title": "Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "Artifact Cleanup",
       "description": "Obsolete types, functions, and queries in the plans module that have been superseded by the consolidated site-plans module are removed.",
@@ -147,7 +147,7 @@
     "id": "88975e1746cd3f0f7bf1cd0fc8270724",
     "title": "3.1: Removes SiteSpecificPlanProduct type from plans types module",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "The SiteSpecificPlanProduct interface \u2014 a ~60-field exported type in packages/api-core/src/plans/types.ts representing site-specific plan data with pricing, product identification, discounts, offers, and subscription metadata \u2014 is removed. This type is now dead code because all its fields have been consolidated into the expanded SiteContextualPlan interface in the site-plans module (packages/api-core/src/site-plans/types.ts).",
@@ -159,7 +159,7 @@
     "id": "a258156f3a71d6c9f17fe10a898c75f0",
     "title": "3.2: Removes SiteSpecificPlanCostOverride type from plans types module",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "The SiteSpecificPlanCostOverride interface \u2014 a 7-field type in packages/api-core/src/plans/types.ts used exclusively to type the cost_overrides array on SiteSpecificPlanProduct \u2014 is removed. This type is now dead code because an equivalent cost override interface (e.g. SiteContextualPlanCostOverride) has been added to the site-plans types module (packages/api-core/src/site-plans/types.ts).",
@@ -171,7 +171,7 @@
     "id": "196bdac42f0fc1af246be38721194fd1",
     "title": "3.3: Removes fetchPricedSitePlans function from plans fetchers module",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "The fetchPricedSitePlans function \u2014 an exported async function in packages/api-core/src/plans/fetchers.ts that fetched site-specific plans from the /sites/{siteId}/plans API endpoint with an optional coupon and returned a normalized array of SiteSpecificPlanProduct \u2014 is removed. This function is now dead code because its logic (API call, coupon handling, normalization, array conversion) has been consolidated into the updated fetchSitePlans function in the site-plans module (packages/api-core/src/site-plans/fetchers.ts).",
@@ -183,7 +183,7 @@
     "id": "d394f042ac41cb204c147f117d1056f3",
     "title": "3.4: Removes normalizeSiteSpecificPlanProduct function from plans fetchers module",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "The normalizeSiteSpecificPlanProduct function \u2014 a private helper function in packages/api-core/src/plans/fetchers.ts that converted API-returned string values to numbers for SiteSpecificPlanProduct fields (such as raw_price, product_id, cost_overrides entries, and introductory offer prices) \u2014 is removed, along with the now-unused import of SiteSpecificPlanProduct from the types module. This function is now dead code because equivalent normalization logic has been added to the site-plans fetchers module (packages/api-core/src/site-plans/fetchers.ts).",
@@ -195,7 +195,7 @@
     "id": "55f6d9b3642c962eeaa1a7d0fe5b04b2",
     "title": "3.5: Removes sitePricedPlansQuery from plans queries module",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "The sitePricedPlansQuery function \u2014 which created React Query options in packages/api-queries/src/plans.ts for fetching priced site plans using queryKey ['site-plans', siteId, coupon] and calling fetchPricedSitePlans(coupon, siteId) \u2014 is removed, along with its import of fetchPricedSitePlans from @automattic/api-core. This query is now dead code because it has been replaced by sitePlansQuery in the site-plans queries module (packages/api-queries/src/site-plans.ts).",

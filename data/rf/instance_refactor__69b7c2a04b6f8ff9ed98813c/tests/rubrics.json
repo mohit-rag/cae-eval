@@ -219,7 +219,7 @@
     "id": "a1000000000000000000000000000015",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "Artifact Cleanup",
       "description": "Obsolete implementations are removed from their original locations after being consolidated into the new modules.",
@@ -231,7 +231,7 @@
     "id": "a1000000000000000000000000000016",
     "title": "3.1: Removes the local alignment macro definitions from `aral.c`",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "The local SYSTEM_REQUIRED_ALIGNMENT macro definition and the static memory_alignment function that existed inside src/libnetdata/aral/aral.c are removed, as they are now provided by the consolidated alignment header.",
@@ -243,7 +243,7 @@
     "id": "a1000000000000000000000000000116",
     "title": "3.2: Removes the local alignment definitions from `onewayalloc.c`",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "The local OWA_NATURAL_ALIGNMENT macro definition and the static natural_alignment function that existed inside src/libnetdata/onewayalloc/onewayalloc.c are removed, as they are now provided by the consolidated alignment header.",

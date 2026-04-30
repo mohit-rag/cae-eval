@@ -99,7 +99,7 @@
     "id": "d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "High-level intent for verifying removal of obsolete code, dead code, or unused artifacts. This refactor moves existing code between files without introducing or removing functionality, so no artifact cleanup is expected.",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",

@@ -75,7 +75,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "N/A: No Description Required. ",
@@ -87,7 +87,7 @@
     "id": "1c6060d1aa1080f1617c74f99692088c",
     "title": "3.1: Removes all 4 unused imports (arrow, JOB_DELETE_DOMAIN, Job, LOG) from the domain detail controller",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that all imports that became unused after extracting the deletion logic are removed from the controller. These were only used in the deletion block which is now in the utility function.",

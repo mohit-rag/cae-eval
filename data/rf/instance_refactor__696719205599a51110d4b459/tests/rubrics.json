@@ -162,7 +162,7 @@
       "description": "N/A: No Description Required.          ",
       "evidence": "N/A: No Evidence Required.",
       "hli_category": "Artifact Cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "justification": "N/A: No Justification Required.",
       "type": "high level intent"
     }
@@ -174,7 +174,7 @@
       "description": "The file apps/investigations/pkg/apis/investigations/v0alpha1/investigation_status_gen.go should be deleted. It defines InvestigationStatus, InvestigationstatusOperatorState, and related types that are no longer referenced after status removal.",
       "evidence": "Gold patch investigation_status_gen.go diff: shows 'deleted file mode 100644', removing all 44 lines.",
       "hli_category": "Artifact Cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "justification": "[3: Logical Necessity] After removing the Status field from the Investigation struct and the UpdateStatus method from InvestigationClient, the types defined in investigation_status_gen.go (InvestigationStatus, InvestigationstatusOperatorState, etc.) become dead code. [4: Qualitative Requirement] Leaving orphaned type definitions increases maintenance burden and could cause confusion. [5: Conclusion] Any correct solution should delete investigation_status_gen.go.",
       "type": "positive hli verifier"
     }
@@ -186,7 +186,7 @@
       "description": "The GetSubresources method on Investigation in apps/investigations/pkg/apis/investigations/v0alpha1/investigation_object_gen.go should return an empty map instead of including a 'status' entry.",
       "evidence": "Gold patch investigation_object_gen.go diff: lines 206-209 update GetSubresources from returning a map with 'status': o.Status to returning an empty map[string]any{}.",
       "hli_category": "Artifact Cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "justification": "[3: Logical Necessity] After removing the Status field from the Investigation struct, the GetSubresources method cannot reference o.Status without a compilation error. [4: Qualitative Requirement] Subresource accessors should accurately reflect the resource's actual subresources. [5: Conclusion] Any correct solution should update GetSubresources to return an empty map.",
       "type": "positive hli verifier"
     }
@@ -198,7 +198,7 @@
       "description": "The GetSubresources method on InvestigationIndex in apps/investigations/pkg/apis/investigations/v0alpha1/investigationindex_object_gen.go should return an empty map instead of including a 'status' entry.",
       "evidence": "Gold patch investigationindex_object_gen.go diff: lines 372-376 update GetSubresources from returning a map with 'status': o.Status to returning an empty map[string]any{}.",
       "hli_category": "Artifact Cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "justification": "[3: Logical Necessity] After removing the Status field from the InvestigationIndex struct, the GetSubresources method cannot reference o.Status without a compilation error. [4: Qualitative Requirement] Subresource accessors should accurately reflect the resource's actual subresources. [5: Conclusion] Any correct solution should update GetSubresources to return an empty map.",
       "type": "positive hli verifier"
     }

@@ -255,7 +255,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "High-level intent for verifying removal of obsolete code after the refactor.",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -267,7 +267,7 @@
     "id": "b5c95f5913cf99914597fce4c5dd8fca",
     "title": "3.1: Removes the unused FieldLenField import from scapy/contrib/gtp_v2.py",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that if FieldLenField is no longer referenced in gtp_v2.py after the ShortField migration, the import is cleaned up.",
       "evidence": "The prompt requires replacing FieldLenField with ShortField across all IE classes, making the FieldLenField import unused.",
       "justification": "[3: Logical Necessity] After replacing all FieldLenField usages with ShortField, the import becomes dead code. [4: Qualitative Requirement] Removing unused imports is standard cleanup practice. [5: Conclusion] A correct solution should remove the unused FieldLenField import.",

@@ -195,7 +195,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -207,7 +207,7 @@
     "id": "de4a8ee68aa21fa2a9cf8d56282bce78",
     "title": "3.1: Removes the tracingEnabled method from output/cloud/expv2/output.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies cleanup of the original enabled check method after extraction.",
       "evidence": "gold.patch lines 272-283 in output/cloud/expv2/output.go show removal of the tracingEnabled() method.",
       "justification": "[2: Implicit Codebase Constraint] tracingEnabled() exists in expv2/output.go. With the Enabled function extracted to the new package, this method becomes obsolete. [4: Quality Necessity] Clean implementations should not have obsolete code. [5: Conclusion] Therefore, ANY good answer should remove tracingEnabled from expv2/output.go.",
@@ -219,7 +219,7 @@
     "id": "dadf9ba095f99b2cf9b416e2f2f62db5",
     "title": "3.2: Removes the requestMetadatasCollector interface from output/cloud/expv2/output.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies cleanup of the internal collector interface after extraction.",
       "evidence": "gold.patch lines 186-191 in output/cloud/expv2/output.go show removal of the requestMetadatasCollector interface.",
       "justification": "[2: Implicit Codebase Constraint] requestMetadatasCollector interface exists in expv2/output.go. With the interface now exported from the new package, this internal definition becomes duplicate. [4: Quality Necessity] Clean implementations should not have duplicate interface definitions. [5: Conclusion] Therefore, ANY good answer should remove the interface from expv2/output.go.",

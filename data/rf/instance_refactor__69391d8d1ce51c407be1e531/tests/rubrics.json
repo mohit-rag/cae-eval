@@ -255,7 +255,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "High-level intent category for cleanup of obsolete code and imports after refactoring.",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",

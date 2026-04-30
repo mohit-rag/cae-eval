@@ -255,7 +255,7 @@
     "id": "a0000000000000000000000000000003",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "Artifact Cleanup",
       "description": "Evaluates removal of obsolete code that is superseded by the new system info module.",
@@ -267,7 +267,7 @@
     "id": "a0000000000000000000000000000301",
     "title": "3.1: Removes the full struct rrdhost_system_info definition from rrd.h",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "The full struct definition with all field declarations is removed from src/database/rrd.h, since the struct now lives in the dedicated system info header.",

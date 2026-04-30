@@ -101,7 +101,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required"
@@ -113,7 +113,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the createGraphFrames function body, its private helper functions (convertTraceToGraph, findTraceDuration), and the associated type definitions (Row, Node, Edge interfaces) are removed from public/app/plugins/datasource/tempo/graphTransform.ts after being moved to the shared package.",
       "evidence": "Gold patch: graphTransform.ts removes the Row interface (diff lines 183-194), Node interface (diff lines 196-203), Edge interface (diff lines 205-209), createGraphFrames function (diff lines 211-223), convertTraceToGraph function (diff lines 225-275), and findTraceDuration function (diff lines 277-298)",
       "justification": "[4: Quality Necessity] After the trace-to-graph conversion logic is moved to the shared package, keeping the old function definitions in graphTransform.ts would create dead code. The code would be duplicated across two locations, which contradicts the goal of eliminating duplication. [1: Explicit Prompt Requirement] The prompt describes the problem as logic being 'stuck in the Tempo plugin,' implying it should be removed from there once moved. [5: Conclusion] Therefore, any correct answer should remove the old createGraphFrames function, its helpers, and type definitions from graphTransform.ts."
@@ -125,7 +125,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the import statement for getNonOverlappingDuration, getStats, makeFrames, and makeSpanMap from @grafana/o11y-ds-frontend is removed from graphTransform.ts, since these were only used by the now-removed createGraphFrames function.",
       "evidence": "Gold patch: graphTransform.ts removes `import { getNonOverlappingDuration, getStats, makeFrames, makeSpanMap } from '@grafana/o11y-ds-frontend'` (diff line 178)",
       "justification": "[4: Quality Necessity] After removing createGraphFrames and its helpers from graphTransform.ts, these four imports become unused. Unused imports are dead code that clutters the file and may trigger linter warnings. The remaining code in graphTransform.ts (mapPromMetricsToServiceMap and metric constants) does not use any of these helpers. [5: Conclusion] Therefore, any correct answer should remove the now-unused helper imports from graphTransform.ts."

@@ -123,7 +123,7 @@
     "id": "9bf31c7ff062936a96d3c8bd1f8f2ff3",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "N/A: No Description Required",

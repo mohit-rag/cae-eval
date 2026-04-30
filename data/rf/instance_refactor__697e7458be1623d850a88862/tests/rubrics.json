@@ -159,7 +159,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "N/A: No Description Required",
@@ -171,7 +171,7 @@
     "id": "618ce3f060a0dbfab36e1794050f3f71",
     "title": "3.1: Removes the obsolete public/app/features/alerting/unified/Silences.tsx module after the route split",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that the obsolete monolithic router module public/app/features/alerting/unified/Silences.tsx is removed once the three silence views are split into dedicated route pages, so there is no leftover internal Switch-based entry point for the same routes.",

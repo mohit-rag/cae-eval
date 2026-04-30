@@ -195,7 +195,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "N/A: No Description Required. ",
@@ -207,7 +207,7 @@
     "id": "381c081fa0bd7b8c929fd623a4084d8b",
     "title": "3.1: Removes all 13 isEnabled imports from '@automattic/calypso-config' (including full-width-section/index.jsx, categories/index.tsx, use-categories.tsx, education-footer/index.tsx, plugin-details-header/index.jsx, plugin-details.jsx, plugins-browser-item/index.jsx, collection-list-view/index.tsx, ...) where isEnabled was only used for the marketplace-redesign check",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that all 13 files where isEnabled from '@automattic/calypso-config' was only used for the marketplace-redesign flag check no longer import isEnabled after the refactor.",

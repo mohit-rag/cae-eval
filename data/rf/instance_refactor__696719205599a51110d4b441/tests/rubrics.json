@@ -135,7 +135,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -147,7 +147,7 @@
     "id": "d285f10e06803840dbfd3576790cfa8f",
     "title": "3.1: Removes the defaultGroup field from the Runner struct in js/runner.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies the JS Runner no longer maintains its own defaultGroup field.",
       "evidence": "gold.patch lines 198-202 in js/runner.go show removal of the 'defaultGroup *lib.Group' field from the Runner struct.",
       "justification": "[2: Implicit Codebase Constraint] js/runner.go has a defaultGroup field that stores the root group, initialized in NewFromBundle(). With GetDefaultGroup() removed from the Runner interface (as the prompt requires), this field has no remaining consumers. [3: Logical Necessity] This field becomes obsolete with a centralized source derived from metrics. [4: Quality Necessity] Clean implementations should not have unused fields. [5: Conclusion] Therefore, ANY good answer should remove the defaultGroup field from the Runner struct in js/runner.go.",
@@ -159,7 +159,7 @@
     "id": "87da48deb11e8959b7c97fc1cca06118",
     "title": "3.2: Removes the GetDefaultGroup() method implementation from js/runner.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies the JS Runner no longer implements the GetDefaultGroup() method.",
       "evidence": "gold.patch lines 240-248 in js/runner.go show removal of the GetDefaultGroup() method implementation that returned r.defaultGroup.",
       "justification": "[2: Implicit Codebase Constraint] js/runner.go implements GetDefaultGroup() to satisfy the Runner interface. [3: Logical Necessity] If the interface method is removed from lib/runner.go (as the prompt requires) and the defaultGroup field is removed, this implementation must also be removed to compile. [4: Quality Necessity] Clean implementations should not have dead code. [5: Conclusion] Therefore, ANY good answer should remove the GetDefaultGroup() method implementation from js/runner.go.",

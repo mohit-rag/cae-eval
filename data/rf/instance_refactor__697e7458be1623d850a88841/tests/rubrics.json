@@ -197,7 +197,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required"
@@ -209,7 +209,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that conditional checks for empty values are simplified or removed for required fields, since these fields now have guaranteed non-empty values via placeholder fallback.",
       "evidence": "gold.patch: circleci.go removes if conditional (lines 143-147); filesystem.go removes if conditional (lines 173-177); gcs.go removes if conditional (lines 201-205); git.go removes if conditional (lines 236-239); gitlab.go removes if conditional (lines 320-323); syslog.go removes if conditional in loop (lines 357-362)",
       "justification": "[3: Logical Necessity] After the refactoring, required fields have guaranteed non-empty values from placeholder fallback. [4: Qualitative Requirement] Removing redundant checks improves code clarity. [5: Conclusion] Therefore, a good answer should remove redundant empty-value checks for required fields."

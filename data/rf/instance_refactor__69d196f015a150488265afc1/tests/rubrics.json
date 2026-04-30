@@ -207,7 +207,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "N/A: No Description Required. ",
@@ -219,7 +219,7 @@
     "id": "c72f32261d8e8a7d0f788109a3e5f939",
     "title": "3.1: Removes the `dict0stats.inl` inline file from `storage/innobase/include/`",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that the old inline file containing dict_stats_init and dict_stats_deinit is deleted after its logic is consolidated into the handler layer.",

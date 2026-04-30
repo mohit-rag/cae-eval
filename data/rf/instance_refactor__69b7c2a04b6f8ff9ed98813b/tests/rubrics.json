@@ -255,7 +255,7 @@
     "id": "6e069c6ab2cccfd18f50b12ac64b9612",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "Artifact Cleanup",
       "description": "Evaluates removal of obsolete code patterns and cosmetic cleanups tied to the refactor.",
@@ -267,7 +267,7 @@
     "id": "c6ffd2918bf69f14edc7fb98fb1e2915",
     "title": "3.1: Reformats the `rrdset_debug` macro in `src/database/rrdset.h` into a multi-line form",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "Artifact Cleanup",
       "description": "Verifies the rrdset_debug macro is reformatted from a single long line into a readable multi-line do/while block.",

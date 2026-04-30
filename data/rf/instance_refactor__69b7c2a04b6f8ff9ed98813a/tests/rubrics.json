@@ -209,7 +209,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required.",
       "justification": "N/A: No Justification Required."
@@ -221,7 +221,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that callers of stream_receiver_remove no longer call receiver_set_exit_reason immediately before it, since the remove function now sets the exit reason internally.",
       "evidence": "Prompt paragraph 4: 'This is repetitive and error-prone. The remove function should handle setting the exit reason internally so callers do not need to do it.' Base codebase: nearly every stream_receiver_remove call is preceded by a receiver_set_exit_reason call.",
       "justification": "[1: Explicit Prompt Requirement] The prompt describes the redundant calls as a maintenance problem. [4: Qualitative Requirement] Once the remove function centralizes exit reason setting, the preceding calls become dead code. [5: Conclusion] A thorough solution removes the now-redundant calls."

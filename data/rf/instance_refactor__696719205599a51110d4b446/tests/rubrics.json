@@ -255,7 +255,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -267,7 +267,7 @@
     "id": "4ac90dc78fb8c6118ca7c918646536e2",
     "title": "3.1: Removes the outputIngester field from the MetricsEngine struct in metrics/engine/engine.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "After passing the ingester explicitly to StartThresholdCalculations, the outputIngester field on MetricsEngine is no longer needed and should be removed.",
       "evidence": "gold.patch lines 119-125 (metrics/engine/engine.go): line 122 removes `outputIngester *outputIngester` from the MetricsEngine struct definition, leaving only `registry` and `logger` as stored fields.",
       "justification": "[2: Implicit Codebase Constraint] The outputIngester field was only used by StartThresholdCalculations' finalize closure; with explicit passing, it becomes dead state. [4: Quality Necessity] Removing unused fields is good cleanup after decoupling. [5: Conclusion] Therefore, ANY correct and good answer should remove the outputIngester field from MetricsEngine.",

@@ -113,7 +113,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required for default criteria",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required"
@@ -125,7 +125,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the old separate role-specific client creation function is deleted rather than left as dead code.",
       "evidence": "Codebase: pkg/sources/s3/s3.go defines newRoleClient (line 137) as a standalone function that duplicates most of newClient's logic.",
       "justification": "[4: Quality Necessity] After consolidation, newRoleClient becomes dead code that duplicates the unified function. Leaving dead code defeats the purpose of the refactoring. [5: Conclusion] Therefore, any correct answer should remove the obsolete newRoleClient function."

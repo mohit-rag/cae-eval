@@ -65,7 +65,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required"
@@ -77,7 +77,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that methods which performed bulk replacement of the entire cache state are removed if they become unused after the refactoring to incremental state insertion.",
       "evidence": "gold.patch cache.go: removes setAllStates method (diff lines 48-52), and manager.go removes the call to st.cache.setAllStates(states) (diff line 110)",
       "justification": "[2: Implicit Codebase Constraint] The existing setAllStates method performs atomic bulk replacement of the entire cache (c.states = newStates), which was designed for Warm() to swap in all restored states at once. [3: Logical Necessity] After Warm() is refactored to use incremental state insertion via the new method, setAllStates has no remaining callers and becomes dead code. [4: Qualitative Requirement] Retaining unused methods increases maintenance burden, potential for misuse, and code comprehension overhead. [5: Conclusion] Therefore, a good solution should remove unused bulk replacement functionality after the refactoring."

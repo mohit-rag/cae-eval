@@ -255,7 +255,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -267,7 +267,7 @@
     "id": "a3b4c5d6e7f8901234567012345678e",
     "title": "3.1: Removes or replaces all 7 old pluginmeta gen files (pluginmeta_client_gen.go, pluginmeta_codec_gen.go, pluginmeta_metadata_gen.go, pluginmeta_object_gen.go, pluginmeta_status_gen.go, pluginmeta_schema_gen.go, pluginmeta_spec_gen.go) so no duplicate type definitions remain",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "The old pluginmeta_*_gen.go files must be removed to avoid duplicate type definitions and compilation errors.",
       "evidence": "Gold patch shows file renames (e.g., lines 33-34 rename pluginmeta_client_gen.go to meta_client_gen.go) and deletions (line 1101 pluginmeta_schema_gen.go deleted, line 1141 pluginmeta_spec_gen.go deleted).",
       "justification": "[3: Logical Necessity] If old files coexist with new files, the codebase will have duplicate type definitions. [4: Qualitative Requirement] Dead code should be removed. [5: Conclusion] A correct solution removes or replaces the old files.",

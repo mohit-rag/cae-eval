@@ -123,7 +123,7 @@
     "id": "e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required for default criteria",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -135,7 +135,7 @@
     "id": "f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7",
     "title": "3.1: Removes unused `qValueMatcher` import from `plugins.ts` after refactoring",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "After refactoring plugins.ts to import qVersion from common.ts, the qValueMatcher import is no longer needed and should be removed.",
       "evidence": "gold.patch line 84 shows qValueMatcher removed from imports and replaced with qVersion.",
       "justification": "[4: Qualitative Requirement] Removing unused imports improves code clarity and reduces maintenance burden. [5: Conclusion] Therefore, any correct answer should remove the unused qValueMatcher import from plugins.ts.",

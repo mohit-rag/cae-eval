@@ -101,7 +101,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required"
@@ -113,7 +113,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the standalone fileext implementation file containing DetectFileextRegister, DetectFileextMatch, DetectFileextParse, DetectFileextSetup, DetectFileextFree, and DetectFileextData is deleted.",
       "evidence": "Gold patch deletes src/detect-fileext.c entirely (diff lines 41-345, deleted file mode 100644, 299 lines removed).",
       "justification": "[4: Quality Necessity] After the fileext logic is reimplemented using content matching infrastructure, the entire detect-fileext.c becomes dead code containing unused functions and data structures. Keeping it creates confusing duplication. The prompt says 'eliminate this redundant standalone implementation,' but this refers to the redundant logic (custom struct, match, parse, free), not necessarily the file itself\u2014an agent can eliminate the redundant implementation by rewriting the file. [5: Conclusion] Therefore, deleting src/detect-fileext.c is the cleanest approach but not strictly required."
@@ -125,7 +125,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the fileext header declaring DetectFileextRegister is deleted, since the public registration function no longer exists as a standalone entry point.",
       "evidence": "Gold patch deletes src/detect-fileext.h entirely (diff lines 346-381, deleted file mode 100644, 30 lines removed).",
       "justification": "[3: Logical Necessity] detect-fileext.h declares void DetectFileextRegister(void), which is the sole entry point to the standalone implementation. After the fileext keyword is registered within another module and detect-fileext.c is deleted, this header declares a function that no longer exists. Keeping it is dead code. However, this is conditional on 3.1\u2014if detect-fileext.c is rewritten in place rather than deleted, the header is still needed. [5: Conclusion] Therefore, removing src/detect-fileext.h is required if the file is deleted, but not if it is rewritten in place."
@@ -137,7 +137,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the build system no longer references the deleted fileext source and header files in the noinst_HEADERS and libsuricata_c_a_SOURCES lists.",
       "evidence": "Gold patch removes detect-fileext.h from noinst_HEADERS (diff line 9) and detect-fileext.c from libsuricata_c_a_SOURCES (diff line 17) in src/Makefile.am.",
       "justification": "[3: Logical Necessity] After deleting detect-fileext.c and detect-fileext.h, their entries in Makefile.am reference non-existent files. Leaving them would cause build failures during compilation. The prompt says 'clean up any build system references and registrations that become unnecessary,' but these entries only become unnecessary if the files are deleted (3.1 + 3.2). [5: Conclusion] Therefore, removing these Makefile.am entries is required if the files are deleted, but not if the files are rewritten in place."
@@ -149,7 +149,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the engine registration file no longer includes the deleted header or calls the obsolete standalone registration function.",
       "evidence": "Gold patch removes #include \"detect-fileext.h\" (diff line 29) and the DetectFileextRegister() call (diff line 37) from src/detect-engine-register.c.",
       "justification": "[3: Logical Necessity] After detect-fileext.h is deleted, including it causes a compilation error. After the fileext keyword is registered within another module's registration function, calling DetectFileextRegister() would reference an undefined symbol (linker error) or cause double registration. The prompt says 'clean up any build system references and registrations that become unnecessary,' but these references only become unnecessary if detect-fileext.c is deleted and its registration is moved (3.1). [5: Conclusion] Therefore, removing these references is required if the file is deleted, but not if it is rewritten in place."

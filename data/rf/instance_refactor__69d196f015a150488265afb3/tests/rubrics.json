@@ -89,7 +89,7 @@
     "annotations": {
       "type": "high level intent",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required"
@@ -101,7 +101,7 @@
     "annotations": {
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies that the inline From header name-resolution logic in handle_reply is removed after extraction to get_alias_recipient_name().",
       "evidence": "Gold patch: email_handler.py lines 74-90 \u2014 the inline if/elif block that resolved the From header display name is replaced by a call to get_alias_recipient_name()",
       "justification": "[4: Quality Necessity] After extraction to get_alias_recipient_name(), the inline name-resolution logic in handle_reply is dead code replaced by the new utility. [5: Conclusion] Therefore, any correct answer should remove the inline From header name-resolution logic from handle_reply."

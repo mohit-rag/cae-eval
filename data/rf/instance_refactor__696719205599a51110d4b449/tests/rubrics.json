@@ -87,7 +87,7 @@
     "id": "02ac6e6d0924c6a25576302676259010",
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "N/A: No Description Required. ",
       "evidence": "N/A: No Evidence Required",
       "justification": "N/A: No Justification Required",
@@ -99,7 +99,7 @@
     "id": "d4f77af529814f65cadf5e4354f893ce",
     "title": "3.1: Removes both internal state fields (mainpwd and mainSpecifier) used by SetMain from the ModuleResolver struct in js/modules/resolution.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies cleanup of the internal state fields that were only needed for the SetMain/RunMain coupling.",
       "evidence": "gold.patch lines 32-35 show removal of mainpwd and mainSpecifier fields from ModuleResolver struct.",
       "justification": "[2: Implicit Codebase Constraint] The mainpwd and mainSpecifier fields exist solely to support the SetMain/RunMain coupling. [4: Quality Necessity] After removing SetMain, these fields become dead code. [5: Conclusion] Therefore, any good answer should remove these unused fields.",
@@ -111,7 +111,7 @@
     "id": "a75ac6cb4a052474cf5298a4088cac56",
     "title": "3.2: Removes the SetMain method from ModuleResolver in js/modules/resolution.go",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "description": "Verifies cleanup of the SetMain method after the coupling is removed.",
       "evidence": "gold.patch lines 43-51 show removal of the SetMain method.",
       "justification": "[2: Implicit Codebase Constraint] SetMain is the method that creates the coupling the prompt asks to remove. [4: Quality Necessity] After the refactoring, SetMain is dead code. [5: Conclusion] Therefore, any good answer should remove the SetMain method.",

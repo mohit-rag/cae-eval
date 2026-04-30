@@ -98,7 +98,7 @@
   {
     "title": "3: Artifact Cleanup",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "high level intent",
       "hli_category": "artifact cleanup",
       "description": "Evaluates removal of duplicate code after the refactor.",
@@ -110,7 +110,7 @@
   {
     "title": "3.1: Removes all 5 original dump method definitions (psdump, pdfdump, svgdump from Packet; psdump, pdfdump from PacketList) after moving them to the shared mixin",
     "annotations": {
-      "importance": "nice to have",
+      "importance": "must have",
       "type": "positive hli verifier",
       "hli_category": "artifact cleanup",
       "description": "Verifies that the original psdump, pdfdump, and svgdump method definitions are removed from Packet and the original psdump and pdfdump are removed from PacketList, since they are now inherited from the shared mixin.",
